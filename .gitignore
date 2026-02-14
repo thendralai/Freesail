@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+docs/Agents.md
+

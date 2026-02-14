@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://freesail.dev/catalogs/chat_catalog_v1.json",
+  "title": "Freesail Chat Catalog",
+  "description": "Chat interface components for Freesail generative UI. Provides a complete chat experience as an A2UI surface.",
+  "catalogId": "https://freesail.dev/catalogs/chat_catalog_v1.json",
+  "$defs": {
+    "CatalogComponentCommon": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "The type of component."
+        }
+      },
+      "required": ["component"]
+    }
+  },
+  "components": {
+    "ChatContainer": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ChatContainer" },
+            "height": {
+              "type": "string",
+              "description": "Container height (CSS value)",
+              "default": "100%"
+            },
+            "title": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Optional header title displayed above the message area"
+            },
+            "children": {
+              "$ref": "common_types.json#/$defs/ChildList",
+              "description": "Defines the children."
+            }
+          },
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ChatMessageList": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ChatMessageList" },
+            "children": {
+              "$ref": "common_types.json#/$defs/ChildList",
+              "description": "Scrollable container for chat messages. Auto-scrolls to bottom on new messages. Use ChildList template with path /messages."
+            }
+          },
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ChatMessage": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ChatMessage" },
+            "role": {
+              "type": "string",
+              "description": "Message sender role",
+              "enum": ["user", "assistant", "system"]
+            },
+            "content": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Message text content"
+            },
+            "timestamp": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "ISO 8601 timestamp of the message"
+            }
+          },
+          "required": ["component", "role", "content"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ChatInput": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ChatInput" },
+            "placeholder": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Placeholder text for the input field",
+              "default": "Type a message..."
+            },
+            "disabled": {
+              "$ref": "common_types.json#/$defs/DynamicBoolean",
+              "description": "Whether the input is disabled (e.g., while agent is processing)",
+              "default": false
+            }
+          },
+          "required": ["component"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ChatTypingIndicator": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ChatTypingIndicator" },
+            "visible": {
+              "$ref": "common_types.json#/$defs/DynamicBoolean",
+              "description": "Whether to show the typing indicator",
+              "default": false
+            },
+            "text": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Optional label text",
+              "default": "Thinking..."
+            }
+          },
+          "required": ["component"]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

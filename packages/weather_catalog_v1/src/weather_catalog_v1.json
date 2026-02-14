@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://freesail.dev/catalogs/weather_catalog_v1.json",
+  "title": "Freesail Weather Catalog",
+  "description": "Weather-specific UI components for displaying forecasts, conditions, and alerts",
+  "catalogId": "https://freesail.dev/catalogs/weather_catalog_v1.json",
+  "$defs": {
+    "CatalogComponentCommon": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "The type of component."
+        }
+      },
+      "required": ["component"]
+    }
+  },
+  "components": {
+    "WeatherCard": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "WeatherCard" },
+            "location": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "City or location name (e.g. 'London', 'New York'). Extract this from the user's request."
+            },
+            "temperature": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Current temperature value"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Temperature unit",
+              "enum": ["C", "F"],
+              "default": "C"
+            },
+            "condition": {
+              "type": "string",
+              "description": "Weather condition",
+              "enum": ["sunny", "cloudy", "partly-cloudy", "rainy", "stormy", "snowy", "foggy", "windy"]
+            },
+            "humidity": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Humidity percentage (0-100)"
+            },
+            "windSpeed": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Wind speed value"
+            },
+            "windUnit": {
+              "type": "string",
+              "description": "Wind speed unit",
+              "enum": ["km/h", "mph", "m/s"],
+              "default": "km/h"
+            },
+            "feelsLike": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Feels-like temperature"
+            },
+            "background": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Background color override"
+            }
+          },
+          "required": ["component", "location", "temperature", "condition"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ForecastRow": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ForecastRow" },
+            "day": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Day label (e.g. 'Mon', 'Tuesday', 'Today')"
+            },
+            "high": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "High temperature"
+            },
+            "low": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Low temperature"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Temperature unit",
+              "enum": ["C", "F"],
+              "default": "C"
+            },
+            "condition": {
+              "type": "string",
+              "description": "Weather condition for the day",
+              "enum": ["sunny", "cloudy", "partly-cloudy", "rainy", "stormy", "snowy", "foggy", "windy"]
+            },
+            "precipitation": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Precipitation chance percentage (0-100)"
+            }
+          },
+          "required": ["component", "day", "high", "low", "condition"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ForecastPanel": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "ForecastPanel" },
+            "title": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Panel title (e.g. '5-Day Forecast')",
+              "default": "Forecast"
+            },
+            "children": {
+              "$ref": "common_types.json#/$defs/ChildList",
+              "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list."
+            }
+          },
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TemperatureDisplay": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "TemperatureDisplay" },
+            "value": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Temperature value"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Temperature unit",
+              "enum": ["C", "F"],
+              "default": "C"
+            },
+            "size": {
+              "type": "string",
+              "description": "Display size",
+              "enum": ["sm", "md", "lg", "xl"],
+              "default": "lg"
+            },
+            "color": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Text color"
+            }
+          },
+          "required": ["component", "value"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "WeatherIcon": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "WeatherIcon" },
+            "condition": {
+              "type": "string",
+              "description": "Weather condition to display",
+              "enum": ["sunny", "cloudy", "partly-cloudy", "rainy", "stormy", "snowy", "foggy", "windy"]
+            },
+            "size": {
+              "type": "string",
+              "description": "Icon size",
+              "enum": ["sm", "md", "lg", "xl"],
+              "default": "md"
+            },
+            "animated": {
+              "$ref": "common_types.json#/$defs/DynamicBoolean",
+              "description": "Whether to use subtle animation",
+              "default": false
+            }
+          },
+          "required": ["component", "condition"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "WindIndicator": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "WindIndicator" },
+            "speed": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Wind speed value"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Wind speed unit",
+              "enum": ["km/h", "mph", "m/s"],
+              "default": "km/h"
+            },
+            "direction": {
+              "type": "string",
+              "description": "Wind cardinal direction",
+              "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+            },
+            "gustSpeed": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Gust speed value"
+            }
+          },
+          "required": ["component", "speed"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "HumidityGauge": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "HumidityGauge" },
+            "value": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "Humidity percentage (0-100)"
+            },
+            "label": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Label text",
+              "default": "Humidity"
+            }
+          },
+          "required": ["component", "value"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "UVIndex": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "UVIndex" },
+            "value": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "UV index value (0-11+)"
+            },
+            "label": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Label text",
+              "default": "UV Index"
+            }
+          },
+          "required": ["component", "value"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "WeatherAlert": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "WeatherAlert" },
+            "severity": {
+              "type": "string",
+              "description": "Alert severity level",
+              "enum": ["info", "advisory", "watch", "warning"]
+            },
+            "title": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Alert title"
+            },
+            "message": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Alert description text"
+            },
+            "expires": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Expiry time (human-readable or ISO 8601)"
+            }
+          },
+          "required": ["component", "severity", "title"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "SunriseSunset": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "SunriseSunset" },
+            "sunrise": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Sunrise time (e.g. '6:32 AM')"
+            },
+            "sunset": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Sunset time (e.g. '7:15 PM')"
+            },
+            "currentTime": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Current time for positioning the sun indicator"
+            }
+          },
+          "required": ["component", "sunrise", "sunset"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "AirQuality": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "component": { "const": "AirQuality" },
+            "value": {
+              "$ref": "common_types.json#/$defs/DynamicNumber",
+              "description": "AQI value (0-500)"
+            },
+            "label": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Label text",
+              "default": "Air Quality"
+            },
+            "pollutant": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Primary pollutant (e.g. 'PM2.5', 'O3')"
+            }
+          },
+          "required": ["component", "value"]
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

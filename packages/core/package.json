@@ -1,0 +1,38 @@
+{
+  "name": "@freesail/core",
+  "version": "0.4.0-alpha.1",
+  "description": "Core TypeScript logic for Freesail - protocol definitions, parser, transport",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "freesail",
+    "a2ux",
+    "protocol",
+    "generative-ui"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}

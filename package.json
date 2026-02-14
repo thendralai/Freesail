@@ -1,0 +1,39 @@
+{
+  "name": "freesail",
+  "version": "0.4.0-alpha.1",
+  "private": false,
+  "description": "A2UI based Generative UI SDK",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run verify && npm run build -w packages/core && npm run build -w packages/react -w packages/gateway && npm run build -w packages/chat_catalog_v1 -w packages/standard_catalog_v1 -w packages/weather_catalog_v1 && npm run build -w examples/react-app -w examples/agent",
+    "verify": "npx tsx scripts/verify-catalogs.ts",
+    "dev": "npm run dev --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "version:sync": "node scripts/sync-versions.js"
+  },
+  "keywords": [
+    "ai",
+    "generative-ui",
+    "mcp",
+    "a2ui",
+    "agent",
+    "llm"
+  ],
+  "author": "Thendral AI Ltd",
+  "contributors": ["Shanmugam Sudalaimuthu","Rama Sankaran"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "prettier": "^3.1.0"
+  }
+}
