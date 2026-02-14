@@ -1,6 +1,6 @@
 {
   "name": "@freesail/standard-catalog",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.1-alpha",
   "description": "Standard UI component catalog for Freesail — the first catalog built with the Freesail SDK",
   "type": "module",
   "main": "./dist/index.js",

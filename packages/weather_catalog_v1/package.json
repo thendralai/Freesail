@@ -1,6 +1,6 @@
 {
   "name": "@freesail/weather-catalog",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.1-alpha",
   "description": "Weather UI component catalog for Freesail — rich weather display components",
   "type": "module",
   "main": "./dist/index.js",

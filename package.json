@@ -1,6 +1,6 @@
 {
   "name": "freesail",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.1-alpha",
   "private": false,
   "description": "A2UI based Generative UI SDK",
   "workspaces": [
@@ -25,7 +25,7 @@
     "llm"
   ],
   "author": "Thendral AI Ltd",
-  "contributors": ["Shanmugam Sudalaimuthu","Rama Sankaran"],
+  "contributors": ["Shanmugam Sudalaimuthu"],
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

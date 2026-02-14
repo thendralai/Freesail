@@ -1,6 +1,6 @@
 {
   "name": "@freesail/gateway",
-  "version": "0.4.0-alpha.1",
+  "version": "0.4.1-alpha",
   "description": "Freesail Gateway - bridges AI Agents with frontend clients via MCP",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,7 +32,7 @@
     "ai-agent",
     "generative-ui"
   ],
-  "license": "MIT",
+  "license": "MIT", 
   "dependencies": {
     "@freesail/core": "*",
     "@modelcontextprotocol/sdk": "^1.0.0",
