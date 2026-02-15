@@ -107,6 +107,22 @@ Components can reference dynamic data using binding objects:
 - Call \`update_data_model\` to set values: path="/user/name", value="Alice".
 - This decouples UI structure from content, allowing efficient data-only updates.
 
+### String Interpolation
+
+Do NOT use \${path} directly in text strings. It will NOT be interpolated.
+To combine text and data, use the formatString function with positional placeholders ({0}, {1}, etc.):
+
+    {
+      "component": "Text",
+      "text": {
+        "call": "formatString",
+        "args": {
+          "0": "Hello {0}",
+          "1": { "path": "/user/name" }
+        }
+      }
+    }
+
 ## Two-Way Bindings (Input Components)
 
 Input components (TextField, Input, CheckBox) support **two-way binding**. When the user types or checks, the value is written back to the local data model at the bound path.
@@ -132,6 +148,42 @@ When creating a surface that contains input components, ALWAYS pass \`sendDataMo
 create_surface({ sessionId, surfaceId: "my-form", catalogId: "...", sendDataModel: true })
 \`\`\`
 This ensures the full data model (including all user input) is attached to every action from that surface.
+
+## Client-Side Functions & Validation
+
+You can use functions to perform client-side logic and validation without server round-trips.
+
+### Function Calls
+
+Use \`{"functionCall": { "call": "functionName", "args": { ... } }}\` to execute a function.
+Arguments can be literals or data bindings.
+
+### Input Validation (\`checks\`)
+
+Components like \`Button\` and \`TextField\` support the \`checks\` property.
+- A check passes if its \`condition\` evaluates to \`true\`.
+- If any check fails (evaluates to \`false\`), the component shows an error or is disabled.
+- Use logical functions like \`not\`, \`and\`, \`or\`, \`isEmpty\`, \`eq\` to build conditions.
+
+**Example: Validate 'name' is not empty**
+\`\`\`json
+{
+  "component": "TextField",
+  "label": "Name",
+  "value": { "path": "/data/name" },
+  "checks": [
+    {
+      "condition": {
+        "call": "not",
+        "args": {
+          "value": { "call": "isEmpty", "args": { "value": { "path": "/data/name" } } }
+        }
+      },
+      "message": "Name is required"
+    }
+  ]
+}
+\`\`\`
 
 ## Registered Catalog IDs (use these exact strings as catalogId)
 
@@ -167,7 +219,8 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - When handling user actions, acknowledge the action and update the UI accordingly.
 - Use a single catalogId consistently per surface.
 - **Each surface is bound to exactly ONE catalog.** Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them (e.g., the standard catalog).
-- **NEVER create, update, or delete the \`__chat\` surface.** It is pre-managed by the framework. Your text responses are automatically displayed there. Only create NEW surfaces (e.g., "weather-dashboard", "user-profile") when the user asks for visual UI.`;
+- **NEVER create, update, or delete the \`__chat\` surface.** It is pre-managed by the framework. Your text responses are automatically displayed there. Only create NEW surfaces (e.g., "weather-dashboard", "user-profile") when the user asks for visual UI.
+- **Use functions wherever possible** to perform client-side logic and validation without server round-trips.`;
 
       return {
         messages: [{

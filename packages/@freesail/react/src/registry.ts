@@ -7,7 +7,8 @@
  */
 
 import type { ComponentType, ReactNode } from 'react';
-import type { A2UIComponent, CatalogId } from '@freesail/core';
+import type { A2UIComponent, CatalogId, FunctionCall } from '@freesail/core';
+import type { FunctionImplementation } from './types.js';
 
 /**
  * Props passed to all Freesail components.
@@ -33,6 +34,11 @@ export interface FreesailComponentProps {
    * the sendDataModel metadata mechanism).
    */
   onDataChange?: (path: string, value: unknown) => void;
+  /**
+   * Execute a function call definition.
+   * This is for LocalAction handling (client-side logic).
+   */
+  onFunctionCall?: (call: FunctionCall) => void;
 }
 
 /**
@@ -50,14 +56,22 @@ export type ComponentMap = Map<string, FreesailComponent>;
  */
 class ComponentRegistry {
   private catalogs: Map<CatalogId, ComponentMap> = new Map();
+  private functions: Map<CatalogId, Record<string, FunctionImplementation>> = new Map();
   private fallbackComponent: FreesailComponent | null = null;
 
   /**
-   * Register a catalog with its components.
+   * Register a catalog with its components and functions.
    */
-  registerCatalog(catalogId: CatalogId, components: Record<string, FreesailComponent>): void {
+  registerCatalog(
+    catalogId: CatalogId,
+    components: Record<string, FreesailComponent>,
+    functions?: Record<string, FunctionImplementation>
+  ): void {
     const map: ComponentMap = new Map(Object.entries(components));
     this.catalogs.set(catalogId, map);
+    if (functions) {
+      this.functions.set(catalogId, functions);
+    }
   }
 
   /**
@@ -94,6 +108,17 @@ class ComponentRegistry {
   }
 
   /**
+   * Get a function from a catalog.
+   */
+  getFunction(catalogId: CatalogId, functionName: string): FunctionImplementation | null {
+    const catalogFunctions = this.functions.get(catalogId);
+    if (!catalogFunctions) {
+      return null;
+    }
+    return catalogFunctions[functionName] ?? null;
+  }
+
+  /**
    * Check if a catalog is registered.
    */
   hasCatalog(catalogId: CatalogId): boolean {
@@ -119,6 +144,7 @@ class ComponentRegistry {
    */
   clear(): void {
     this.catalogs.clear();
+    this.functions.clear();
     this.fallbackComponent = null;
   }
 }
@@ -146,7 +172,8 @@ export function withCatalog<P extends FreesailComponentProps>(
  */
 export function registerCatalog(
   catalogId: CatalogId,
-  components: Record<string, FreesailComponent>
+  components: Record<string, FreesailComponent>,
+  functions?: Record<string, FunctionImplementation>
 ): void {
-  registry.registerCatalog(catalogId, components);
+  registry.registerCatalog(catalogId, components, functions);
 }

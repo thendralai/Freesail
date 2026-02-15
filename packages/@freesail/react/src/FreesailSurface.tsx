@@ -6,16 +6,21 @@
  */
 
 import React, { useMemo, useCallback, type ReactNode } from 'react';
+import {
+  isChildListTemplate,
+  isFunctionCall,
+} from '@freesail/core';
 import type {
   SurfaceId,
   A2UIComponent,
   ComponentId,
   ChildList,
-  isChildListTemplate,
+  FunctionCall,
 } from '@freesail/core';
 import { useSurface, useAction } from './hooks.js';
 import { registry, type FreesailComponentProps } from './registry.js';
 import { useFreesailContext } from './context.js';
+import type { FunctionImplementation } from './types.js';
 
 /**
  * Props for FreesailSurface.
@@ -213,7 +218,7 @@ function renderComponent(
   }
 
   // Resolve data bindings in component properties
-  const resolvedProps = resolveDataBindings(componentDef, dataModel, scopeData);
+  const resolvedProps = resolveDataBindings(componentDef, dataModel, catalogId, scopeData);
 
   // Build props
   const props: FreesailComponentProps = {
@@ -223,10 +228,13 @@ function renderComponent(
     scopeData,
     onAction: (name, context) => {
       // Resolve data bindings in action context at dispatch time.
-      const resolvedContext = resolveActionContext(context, dataModel, scopeData);
+      const resolvedContext = resolveActionContext(context, dataModel, catalogId, scopeData);
       return dispatch(name, componentDef.id, resolvedContext);
     },
     onDataChange,
+    onFunctionCall: (call) => {
+       evaluateFunction(call, dataModel, catalogId, scopeData);
+    },
   };
 
   return <Component key={keyOverride ?? componentId} {...props} />;
@@ -238,6 +246,7 @@ function renderComponent(
 function resolveDataBindings(
   component: A2UIComponent,
   dataModel: Record<string, unknown>,
+  catalogId: string,
   scopeData?: unknown
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
@@ -260,26 +269,41 @@ function resolveDataBindings(
       }
     }
 
-    if (isDataBindingObject(effectiveValue)) {
+    if (isFunctionCall(effectiveValue)) {
+      resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
+    } else if (isDataBindingObject(effectiveValue)) {
       // Preserve the raw binding so components can find the path for two-way binding
       resolved[`__raw${key.charAt(0).toUpperCase()}${key.slice(1)}`] = effectiveValue;
       // Resolve data binding
       resolved[key] = resolveSingleBinding(effectiveValue, dataModel, scopeData);
 
     } else if (typeof value === 'object' && value !== null) {
+      // Prevent recursion into LocalAction definitions (which contain FunctionCalls that should NOT be evaluated yet)
+      if ('functionCall' in value && isFunctionCall((value as any).functionCall)) {
+          resolved[key] = value;
+          continue;
+      }
+
       // Recursively resolve bindings inside objects and arrays
       if (Array.isArray(value)) {
         resolved[key] = value.map(item => {
           if (typeof item === 'object' && item !== null) {
+            // Check for LocalAction in array items too
+            if ('functionCall' in item && isFunctionCall((item as any).functionCall)) {
+                return item;
+            }
+            if (isFunctionCall(item)) {
+              return evaluateFunction(item, dataModel, catalogId, scopeData);
+            }
             if (isDataBindingObject(item)) {
               return resolveSingleBinding(item, dataModel, scopeData);
             }
-            return resolveDataBindings(item as any, dataModel, scopeData);
+            return resolveDataBindings(item as any, dataModel, catalogId, scopeData);
           }
           return item;
         });
       } else {
-        resolved[key] = resolveDataBindings(value as any, dataModel, scopeData);
+        resolved[key] = resolveDataBindings(value as any, dataModel, catalogId, scopeData);
       }
     } else {
       resolved[key] = value;
@@ -331,17 +355,66 @@ function isDataBindingObject(value: unknown): value is { path: string } {
 }
 
 /**
+ * Evaluate a function call.
+ */
+export function evaluateFunction(
+  call: FunctionCall,
+  dataModel: Record<string, unknown>,
+  catalogId: string,
+  scopeData?: unknown
+): unknown {
+  const functionName = call.call;
+  const funcImpl = registry.getFunction(catalogId, functionName);
+
+  if (!funcImpl) {
+    console.warn(`[Freesail] Function not found: ${functionName} in catalog ${catalogId}`);
+    return undefined;
+  }
+
+  // Resolve arguments
+  const args = Object.values(call.args || {}).map(arg => {
+    if (isFunctionCall(arg)) {
+      return evaluateFunction(arg, dataModel, catalogId, scopeData);
+    }
+    if (isDataBindingObject(arg)) {
+      return resolveSingleBinding(arg, dataModel, scopeData);
+    }
+    // Handle nested arrays/objects in args
+    if (typeof arg === 'object' && arg !== null) {
+        if (Array.isArray(arg)) {
+             return arg.map(item => {
+                 if (isFunctionCall(item)) return evaluateFunction(item, dataModel, catalogId, scopeData);
+                 if (isDataBindingObject(item)) return resolveSingleBinding(item, dataModel, scopeData);
+                 return item;
+             });
+        }
+    }
+    return arg;
+  });
+
+  try {
+    return funcImpl(...args);
+  } catch (error) {
+    console.error(`[Freesail] Error evaluating function ${functionName}:`, error);
+    return undefined;
+  }
+}
+
+/**
  * Resolve data bindings in an action's context object.
  */
 function resolveActionContext(
   context: Record<string, unknown>,
   dataModel: Record<string, unknown>,
+  catalogId: string,
   scopeData?: unknown
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(context)) {
-    if (isDataBindingObject(value)) {
+    if (isFunctionCall(value)) {
+      resolved[key] = evaluateFunction(value, dataModel, catalogId, scopeData);
+    } else if (isDataBindingObject(value)) {
       const path = value.path;
       if (path.startsWith('/')) {
         resolved[key] = getDataAtPath(dataModel, path);

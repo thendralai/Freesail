@@ -496,7 +496,8 @@ export class A2UITransport {
 
       // Add data model if provided (sendDataModel feature)
       if (dataModel) {
-        headers['X-A2UI-DataModel'] = JSON.stringify(dataModel);
+        // Encode to ensure header is ISO-8859-1 compliant (handles emojis/utf-8)
+        headers['X-A2UI-DataModel'] = encodeURIComponent(JSON.stringify(dataModel));
       }
 
       const response = await fetch(this.options.postUrl, {

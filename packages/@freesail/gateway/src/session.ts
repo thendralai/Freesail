@@ -487,6 +487,10 @@ export class SessionManager {
     }
 
     try {
+      if (message && typeof message === 'object' && 'updateComponents' in message) {
+        console.error(`[SessionManager] Sending updateComponents to session ${sessionId}:`, 
+          JSON.stringify((message as any).updateComponents, null, 2));
+      }
       const data = `data: ${JSON.stringify(message)}\n\n`;
       session.response.write(data);
       session.lastActivity = Date.now();

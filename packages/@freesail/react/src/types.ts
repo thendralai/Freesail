@@ -35,4 +35,11 @@ export interface CatalogDefinition {
   schema: any;
   /** Map of component names to React components implementing FreesailComponentProps */
   components: Record<string, ComponentType<FreesailComponentProps>>;
+  /** Map of function names to their implementations */
+  functions?: Record<string, FunctionImplementation>;
 }
+
+/**
+ * A function implementation that can be called from the data model.
+ */
+export type FunctionImplementation = (...args: any[]) => any;

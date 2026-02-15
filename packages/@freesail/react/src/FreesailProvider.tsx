@@ -86,7 +86,8 @@ export function FreesailProvider({
     for (const def of catalogDefinitions) {
       registerCatalog(
         def.namespace as CatalogId,
-        def.components as Record<string, FreesailComponent>
+        def.components as Record<string, FreesailComponent>,
+        def.functions
       );
     }
   }, [catalogDefinitions]);

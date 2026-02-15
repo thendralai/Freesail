@@ -127,7 +127,7 @@ export function createAgent(config: AgentConfig) {
   // Initialize Gemini model
   const model = new ChatGoogleGenerativeAI({
     apiKey: googleApiKey,
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.7,
   });
 

@@ -43,8 +43,11 @@ export const STANDARD_CATALOG_ID = catalogSchema.catalogId;
  * >
  * ```
  */
+import { standardCatalogFunctions } from './functions.js';
+
 export const StandardCatalog: CatalogDefinition = {
   namespace: STANDARD_CATALOG_ID,
   schema: catalogSchema,
   components: standardCatalogComponents,
+  functions: standardCatalogFunctions,
 };

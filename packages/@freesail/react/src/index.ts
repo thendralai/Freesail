@@ -30,7 +30,7 @@ export {
 } from './registry.js';
 
 // Types
-export { type CatalogDefinition } from './types.js';
+export { type CatalogDefinition, type FunctionImplementation } from './types.js';
 
 // Re-export core types for convenience
 export type {

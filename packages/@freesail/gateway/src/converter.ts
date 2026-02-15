@@ -43,6 +43,12 @@ export interface Catalog {
   description?: string;
   $defs?: Record<string, unknown>;
   components: Record<string, CatalogComponent>;
+  functions?: Array<{
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+    returnType?: string;
+  }>;
 }
 
 /**
@@ -323,6 +329,18 @@ export function generateCatalogPrompt(catalog: Catalog): string {
     lines.push('');
   }
 
+  // Include Available Functions
+  if (catalog.functions && catalog.functions.length > 0) {
+    lines.push('### Available Functions:', '');
+    for (const func of catalog.functions) {
+      lines.push(`**${func.name}**`);
+      if (func.description) {
+        lines.push(`  ${func.description}`);
+      }
+      lines.push('');
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -565,6 +583,13 @@ const catalogComponentSchema = z.object({
   unevaluatedProperties: z.boolean().optional(),
 }).passthrough();
 
+const catalogFunctionSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  parameters: z.record(z.unknown()).optional(),
+  returnType: z.string().optional(),
+}).passthrough();
+
 export const catalogSchema = z.object({
   id: z.string().optional(),
   catalogId: z.string().optional(),
@@ -574,6 +599,7 @@ export const catalogSchema = z.object({
   description: z.string().optional(),
   $defs: z.record(z.unknown()).optional(),
   components: z.record(catalogComponentSchema),
+  functions: z.array(catalogFunctionSchema).optional(),
 }).passthrough();
 
 /**

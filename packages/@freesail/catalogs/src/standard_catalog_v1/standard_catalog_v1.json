@@ -1331,6 +1331,168 @@
         ],
         "unevaluatedProperties": false
       }
+    },
+    {
+      "name": "not",
+      "description": "Returns the logical negation of the value.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
+    {
+      "name": "and",
+      "description": "Returns true if all arguments are truthy.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [],
+        "additionalItems": {
+          "$ref": "../common/common_types.json#/$defs/DynamicValue"
+        }
+      }
+    },
+    {
+      "name": "or",
+      "description": "Returns true if any argument is truthy.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [],
+        "additionalItems": {
+          "$ref": "../common/common_types.json#/$defs/DynamicValue"
+        }
+      }
+    },
+    {
+      "name": "isEmpty",
+      "description": "Returns true if the value is null, undefined, empty string, empty array, or empty object.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
+    {
+      "name": "eq",
+      "description": "Returns true if the two values are strictly equal.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    {
+      "name": "neq",
+      "description": "Returns true if the two values are not equal.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    {
+      "name": "gt",
+      "description": "Returns true if the first value is greater than the second (converted to numbers).",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    {
+      "name": "gte",
+      "description": "Returns true if the first value is greater than or equal to the second (converted to numbers).",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    {
+      "name": "lt",
+      "description": "Returns true if the first value is less than the second (converted to numbers).",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    {
+      "name": "lte",
+      "description": "Returns true if the first value is less than or equal to the second (converted to numbers).",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
     }
   ],
   "theme": {

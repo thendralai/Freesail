@@ -6,6 +6,7 @@
  */
 
 import express, { type Express, type Request, type Response } from 'express';
+import { randomUUID } from 'crypto';
 import type { UpstreamMessage } from '@freesail/core';
 import { SessionManager } from './session.js';
 import { parseCatalog, type Catalog } from './converter.js';
@@ -151,7 +152,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       const dataModelHeader = req.headers['x-a2ui-datamodel'] as string | undefined;
       if (dataModelHeader && 'action' in message) {
         try {
-          (message as unknown as Record<string, unknown>)['_clientDataModel'] = JSON.parse(dataModelHeader);
+          (message as unknown as Record<string, unknown>)['_clientDataModel'] = JSON.parse(decodeURIComponent(dataModelHeader));
         } catch {
           // Silently ignore malformed header
         }
@@ -365,7 +366,7 @@ export function startExpressServer(
 // =============================================================================
 
 function generateSessionId(): string {
-  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `session_${randomUUID()}`;
 }
 
 function extractSurfaceId(message: unknown): string | null {

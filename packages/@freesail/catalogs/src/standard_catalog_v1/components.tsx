@@ -11,6 +11,7 @@
 import React, { useState, useEffect, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
+import { standardCatalogFunctions } from './functions.js';
 
 // =============================================================================
 // Layout Components
@@ -150,14 +151,22 @@ export function Markdown({ component }: FreesailComponentProps) {
  * Button - clickable action trigger.
  * Supports v0.9 action format with event.name and event.context.
  */
-export function Button({ component, children, onAction }: FreesailComponentProps) {
+export function Button({ component, children, onAction, onFunctionCall }: FreesailComponentProps) {
   // v0.9: Use child component for label, or fallback to label prop
   const label = children ?? (component['label'] as string) ?? 'Button';
   const variant = (component['variant'] as string) ?? 'primary';
   const disabled = (component['disabled'] as boolean) ?? false;
+  
+  const checks = (component['checks'] as any[]) ?? [];
+  const validationError = validateChecks(checks);
+  const isDisabled = disabled || !!validationError;
 
   // v0.9 action structure
-  const action = component['action'] as { event?: { name: string; context?: Record<string, unknown> } } | undefined;
+  const action = component['action'] as { 
+      event?: { name: string; context?: Record<string, unknown> },
+      functionCall?: any // LocalAction
+  } | undefined;
+  
   const actionName = action?.event?.name ?? (component['action'] as string) ?? 'button_click';
   // Pass context as-is — the framework resolves data bindings at dispatch time
   const actionContext = action?.event?.context ?? {};
@@ -183,13 +192,51 @@ export function Button({ component, children, onAction }: FreesailComponentProps
   const style = { ...baseStyle, ...variantStyles[variant] };
 
   const handleClick = () => {
-    if (!disabled && onAction) {
-      onAction(actionName, actionContext);
+    if (isDisabled) return;
+
+    if (action?.functionCall && onFunctionCall) {
+        onFunctionCall(action.functionCall);
+        return;
+    }
+
+    if (onAction) {
+        // Always dispatch the server action as requested
+        onAction(actionName, actionContext);
+
+        // Hybrid handling: If the action name matches a known standard function,
+        // execute it locally as well. This supports agents that use Server Actions
+        // interchangeably with Local Actions for standard capabilities.
+        if (onFunctionCall) {
+            const funcs = standardCatalogFunctions as Record<string, any>;
+            // Check direct match
+            let targetFunction = funcs[actionName] ? actionName : null;
+            
+            // Check snake_case -> camelCase conversion (e.g. open_url -> openUrl)
+            if (!targetFunction && actionName.includes('_')) {
+                 const camelName = actionName.replace(/_([a-z])/g, (_match, p1) => p1.toUpperCase());
+                 if (funcs[camelName]) {
+                     targetFunction = camelName;
+                 }
+            }
+
+            if (targetFunction) {
+                onFunctionCall({
+                    call: targetFunction,
+                    args: actionContext as Record<string, any>
+                });
+            }
+        }
     }
   };
 
   return (
-    <button type="button" style={style} onClick={handleClick} disabled={disabled}>
+    <button 
+      type="button" 
+      style={style} 
+      onClick={handleClick} 
+      disabled={isDisabled}
+      title={validationError || undefined}
+    >
       {label}
     </button>
   );
@@ -205,60 +252,71 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
   const variant = (component['variant'] as string) ?? 'shortText';
   const value = (component['value'] as string) ?? '';
 
+  // Validation checks
+  const checks = (component['checks'] as any[]) ?? [];
+  const validationError = validateChecks(checks);
+
   // Extract the bound data model path for two-way binding.
-  // The raw component value may be a DataBinding like {"path": "/formData/email"}
-  // which was resolved to the actual string by the framework. We need the
-  // original path to know WHERE to write back.
   const rawValue = component['__rawValue'] as { path?: string } | string | undefined;
   const boundPath = typeof rawValue === 'object' && rawValue?.path ? rawValue.path : null;
 
-  const [localValue, setLocalValue] = useState(value);
-
-  // Sync if the bound value changes externally (e.g. agent updates data model)
-  useEffect(() => { setLocalValue(value); }, [value]);
-
-  const style: CSSProperties = {
-    padding: '8px 12px',
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (onDataChange && boundPath) {
+      onDataChange(boundPath, newValue);
+    }
+  };
+  
+  // Basic styles
+  const containerStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    marginBottom: '8px',
+  };
+  
+  const labelStyle: CSSProperties = {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#333',
+  };
+  
+  const inputStyle: CSSProperties = {
+    padding: '8px',
     borderRadius: '4px',
-    border: '1px solid #ccc',
+    border: validationError ? '1px solid #dc3545' : '1px solid #ccc',
     fontSize: '14px',
     width: '100%',
     boxSizing: 'border-box',
   };
 
-  // Determine write-back path: explicit binding, or auto-bind fallback
-  const writePath = boundPath ?? `/input/${component.id}`;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    // Two-way binding: write back to the local data model
-    if (onDataChange) {
-      onDataChange(writePath, newValue);
-    }
+  const errorStyle: CSSProperties = {
+    fontSize: '11px',
+    color: '#dc3545',
+    marginTop: '2px',
   };
 
-  if (variant === 'longText') {
-    return (
-      <textarea
-        style={{ ...style, minHeight: '100px', resize: 'vertical' }}
-        placeholder={placeholder}
-        value={localValue}
-        onChange={handleChange}
-        name={name}
-      />
-    );
-  }
-
   return (
-    <input
-      style={style}
-      type="text"
-      placeholder={placeholder}
-      value={localValue}
-      onChange={handleChange}
-      name={name}
-    />
+    <div style={containerStyle}>
+      {label && <label style={labelStyle}>{label}</label>}
+      {variant === 'longText' ? (
+        <textarea 
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+          style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+        />
+      ) : (
+        <input 
+          type={variant === 'obscured' ? 'password' : variant === 'number' ? 'number' : 'text'}
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+          style={inputStyle}
+        />
+      )}
+      {validationError && <div style={errorStyle}>{validationError}</div>}
+    </div>
   );
 }
 
@@ -1008,3 +1066,22 @@ export const standardCatalogComponents = {
   Spacer,
   Markdown
 };
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+function validateChecks(checks: any[]): string | null {
+  if (!Array.isArray(checks)) return null;
+  for (const check of checks) {
+    // If condition is explicitly FALSE, the check failed.
+    // (Assuming true = valid state)
+    // Note: Falsy values like undefined/null are ignored (considered valid) to avoid
+    // blocking on initial render if checks haven't run or are pending.
+    // But boolean false is a definitive failure.
+    if (check.condition === false) {
+      return (check.message as string) || 'Validation failed';
+    }
+  }
+  return null;
+}
