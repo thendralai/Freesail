@@ -1,6 +1,7 @@
 {
   "name": "freesail-agent-example",
-  "version": "0.4.1-alpha",
+  "version": "0.4.2-alpha",
+  "private": true,
   "description": "Example LangChain agent for Freesail using Gemini 2.5 Flash",
   "type": "module",
   "main": "./dist/index.js",

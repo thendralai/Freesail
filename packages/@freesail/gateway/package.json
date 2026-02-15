@@ -1,7 +1,7 @@
 {
   "name": "@freesail/gateway",
-  "version": "0.4.1-alpha",
-  "description": "Freesail Gateway - bridges AI Agents with frontend clients via MCP",
+  "version": "0.4.2-alpha",
+  "description": "Freesail Gateway - bridges AI Agents with frontend clients",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,9 +32,8 @@
     "ai-agent",
     "generative-ui"
   ],
-  "license": "MIT", 
   "dependencies": {
-    "@freesail/core": "*",
+    "@freesail/core": "^0.4.2-alpha",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
@@ -45,5 +44,10 @@
     "@types/express": "^4.17.0",
     "tsx": "^4.7.0",
     "vitest": "^1.0.0"
-  }
+  },
+  "author": "Thendral AI Ltd",
+  "contributors": [
+    "Shanmugam Sudalaimuthu"
+  ],
+  "license": "MIT"
 }

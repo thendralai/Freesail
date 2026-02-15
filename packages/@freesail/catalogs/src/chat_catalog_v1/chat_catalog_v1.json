@@ -20,7 +20,7 @@
     "ChatContainer": {
       "type": "object",
       "allOf": [
-        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "../common/common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
@@ -32,11 +32,11 @@
               "default": "100%"
             },
             "title": {
-              "$ref": "common_types.json#/$defs/DynamicString",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "Optional header title displayed above the message area"
             },
             "children": {
-              "$ref": "common_types.json#/$defs/ChildList",
+              "$ref": "../common/common_types.json#/$defs/ChildList",
               "description": "Defines the children."
             }
           },
@@ -48,14 +48,14 @@
     "ChatMessageList": {
       "type": "object",
       "allOf": [
-        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "../common/common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
           "properties": {
             "component": { "const": "ChatMessageList" },
             "children": {
-              "$ref": "common_types.json#/$defs/ChildList",
+              "$ref": "../common/common_types.json#/$defs/ChildList",
               "description": "Scrollable container for chat messages. Auto-scrolls to bottom on new messages. Use ChildList template with path /messages."
             }
           },
@@ -67,7 +67,7 @@
     "ChatMessage": {
       "type": "object",
       "allOf": [
-        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "../common/common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
@@ -79,11 +79,11 @@
               "enum": ["user", "assistant", "system"]
             },
             "content": {
-              "$ref": "common_types.json#/$defs/DynamicString",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "Message text content"
             },
             "timestamp": {
-              "$ref": "common_types.json#/$defs/DynamicString",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "ISO 8601 timestamp of the message"
             }
           },
@@ -95,19 +95,19 @@
     "ChatInput": {
       "type": "object",
       "allOf": [
-        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "../common/common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
           "properties": {
             "component": { "const": "ChatInput" },
             "placeholder": {
-              "$ref": "common_types.json#/$defs/DynamicString",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "Placeholder text for the input field",
               "default": "Type a message..."
             },
             "disabled": {
-              "$ref": "common_types.json#/$defs/DynamicBoolean",
+              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
               "description": "Whether the input is disabled (e.g., while agent is processing)",
               "default": false
             }
@@ -120,19 +120,19 @@
     "ChatTypingIndicator": {
       "type": "object",
       "allOf": [
-        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "../common/common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
           "properties": {
             "component": { "const": "ChatTypingIndicator" },
             "visible": {
-              "$ref": "common_types.json#/$defs/DynamicBoolean",
+              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
               "description": "Whether to show the typing indicator",
               "default": false
             },
             "text": {
-              "$ref": "common_types.json#/$defs/DynamicString",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "Optional label text",
               "default": "Thinking..."
             }

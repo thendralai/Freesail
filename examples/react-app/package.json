@@ -1,6 +1,6 @@
 {
   "name": "freesail-react-example",
-  "version": "0.4.1-alpha",
+  "version": "0.4.2-alpha",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,10 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@freesail/chat-catalog": "*",
+    "@freesail/catalogs": "*",
     "@freesail/react": "*",
-    "@freesail/standard-catalog": "*",
-    "@freesail/weather-catalog": "*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

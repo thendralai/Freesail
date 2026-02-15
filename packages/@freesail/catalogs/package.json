@@ -1,0 +1,58 @@
+{
+  "name": "@freesail/catalogs",
+  "version": "0.4.2-alpha",
+  "description": "All first-party UI component catalogs for Freesail — standard, chat, and weather",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./standard": {
+      "types": "./dist/standard_catalog_v1/index.d.ts",
+      "import": "./dist/standard_catalog_v1/index.js"
+    },
+    "./chat": {
+      "types": "./dist/chat_catalog_v1/index.d.ts",
+      "import": "./dist/chat_catalog_v1/index.js"
+    },
+    "./weather": {
+      "types": "./dist/weather_catalog_v1/index.d.ts",
+      "import": "./dist/weather_catalog_v1/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "freesail",
+    "catalog",
+    "generative-ui",
+    "a2ui",
+    "react"
+  ],
+  "peerDependencies": {
+    "@freesail/react": "*",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@freesail/react": "*",
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0"
+  },
+  "dependencies": {
+    "react-markdown": "^10.1.0"
+  },
+  "author": "Thendral AI Ltd",
+  "contributors": [
+    "Shanmugam Sudalaimuthu"
+  ],
+  "license": "MIT"
+}

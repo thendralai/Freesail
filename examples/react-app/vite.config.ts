@@ -14,20 +14,20 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: false,
     alias: {
-      '@freesail/react': path.resolve(__dirname, '../../packages/react/src'),
-      '@freesail/core': path.resolve(__dirname, '../../packages/core/src'),
-      '@freesail/standard-catalog': path.resolve(__dirname, '../../packages/standard_catalog_v1/src'),
-      '@freesail/chat-catalog': path.resolve(__dirname, '../../packages/chat_catalog_v1/src'),
-      '@freesail/weather-catalog': path.resolve(__dirname, '../../packages/weather_catalog_v1/src')
+      '@freesail/react': path.resolve(__dirname, '../../packages/@freesail/react/src'),
+      '@freesail/core': path.resolve(__dirname, '../../packages/@freesail/core/src'),
+      '@freesail/catalogs/standard': path.resolve(__dirname, '../../packages/@freesail/catalogs/src/standard_catalog_v1'),
+      '@freesail/catalogs/chat': path.resolve(__dirname, '../../packages/@freesail/catalogs/src/chat_catalog_v1'),
+      '@freesail/catalogs/weather': path.resolve(__dirname, '../../packages/@freesail/catalogs/src/weather_catalog_v1')
     }
   },
   optimizeDeps: {
     exclude: [
       '@freesail/react',
       '@freesail/core',
-      '@freesail/standard-catalog',
-      '@freesail/chat-catalog',
-      '@freesail/weather-catalog'
+      '@freesail/catalogs/standard',
+      '@freesail/catalogs/chat',
+      '@freesail/catalogs/weather'
     ]
   }
 });

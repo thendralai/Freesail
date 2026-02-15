@@ -13,9 +13,9 @@ import {
   useConnectionStatus,
 } from '@freesail/react';
 import type { CatalogDefinition } from '@freesail/react';
-import { StandardCatalog } from '@freesail/standard-catalog';
-import { WeatherCatalog } from '@freesail/weather-catalog';
-import { ChatCatalog } from '@freesail/chat-catalog';
+import { StandardCatalog } from '@freesail/catalogs/standard';
+import { WeatherCatalog } from '@freesail/catalogs/weather';
+import { ChatCatalog } from '@freesail/catalogs/chat';
 
 /**
  * All available catalogs the user can choose from.

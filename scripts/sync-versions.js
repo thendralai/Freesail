@@ -1,12 +1,32 @@
 const fs = require('fs');
 const path = require('path');
+const { globSync } = require('glob'); // You may need to: npm install glob
 
+// 1. Get the "Source of Truth" from root
 const rootPkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-const packages = ['packages/core', 'packages/gateway', 'packages/react'];
+const newVersion = rootPkg.version;
 
-packages.forEach(pkgPath => {
-  const pkgJson = JSON.parse(fs.readFileSync(path.join(pkgPath, 'package.json'), 'utf8'));
-  pkgJson.version = rootPkg.version;
-  fs.writeFileSync(path.join(pkgPath, 'package.json'), JSON.stringify(pkgJson, null, 2) + '\n');
-  console.log(`Updated ${pkgPath} to v${rootPkg.version}`);
+// 2. Find ALL package.json files in your workspaces
+const packageFiles = globSync('packages/**/package.json', {
+  ignore: ['**/node_modules/**']
+});
+
+packageFiles.forEach(filePath => {
+  const pkg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  
+  // 3. Update the version
+  pkg.version = newVersion;
+  
+  // 4. IMPORTANT: Update internal cross-dependencies
+  // This ensures @freesail/react points to the new version of @freesail/core
+  if (pkg.dependencies) {
+    Object.keys(pkg.dependencies).forEach(dep => {
+      if (dep.startsWith('@freesail')) {
+        pkg.dependencies[dep] = `^${newVersion}`;
+      }
+    });
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(pkg, null, 2) + '\n');
+  console.log(`✅ Synced ${pkg.name} to v${newVersion}`);
 });

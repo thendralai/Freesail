@@ -1,6 +1,6 @@
 {
   "name": "@freesail/react",
-  "version": "0.4.1-alpha",
+  "version": "0.4.2-alpha",
   "description": "React implementation for Freesail - Generative UI SDK",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,13 +27,12 @@
     "generative-ui",
     "a2ux"
   ],
-  "license": "MIT",
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@freesail/core": "*"
+    "@freesail/core": "^0.4.2-alpha"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
@@ -41,5 +40,10 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "vitest": "^1.0.0"
-  }
+  },
+  "author": "Thendral AI Ltd",
+  "contributors": [
+    "Shanmugam Sudalaimuthu"
+  ],
+  "license": "MIT"
 }

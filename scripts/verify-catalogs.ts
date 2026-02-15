@@ -1,4 +1,3 @@
-
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,135 +14,138 @@ interface CatalogConfig {
     componentsExportName: string;
 }
 
-// Dynamically discover catalogs
+/**
+ * Recursively discovers catalogs in tiered folders (e.g., @freesail/catalogs/src/*)
+ */
 function discoverCatalogs(): CatalogConfig[] {
-    const entries = fs.readdirSync(PACKAGES_DIR, { withFileTypes: true });
-
     const catalogs: CatalogConfig[] = [];
 
-    for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+    // List of directories to scan for catalogs
+    const scanDirs = [
+        path.join(PACKAGES_DIR, '@freesail/catalogs/src'),
+    ];
 
-        // Convention: catalog packages match '<prefix>_catalog_<version>'
-        // e.g. 'standard_catalog_v1', 'weather_catalog_v1'
-        const match = entry.name.match(/^(.+)_catalog_(v\d+)$/);
+    for (const scanDir of scanDirs) {
+        if (!fs.existsSync(scanDir)) continue;
 
-        if (match) {
-            const packageName = entry.name;
-            const prefix = match[1];
-            const version = match[2];
+        const entries = fs.readdirSync(scanDir, { withFileTypes: true });
 
-            // Expected export names
-            const idExportName = `${prefix.toUpperCase()}_CATALOG_ID`;
-            const componentsExportName = `${prefix}CatalogComponents`;
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
 
-            // JSON file convention: <prefix>_catalog_<version>.json
-            const jsonFileName = `${prefix}_catalog_${version}.json`;
-            const jsonFile = path.join('src', jsonFileName);
+            // Pattern: <prefix>_catalog_<version> (e.g., weather_catalog_v1)
+            const match = entry.name.match(/^(.+)_catalog_(v\d+)$/);
 
-            // Verify JSON file exists before adding to config
-            const fullJsonPath = path.join(PACKAGES_DIR, packageName, jsonFile);
-            if (!fs.existsSync(fullJsonPath)) {
-                console.warn(`⚠️  Skipping ${packageName}: Could not find JSON file at ${jsonFile}`);
-                continue;
+            if (match) {
+                const packageName = entry.name;
+                const prefix = match[1];
+                const version = match[2];
+
+                const idExportName = `${prefix.toUpperCase()}_CATALOG_ID`;
+                const componentsExportName = `${prefix}CatalogComponents`;
+                const jsonFileName = `${prefix}_catalog_${version}.json`;
+
+                const fullJsonPath = path.join(scanDir, packageName, jsonFileName);
+                if (!fs.existsSync(fullJsonPath)) {
+                    console.warn(`⚠️  Skipping ${packageName}: Missing JSON at ${jsonFileName}`);
+                    continue;
+                }
+
+                catalogs.push({
+                    name: packageName,
+                    packagePath: path.join(scanDir, packageName), // Absolute path for verification
+                    jsonFile: jsonFileName,
+                    entryFile: 'index.ts',
+                    idExportName,
+                    componentsExportName
+                });
             }
-
-            catalogs.push({
-                name: packageName,
-                packagePath: packageName,
-                jsonFile,
-                entryFile: 'src/index.ts',
-                idExportName,
-                componentsExportName
-            });
         }
     }
 
     return catalogs;
 }
 
-async function verifyCatalog(config: CatalogConfig) {
-    console.log(`Verifying ${config.name}...`);
-    const packageRoot = path.join(PACKAGES_DIR, config.packagePath);
+async function verifyCatalog(config: CatalogConfig): Promise<boolean> {
+    console.log(`🔍 Verifying: ${config.name}`);
+    let isOk = true;
 
-    // 1. Read JSON Schema
-    const jsonPath = path.join(packageRoot, config.jsonFile);
+    // 1. Read and Parse JSON Schema
+    const jsonPath = path.join(config.packagePath, config.jsonFile);
+    let schema;
     try {
-        const jsonContent = fs.readFileSync(jsonPath, 'utf-8');
-        var schema = JSON.parse(jsonContent);
+        schema = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
     } catch (e) {
-        console.error(`❌ Failed to check ${config.name}: Could not read JSON schema at ${jsonPath}`);
-        process.exitCode = 1;
-        return;
+        console.error(`❌ File Error: Could not read JSON at ${jsonPath}`);
+        return false;
     }
 
-    // Get ID from JSON (v0.9 uses $id or catalogId)
     const jsonId = schema.id || schema.$id || schema.catalogId;
     const jsonComponents = Object.keys(schema.components || {});
 
-    // 2. Import TypeScript source (using dynamic import)
-    // We need to import from the absolute path of the source file
-    const entryPath = path.join(packageRoot, config.entryFile);
-
+    // 2. Dynamic Import of TypeScript Source
+    const entryPath = path.join(config.packagePath, config.entryFile);
     try {
-        const module = await import(entryPath);
+        // Using file:// URL for cross-platform dynamic import compatibility
+        const module = await import(`file://${entryPath}`);
 
         // 3. Verify ID
         const exportedId = module[config.idExportName];
         if (exportedId !== jsonId) {
-            console.error(`❌ ID Mismatch in ${config.name}:`);
-            console.error(`   JSON ID: ${jsonId}`);
-            console.error(`   Code Export (${config.idExportName}): ${exportedId}`);
-            process.exitCode = 1;
-        } else {
-            console.log(`   ✅ ID matches: ${exportedId}`);
+            console.error(`   ❌ ID Mismatch: JSON(${jsonId}) vs Code(${exportedId})`);
+            isOk = false;
         }
 
-        // 4. Verify Components
+        // 4. Verify Component Implementations
         const exportedComponents = module[config.componentsExportName];
         if (!exportedComponents) {
-            console.error(`❌ Could not find exported components map: ${config.componentsExportName}`);
-            process.exitCode = 1;
-            return;
+            console.error(`   ❌ Missing Export: ${config.componentsExportName} not found in index.ts`);
+            return false;
         }
 
-        const implementedComponents = Object.keys(exportedComponents);
-        const missingImplementation = jsonComponents.filter(c => !implementedComponents.includes(c));
-        const extraImplementation = implementedComponents.filter(c => !jsonComponents.includes(c));
+        const implementedKeys = Object.keys(exportedComponents);
+        const missing = jsonComponents.filter(c => !implementedKeys.includes(c));
 
-        if (missingImplementation.length > 0) {
-            console.error(`❌ Missing implementations for components defined in JSON:`);
-            missingImplementation.forEach(c => console.error(`   - ${c}`));
-            process.exitCode = 1;
-        } else {
-            console.log(`   ✅ All ${jsonComponents.length} JSON components are implemented.`);
+        if (missing.length > 0) {
+            console.error(`   ❌ Unimplemented components: ${missing.join(', ')}`);
+            isOk = false;
         }
 
-        if (extraImplementation.length > 0) {
-            console.warn(`   ⚠️  Components implemented but not in JSON (might be intentional internal components):`);
-            extraImplementation.forEach(c => console.warn(`      - ${c}`));
-        }
+        if (isOk) console.log(`   ✅ Validated ${jsonComponents.length} components.`);
 
     } catch (error) {
-        console.error(`❌ Failed to import or verify ${config.name}:`, error);
-        process.exitCode = 1;
+        console.error(`   ❌ Import Failed: ${entryPath}`, error);
+        return false;
     }
-    console.log('---');
+
+    return isOk;
 }
 
 async function main() {
-    console.log('Starting Dynamic Catalog Verification...\n');
+    console.log('--- Freesail Catalog Integrity Check ---');
     const catalogs = discoverCatalogs();
 
     if (catalogs.length === 0) {
-        console.warn('⚠️  No catalogs found matching convention "<prefix>_catalog_<version>".');
-    } else {
-        console.log(`Found ${catalogs.length} catalogs: ${catalogs.map(c => c.name).join(', ')}\n`);
+        console.error('❌ Error: No catalogs found matching the naming convention.');
+        process.exit(1); // Fail build if nothing is verified
     }
 
+    let allPassed = true;
     for (const config of catalogs) {
-        await verifyCatalog(config);
+        const result = await verifyCatalog(config);
+        if (!result) allPassed = false;
     }
+
+    if (!allPassed) {
+        console.error('\n💥 Build Stopped: Catalog integrity violations found.');
+        process.exit(1); // Non-zero exit code kills the 'npm run build' chain
+    }
+
+    console.log('\n✨ Success: All catalogs are implementation-complete.');
+    process.exit(0);
 }
 
-main().catch(console.error);
+main().catch(err => {
+    console.error(err);
+    process.exit(1);
+});

@@ -1,0 +1,47 @@
+{
+  "name": "freesail",
+  "version": "0.4.2-alpha",
+  "description": "Unified entry point for Freesail AI SDK",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external @freesail/core --external @freesail/react"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  },
+  "dependencies": {
+    "@freesail/core": "^0.4.2-alpha",
+    "@freesail/react": "^0.4.2-alpha"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "ai",
+    "freesail",
+    "generative-ui",
+    "mcp",
+    "a2ui",
+    "agent",
+    "llm"
+  ],
+  "author": "Thendral AI Ltd",
+  "contributors": [
+    "Shanmugam Sudalaimuthu"
+  ],
+  "license": "MIT"
+}
