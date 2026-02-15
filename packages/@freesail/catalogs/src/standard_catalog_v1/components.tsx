@@ -511,9 +511,12 @@ export function Tabs({ component, children }: FreesailComponentProps) {
 
 /**
  * Video - displays a video player.
+ * When embed=true, renders an iframe for YouTube/Vimeo sources.
+ * Otherwise, uses a native <video> element for direct file URLs.
  */
 export function Video({ component }: FreesailComponentProps) {
   const url = String((component['url'] as string) ?? '');
+  const embed = Boolean(component['embed']);
 
   const style: CSSProperties = {
     maxWidth: '100%',
@@ -521,19 +524,115 @@ export function Video({ component }: FreesailComponentProps) {
     borderRadius: '8px',
   };
 
+  if (embed) {
+    // Detect YouTube URLs and convert to embed format
+    const youtubeMatch = url.match(
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/
+    );
+    if (youtubeMatch) {
+      const videoId = youtubeMatch[1];
+      return (
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          style={{ ...style, width: '100%', aspectRatio: '16 / 9', border: 'none' }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+
+    // Detect Vimeo URLs and convert to embed format
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      const videoId = vimeoMatch[1];
+      return (
+        <iframe
+          src={`https://player.vimeo.com/video/${videoId}`}
+          style={{ ...style, width: '100%', aspectRatio: '16 / 9', border: 'none' }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+
+    // Generic iframe fallback for other embed URLs
+    return (
+      <iframe
+        src={url}
+        style={{ ...style, width: '100%', aspectRatio: '16 / 9', border: 'none' }}
+        allowFullScreen
+      />
+    );
+  }
+
+  // Native <video> for direct file URLs (mp4, webm, etc.)
   return <video src={url} controls style={style} />;
 }
 
 /**
  * AudioPlayer - displays an audio player with optional description.
+ * When embed=true, renders an iframe for Spotify/SoundCloud sources.
+ * Otherwise, uses a native <audio> element for direct file URLs.
  */
 export function AudioPlayer({ component }: FreesailComponentProps) {
   const url = String((component['url'] as string) ?? '');
   const description = String((component['description'] as string) ?? '');
+  const embed = Boolean(component['embed']);
 
+  const descriptionEl = description ? (
+    <div style={{ fontSize: '14px', color: '#555' }}>{description}</div>
+  ) : null;
+
+  if (embed) {
+    // Detect Spotify URLs (track, album, playlist, episode)
+    const spotifyMatch = url.match(
+      /open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/
+    );
+    if (spotifyMatch) {
+      const [, type, id] = spotifyMatch;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          {descriptionEl}
+          <iframe
+            src={`https://open.spotify.com/embed/${type}/${id}`}
+            style={{ width: '100%', height: type === 'track' ? '152px' : '352px', border: 'none', borderRadius: '12px' }}
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          />
+        </div>
+      );
+    }
+
+    // Detect SoundCloud URLs
+    if (url.includes('soundcloud.com')) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          {descriptionEl}
+          <iframe
+            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&show_artwork=true`}
+            style={{ width: '100%', height: '166px', border: 'none' }}
+            allow="autoplay"
+          />
+        </div>
+      );
+    }
+
+    // Generic iframe fallback for other embed URLs
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+        {descriptionEl}
+        <iframe
+          src={url}
+          style={{ width: '100%', height: '166px', border: 'none', borderRadius: '12px' }}
+          allow="autoplay"
+        />
+      </div>
+    );
+  }
+
+  // Fallback: native <audio> for direct file URLs (mp3, wav, ogg, etc.)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-      {description && <div style={{ fontSize: '14px', color: '#555' }}>{description}</div>}
+      {descriptionEl}
       <audio src={url} controls style={{ width: '100%' }} />
     </div>
   );

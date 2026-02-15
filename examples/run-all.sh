@@ -50,21 +50,18 @@ if [ ! -d "node_modules" ]; then
   npm install
 fi
 
-# Build packages if needed
-if [ ! -d "packages/@freesail/core/dist" ]; then
-  echo -e "${BLUE}Building @freesail/core...${NC}"
-  cd packages/@freesail/core && npm run build && cd "$ROOT_DIR"
-fi
+# Always rebuild packages to pick up source changes
+echo -e "${BLUE}Building @freesail/core...${NC}"
+cd packages/@freesail/core && npm run build && cd "$ROOT_DIR"
 
-if [ ! -d "packages/@freesail/gateway/dist" ]; then
-  echo -e "${BLUE}Building @freesail/gateway...${NC}"
-  cd packages/@freesail/gateway && npm run build && cd "$ROOT_DIR"
-fi
+echo -e "${BLUE}Building @freesail/react...${NC}"
+cd packages/@freesail/react && npm run build && cd "$ROOT_DIR"
 
-if [ ! -d "packages/@freesail/react/dist" ]; then
-  echo -e "${BLUE}Building @freesail/react...${NC}"
-  cd packages/@freesail/react && npm run build && cd "$ROOT_DIR"
-fi
+echo -e "${BLUE}Building @freesail/gateway...${NC}"
+cd packages/@freesail/gateway && npm run build && cd "$ROOT_DIR"
+
+echo -e "${BLUE}Building @freesail/catalogs...${NC}"
+cd packages/@freesail/catalogs && npm run build && cd "$ROOT_DIR"
 
 echo ""
 echo -e "${GREEN}Starting Freesail stack...${NC}"
@@ -84,6 +81,7 @@ sleep 4
 # Start UI
 echo -e "${BLUE}[UI]${NC} Starting on http://localhost:${UI_PORT:-5173}"
 cd "$ROOT_DIR/examples/react-app"
+rm -rf node_modules/.vite  # Clear Vite cache to pick up fresh workspace sources
 npm run dev > /dev/null 2>&1 &
 UI_PID=$!
 cd "$ROOT_DIR"
