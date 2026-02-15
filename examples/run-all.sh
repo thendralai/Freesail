@@ -51,19 +51,19 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Build packages if needed
-if [ ! -d "packages/core/dist" ]; then
+if [ ! -d "packages/@freesail/core/dist" ]; then
   echo -e "${BLUE}Building @freesail/core...${NC}"
-  cd packages/core && npm run build && cd "$ROOT_DIR"
+  cd packages/@freesail/core && npm run build && cd "$ROOT_DIR"
 fi
 
-if [ ! -d "packages/gateway/dist" ]; then
+if [ ! -d "packages/@freesail/gateway/dist" ]; then
   echo -e "${BLUE}Building @freesail/gateway...${NC}"
-  cd packages/gateway && npm run build && cd "$ROOT_DIR"
+  cd packages/@freesail/gateway && npm run build && cd "$ROOT_DIR"
 fi
 
-if [ ! -d "packages/react/dist" ]; then
+if [ ! -d "packages/@freesail/react/dist" ]; then
   echo -e "${BLUE}Building @freesail/react...${NC}"
-  cd packages/react && npm run build && cd "$ROOT_DIR"
+  cd packages/@freesail/react && npm run build && cd "$ROOT_DIR"
 fi
 
 echo ""

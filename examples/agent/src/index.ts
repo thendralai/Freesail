@@ -63,8 +63,8 @@ console.log('[Agent] Spawning Freesail gateway as MCP server...');
 // Resolve path to gateway CLI script (dev = source, prod = dist)
 const isDev = import.meta.url.includes('/src/');
 const gatewayScript = isDev
-  ? path.resolve(__dirname, '../../../packages/gateway/src/cli.ts')
-  : path.resolve(__dirname, '../../../packages/gateway/dist/cli.js');
+  ? path.resolve(__dirname, '../../../packages/@freesail/gateway/src/cli.ts')
+  : path.resolve(__dirname, '../../../packages/@freesail/gateway/dist/cli.js');
 
 const spawnCommand = isDev ? 'npx' : 'node';
 const spawnArgs = isDev
