@@ -15,7 +15,15 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "freesail": ["../../packages/freesail/src"],
+      "@freesail/core": ["../../packages/@freesail/core/src"],
+      "@freesail/react": ["../../packages/@freesail/react/src"],
+      "@freesail/catalogs": ["../../packages/@freesail/catalogs/src"],
+      "@freesail-community/weathercatalog": ["../../packages/@freesail-community/weather_catalog/src"]
+    }
   },
   "include": [
     "src"

@@ -1,7 +1,7 @@
 {
-  "name": "@freesail/catalogs",
+  "name": "@freesail-community/weathercatalog",
   "version": "0.4.2-alpha",
-  "description": "All first-party UI component catalogs for Freesail",
+  "description": "All community built UI component catalogs for Freesail A2UI SDK",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,14 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./standard": {
-      "types": "./dist/standard_catalog_v1/index.d.ts",
-      "import": "./dist/standard_catalog_v1/index.js"
-    },
-    "./chat": {
-      "types": "./dist/chat_catalog_v1/index.d.ts",
-      "import": "./dist/chat_catalog_v1/index.js"
     }
   },
   "files": [

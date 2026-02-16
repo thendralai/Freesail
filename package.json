@@ -6,14 +6,16 @@
   "workspaces": [
     "packages/@freesail/*",
     "packages/freesail",
+    "packages/@freesail-community/*",
     "examples/*"
   ],
   "scripts": {
-    "verify": "tsx scripts/verify-catalogs.ts",
+    "clean": "npm run clean --workspaces --if-present",
     "sync": "node scripts/sync-versions.js",
-    "prebuild": "npm run verify && npm run sync",
-    "build": "npm run build --workspaces --if-present",
-    "clean": "npm run clean --workspaces --if-present"
+    "build": "npm run sync && npm run build -w @freesail/core && npm run build -w @freesail/react && npm run build -w @freesail/gateway && npm run build -w @freesail/catalogs && npm run build -w freesail && npm run build -w @freesail-community/weathercatalog && npm run build -w freesail-agent-example && npm run build -w freesail-react-example",
+    "clean:publish": "rm -rf publish && mkdir publish",
+    "pack:all": "npm run clean:publish && npm run pack:workspaces",
+    "pack:workspaces": "npm pack --workspaces --pack-destination=./publish"
   },
   "keywords": [
     "ai",
@@ -37,5 +39,8 @@
     "prettier": "^3.1.0",
     "typescript": "^5.3.0",
     "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "freesail": "^0.4.2-alpha"
   }
 }

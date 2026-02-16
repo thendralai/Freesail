@@ -49,5 +49,8 @@
   "contributors": [
     "Shanmugam Sudalaimuthu"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

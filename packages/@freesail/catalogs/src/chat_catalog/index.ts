@@ -22,7 +22,7 @@
 
 import type { CatalogDefinition } from '@freesail/react';
 import { chatCatalogComponents } from './components.js';
-import catalogSchema from './chat_catalog_v1.json';
+import catalogSchema from './chat_catalog.json';
 
 // Re-export all individual components for advanced usage
 export * from './components.js';

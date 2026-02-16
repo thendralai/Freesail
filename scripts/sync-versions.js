@@ -8,7 +8,7 @@ const newVersion = rootPkg.version;
 
 // 2. Find ALL package.json files in your workspaces
 const packageFiles = globSync('packages/**/package.json', {
-  ignore: ['**/node_modules/**']
+  ignore: ['**/node_modules/**', 'packages/@freesail-community/**']
 });
 
 packageFiles.forEach(filePath => {
@@ -21,7 +21,7 @@ packageFiles.forEach(filePath => {
   // This ensures @freesail/react points to the new version of @freesail/core
   if (pkg.dependencies) {
     Object.keys(pkg.dependencies).forEach(dep => {
-      if (dep.startsWith('@freesail')) {
+      if (dep.startsWith('@freesail/')) {
         pkg.dependencies[dep] = `^${newVersion}`;
       }
     });

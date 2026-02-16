@@ -22,7 +22,7 @@
 
 import type { CatalogDefinition } from '@freesail/react';
 import { standardCatalogComponents } from './components.js';
-import catalogSchema from './standard_catalog_v1.json';
+import catalogSchema from './standard_catalog.json';
 
 // Re-export all individual components for advanced usage
 export * from './components.js';

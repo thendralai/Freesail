@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "freesail": "*",
     "@freesail/catalogs": "*",
     "@freesail/react": "*",
+    "@freesail-community/weathercatalog": "*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

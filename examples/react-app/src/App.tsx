@@ -5,70 +5,27 @@
  * to enable AI agents to drive the UI using the A2UI v0.9 protocol.
  */
 
-import React, { useState, useMemo } from 'react';
-import {
-  FreesailProvider,
-  FreesailSurface,
-  useSurfaces,
-  useConnectionStatus,
-} from '@freesail/react';
-import type { CatalogDefinition } from '@freesail/react';
-import { StandardCatalog } from '@freesail/catalogs/standard';
-import { WeatherCatalog } from '@freesail/catalogs/weather';
-import { ChatCatalog } from '@freesail/catalogs/chat';
+import React from 'react';
+import {ReactUI} from 'freesail';
+import {ChatCatalog, StandardCatalog} from '@freesail/catalogs';
+import { WeatherCatalog } from '@freesail-community/weathercatalog';
 
-/**
- * All available catalogs the user can choose from.
- */
-const AVAILABLE_CATALOGS: { id: string; label: string; description: string; definition: CatalogDefinition }[] = [
-  {
-    id: StandardCatalog.namespace,
-    label: 'Standard',
-    description: 'Layout, text, buttons, inputs, images',
-    definition: StandardCatalog,
-  },
-  {
-    id: WeatherCatalog.namespace,
-    label: 'Weather',
-    description: 'Weather cards, forecasts, alerts, gauges',
-    definition: WeatherCatalog,
-  },
+const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
+  ChatCatalog,
+  StandardCatalog,
+  WeatherCatalog,
 ];
 
 /**
  * Main App component.
- *
- * Renders a catalog selector above the FreesailProvider so the user
- * can choose which catalogs to send to the gateway. Changing the
- * selection remounts the provider (reconnects with new catalogs).
  */
 function App() {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(AVAILABLE_CATALOGS.map((c) => c.id))
-  );
-
-  const selectedDefinitions = useMemo(
-    () => [
-      ChatCatalog, // Always included — required for the __chat surface
-      ...AVAILABLE_CATALOGS.filter((c) => selectedIds.has(c.id)).map((c) => c.definition),
-    ],
-    [selectedIds]
-  );
-
-  // Use the serialised set as a key so the provider remounts on change
-  const providerKey = useMemo(() => Array.from(selectedIds).sort().join(','), [selectedIds]);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Catalog selector bar */}
-      <CatalogSelector selectedIds={selectedIds} onChange={setSelectedIds} />
-
-      {/* Provider remounts when providerKey changes */}
-      <FreesailProvider
-        key={providerKey}
+      <ReactUI.FreesailProvider
         sseUrl="http://localhost:3001/sse"
         postUrl="http://localhost:3001/message"
-        catalogDefinitions={selectedDefinitions}
+        catalogDefinitions={ALL_CATALOGS}
         onConnectionChange={(connected) => {
           console.log('Connection status:', connected);
         }}
@@ -79,7 +36,7 @@ function App() {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
           {/* Chat Surface — rendered by the agent via A2UI */}
           <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-            <FreesailSurface surfaceId="__chat" />
+            <ReactUI.FreesailSurface surfaceId="__chat" />
           </div>
 
           {/* Main Content */}
@@ -99,92 +56,20 @@ function App() {
             </main>
           </div>
         </div>
-      </FreesailProvider>
+      </ReactUI.FreesailProvider>
     </div>
   );
 }
 
 // =============================================================================
-// Catalog Selector
+// Components
 // =============================================================================
-
-function CatalogSelector({
-  selectedIds,
-  onChange,
-}: {
-  selectedIds: Set<string>;
-  onChange: (ids: Set<string>) => void;
-}) {
-  const toggle = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      // Don't allow deselecting all
-      if (next.size <= 1) return;
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    onChange(next);
-  };
-
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '8px 16px',
-      borderBottom: '1px solid #e0e0e0',
-      backgroundColor: '#fff',
-      flexShrink: 0,
-    }}>
-      <span style={{ fontSize: '13px', fontWeight: 600, color: '#555' }}>
-        Catalogs
-      </span>
-      {AVAILABLE_CATALOGS.map((cat) => {
-        const active = selectedIds.has(cat.id);
-        return (
-          <button
-            key={cat.id}
-            onClick={() => toggle(cat.id)}
-            title={cat.description}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 12px',
-              fontSize: '13px',
-              border: active ? '1.5px solid #007bff' : '1.5px solid #ccc',
-              borderRadius: '16px',
-              backgroundColor: active ? '#e7f1ff' : '#fff',
-              color: active ? '#007bff' : '#666',
-              cursor: 'pointer',
-              fontWeight: active ? 600 : 400,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: active ? '#007bff' : '#ccc',
-              flexShrink: 0,
-            }} />
-            {cat.label}
-          </button>
-        );
-      })}
-      <span style={{ fontSize: '11px', color: '#999', marginLeft: 'auto' }}>
-        {selectedIds.size} of {AVAILABLE_CATALOGS.length} active
-      </span>
-    </div>
-  );
-}
 
 /**
  * Shows connection status.
  */
 function ConnectionIndicator() {
-  const { isConnected } = useConnectionStatus();
+  const { isConnected } = ReactUI.useConnectionStatus();
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -205,7 +90,7 @@ function ConnectionIndicator() {
  * Renders all active surfaces except __chat (which has its own panel).
  */
 function SurfaceList() {
-  const allSurfaces = useSurfaces();
+  const allSurfaces = ReactUI.useSurfaces();
   const surfaces = allSurfaces.filter((s) => s.id !== '__chat');
 
   if (surfaces.length === 0) {
@@ -216,7 +101,7 @@ function SurfaceList() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {surfaces.map((surface) => (
         <div key={surface.id}>
-          <FreesailSurface
+          <ReactUI.FreesailSurface
             surfaceId={surface.id}
             className="surface-container"
           />
