@@ -123,13 +123,13 @@ export function WeatherCard({ component }: FreesailComponentProps) {
       </div>
       <div style={topRow}>
         <div style={tempStyle}>
-          {temperature !== undefined ? `${Math.round(temperature)}°${unit}` : 'Unknown'}
+          {temperature !== undefined ? `${Math.round(temperature)}°${unit.replace('°', '')}` : 'Unknown'}
         </div>
         <span style={iconStyle}>{getConditionIcon(condition)}</span>
       </div>
       <div style={detailRow}>
         {feelsLike !== undefined && (
-          <span>Feels like {Math.round(feelsLike)}°{unit}</span>
+          <span>Feels like {Math.round(feelsLike)}°{unit.replace('°', '')}</span>
         )}
         {humidity !== undefined && <span>💧 {humidity}%</span>}
         {windSpeed !== undefined && <span>💨 {windSpeed} {windUnit}</span>}
@@ -196,7 +196,7 @@ export function ForecastRow({ component }: FreesailComponentProps) {
           borderRadius: '2px',
           background: `linear-gradient(to right, #74b9ff, #e17055)`,
         }} />
-        <span style={{ fontWeight: 600, color: '#333' }}>{Math.round(high)}°{unit}</span>
+        <span style={{ fontWeight: 600, color: '#333' }}>{Math.round(high)}°{unit.replace('°', '')}</span>
       </div>
     </div>
   );
@@ -274,7 +274,7 @@ export function TemperatureDisplay({ component }: FreesailComponentProps) {
   return (
     <span style={style}>
       {Math.round(value)}
-      <span style={unitStyle}>°{unit}</span>
+      <span style={unitStyle}>°{unit.replace('°', '')}</span>
     </span>
   );
 }

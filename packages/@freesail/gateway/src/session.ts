@@ -177,7 +177,7 @@ export class SessionManager {
       if (session) {
         session.catalogIds.add(catalog.id);
       }
-      console.error(`[SessionManager] Registered catalog: ${catalog.title || catalog.name} (${catalog.id}) for session ${sessionId}`);
+      console.error(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.id}) for session ${sessionId}`);
     }
     // Notify listeners
     for (const listener of this.catalogListeners) {
@@ -490,6 +490,10 @@ export class SessionManager {
       if (message && typeof message === 'object' && 'updateComponents' in message) {
         console.error(`[SessionManager] Sending updateComponents to session ${sessionId}:`, 
           JSON.stringify((message as any).updateComponents, null, 2));
+      }
+      if (message && typeof message === 'object' && 'updateDataModel' in message) {
+        console.error(`[SessionManager] Sending updateDataModel to session ${sessionId}:`, 
+          JSON.stringify((message as any).updateDataModel, null, 2));
       }
       const data = `data: ${JSON.stringify(message)}\n\n`;
       session.response.write(data);

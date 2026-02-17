@@ -58,14 +58,9 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
     },
     async () => {
       const catalogs = sessionManager.getCatalogs();
-      const catalogSections = catalogs.length > 0
-        ? catalogs.map(c => `${generateCatalogPrompt(c)}`).join('\n\n')
-        : 'No catalogs registered yet. Catalogs will be provided by connected clients.';
 
-      // Build a quick-reference list of catalog IDs
-      const catalogIdList = catalogs.length > 0
-        ? catalogs.map(c => `- \`${c.id}\` — ${c.name}`).join('\n')
-        : '(none yet)';
+
+
 
       const promptText = `You are a helpful AI assistant that creates dynamic user interfaces using the A2UI protocol and Freesail tools.
 
@@ -185,13 +180,15 @@ Components like \`Button\` and \`TextField\` support the \`checks\` property.
 }
 \`\`\`
 
-## Registered Catalog IDs (use these exact strings as catalogId)
-
-${catalogIdList}
-
 ## Available Catalogs
-
-${catalogSections}
+ 
+Catalogs are available as MCP resources.
+To see available catalogs, use the \`list_resources\` tool. Look for resources with \`mimeType: 'text/plain'\` or names describing catalogs.
+Then read the specific resource URI to get component definitions.
+ 
+ For example:
+ 1. Call \`list_resources()\` -> returns list including "Standard Catalog (mcp://freesail.dev/catalogs/standard_catalog_v1.json)"
+ 2. Call \`read_resource("mcp://freesail.dev/catalogs/standard_catalog_v1.json")\` to get the component definitions.
 
 ## Session Management
 
@@ -213,14 +210,15 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 ## Guidelines
 
 - Always create a surface before updating its components.
-- Use meaningful surfaceIds (e.g., "weather-dashboard", "user-profile").
-- Prefer data bindings for content that changes frequently.
+- Use meaningful and unique surfaceIds (e.g., "weather-dashboard", "user-profile").
+- Prefer data bindings for contents that change.
 - Respond conversationally AND create/update UI when appropriate.
 - When handling user actions, acknowledge the action and update the UI accordingly.
 - Use a single catalogId consistently per surface.
-- **Each surface is bound to exactly ONE catalog.** Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them (e.g., the standard catalog).
-- **NEVER create, update, or delete the \`__chat\` surface.** It is pre-managed by the framework. Your text responses are automatically displayed there. Only create NEW surfaces (e.g., "weather-dashboard", "user-profile") when the user asks for visual UI.
-- **Use functions wherever possible** to perform client-side logic and validation without server round-trips.`;
+- Each surface is bound to exactly ONE catalog. 
+- Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them.
+- Only create NEW surfaces when you think that the user will have a better experience with a Visual UI.
+- Use functions wherever possible to perform client-side logic and validation without server round-trips.`;
 
       return {
         messages: [{
@@ -243,25 +241,20 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 
   const registerCatalogResources = (catalogs: Catalog[]) => {
     for (const catalog of catalogs) {
-      if (registeredCatalogs.has(catalog.id)) continue;
-      registeredCatalogs.add(catalog.id);
+      if (registeredCatalogs.has(catalog.catalogId)) continue;
+      registeredCatalogs.add(catalog.catalogId);
 
       server.registerResource(
-        catalog.title || catalog.name || 'Unknown',
-        `freesail://catalog/${catalog.id}`,
+        catalog.title,
+        catalog.catalogId,
         {
-          description: catalog.description ?? `UI component catalog: ${catalog.title || catalog.name || catalog.id}`,
-          mimeType: 'application/json',
+          description: catalog.description ?? `UI component catalog: ${catalog.title}`,
+          mimeType: 'text/plain',
         },
         async () => ({
           contents: [
             {
-              uri: `freesail://catalog/${catalog.id}`,
-              mimeType: 'application/json',
-              text: JSON.stringify(catalog, null, 2),
-            },
-            {
-              uri: `freesail://catalog/${catalog.id}/prompt`,
+              uri: catalog.catalogId,
               mimeType: 'text/plain',
               text: generateCatalogPrompt(catalog),
             },
@@ -269,7 +262,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
         })
       );
 
-      console.error(`[MCP] Registered catalog resource: ${catalog.title || catalog.name || catalog.id} (${catalog.id})`);
+      console.error(`[MCP] Registered catalog resource: ${catalog.catalogId}`);
     }
 
     // Notify MCP clients that resources (and prompt content) have changed
@@ -302,7 +295,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
   // Register action queue resource template — MCP clients can read pending actions
   server.registerResource(
     'Pending UI Actions',
-    new ResourceTemplate('freesail://actions/{sessionId}', { list: undefined }),
+    new ResourceTemplate('mcp://freesail.dev/actions/{sessionId}', { list: undefined }),
     {
       description: 'Pending upstream actions from the UI for a given session. Reading drains the queue.',
       mimeType: 'application/json',

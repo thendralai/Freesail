@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ResourceListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { createAgent } from './agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -93,6 +94,24 @@ console.log(`[Agent] MCP tools: ${tools.map(t => t.name).join(', ')}`);
 
 const { prompts } = await mcpClient.listPrompts();
 console.log(`[Agent] MCP prompts: ${prompts.map(p => p.name).join(', ')}`);
+
+// Use the correct notification handler API for the MCP SDK
+// The SDK v1.0.0 uses setNotificationHandler
+mcpClient.setNotificationHandler<any>(
+  z.object({ method: z.literal('notifications/resources/list_changed') }).passthrough(),
+  async () => {
+    console.log('[Agent] Resources changed, invalidating cache');
+    agent.invalidateCache();
+  }
+);
+
+mcpClient.setNotificationHandler<any>(
+  z.object({ method: z.literal('notifications/prompts/list_changed') }).passthrough(),
+  async () => {
+    console.log('[Agent] Prompts changed, invalidating cache');
+    agent.invalidateCache();
+  }
+);
 
 // ============================================================================
 // Agent Setup

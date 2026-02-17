@@ -35,11 +35,9 @@ export interface CatalogComponent {
  * Full catalog schema.
  */
 export interface Catalog {
-  id: string; // catalogId (URI)
-  catalogId?: string; // Alias for id in v0.9
-  title?: string;
-  name?: string; // Kept for backward compat
-  version?: string;
+  id: string; 
+  catalogId: string; 
+  title: string;
   description?: string;
   $defs?: Record<string, unknown>;
   components: Record<string, CatalogComponent>;
@@ -222,12 +220,11 @@ function propertyToSchema(prop: CatalogProperty): Record<string, unknown> {
  * Generates the system prompt injection for the catalog.
  */
 export function generateCatalogPrompt(catalog: Catalog): string {
-  const name = catalog.title || catalog.name || 'UI Catalog';
-  const id = catalog.catalogId || catalog.id;
-  const version = catalog.version || '0.9';
+  const name = catalog.title;
+  const id = catalog.catalogId;
 
   const lines: string[] = [
-    `## UI Catalog: ${name} (v${version})`,
+    `## UI Catalog: ${name}`,
     `**Catalog ID (use this as catalogId in create_surface):** \`${id}\``,
     '',
     catalog.description ?? 'Available UI components for rendering interfaces.',
