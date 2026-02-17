@@ -292,6 +292,15 @@
               "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.",
               "$ref": "../common/common_types.json#/$defs/ChildList"
             },
+            "gap": {
+              "description": "The spacing between children.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "default": "8px"
+            },
+            "padding": {
+              "description": "Padding around the content.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString"
+            },
             "justify": {
               "type": "string",
               "description": "Defines the arrangement of children along the main axis (horizontally). Use 'spaceBetween' to push items to the edges, or 'start'/'end'/'center' to pack them together.",
@@ -343,6 +352,15 @@
             "children": {
               "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.",
               "$ref": "../common/common_types.json#/$defs/ChildList"
+            },
+            "gap": {
+              "description": "The spacing between children.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "default": "8px"
+            },
+            "padding": {
+              "description": "Padding around the content.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString"
             },
             "justify": {
               "type": "string",
@@ -436,6 +454,19 @@
           "properties": {
             "component": {
               "const": "Card"
+            },
+            "padding": {
+              "description": "Padding inside the card.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "default": "16px"
+            },
+            "width": {
+              "description": "The width of the card.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString"
+            },
+            "height": {
+              "description": "The height of the card.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString"
             },
             "child": {
               "$ref": "../common/common_types.json#/$defs/ComponentId",

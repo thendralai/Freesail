@@ -68,8 +68,7 @@ echo -e "${GREEN}Starting Freesail stack...${NC}"
 echo ""
 
 # Start Agent (which spawns the gateway as an MCP child process)
-echo -e "${BLUE}[Agent]${NC} Starting on http://localhost:${AGENT_PORT:-3002}"
-echo -e "${BLUE}[Agent]${NC} Will spawn gateway MCP server on http://localhost:${GATEWAY_PORT:-3001}"
+echo -e "${BLUE}[Agent]${NC} Starting"
 cd "$ROOT_DIR/examples/agent"
 npm run dev &
 AGENT_PID=$!
@@ -91,8 +90,8 @@ sleep 2
 
 echo ""
 echo -e "${GREEN}All services running:${NC}"
-echo -e "  Agent:   http://localhost:${AGENT_PORT:-3002}  (MCP host)"
-echo -e "  Gateway: http://localhost:${GATEWAY_PORT:-3001}  (MCP server, spawned by agent)"
+echo -e "  Agent:   http://localhost:${AGENT_PORT:-3002}  (Healthcheck endpoint)"
+echo -e "  Gateway: http://localhost:${GATEWAY_PORT:-3001}  (Gateway server, spawned by agent)"
 echo -e "  UI:      http://localhost:${UI_PORT:-5173}"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"

@@ -104,114 +104,61 @@ const agent = createAgent({
 });
 
 // ============================================================================
-// Serialized Processing Queue
+// Agent Runtime
 // ============================================================================
 
-/**
- * All chat / action processing is serialized to avoid concurrent writes
- * to conversation history and data models.
- */
-let processingChain = Promise.resolve();
+import { FreesailAgentRuntime, formatAction, bootstrapChatSurface } from '@freesail/agentruntime';
 
-function queueChat(message: string, sessionId: string): Promise<string> {
-  const resultPromise = processingChain.then(() => agent.chat(message, sessionId));
-  processingChain = resultPromise.then(
-    () => { },
-    () => { }
-  );
-  return resultPromise;
-}
+const runtime = new FreesailAgentRuntime({
+  mcpClient,
+  onChat: async (message, sessionId) => agent.chat(message, sessionId),
+  onAction: async (actionMsg, sessionId) => {
+    const action = actionMsg.action;
+    if (!action) return;
 
-/** Queue an async side-effect that participates in the serial chain. */
-function queueAsync(fn: () => Promise<void>): void {
-  processingChain = processingChain.then(fn, () => fn().catch(() => { }));
-}
+    console.log(`[Agent] Action: ${action.name} (session=${sessionId})`);
 
-// ============================================================================
-// Chat Surface Bootstrap
-// ============================================================================
+    // ---- Synthetic: session connected ----
+    if (action.name === '__session_connected') {
+      await bootstrapChatSurface(mcpClient, sessionId, AGENT_ID, CHAT_CATALOG_ID);
+      return;
+    }
 
-/**
- * Called when a new client session connects.
- * Creates the __chat surface with the chat catalog components.
- */
-async function bootstrapChatSurface(sessionId: string): Promise<void> {
-  console.log(`[Agent] Bootstrapping chat surface for session ${sessionId}`);
+    // ---- Synthetic: session disconnected ----
+    if (action.name === '__session_disconnected') {
+      const disconnectedId = (action.context?.['sessionId'] as string) ?? sessionId;
+      handleSessionDisconnected(disconnectedId);
+      return;
+    }
 
-  // Claim this session so the gateway knows who owns it
-  await mcpClient.callTool({
-    name: 'claim_session',
-    arguments: { sessionId, agentId: AGENT_ID },
-  });
+    // ---- Chat message from __chat surface ----
+    if (action.name === 'chat_send' && action.surfaceId === '__chat') {
+      const chatText = (action.context as { text?: string })?.text;
+      if (chatText) {
+        await handleChatSend(sessionId, chatText);
+      }
+      return;
+    }
 
-  // Create the __chat surface bound to the chat catalog
-  await mcpClient.callTool({
-    name: 'create_surface',
-    arguments: {
-      surfaceId: '__chat',
-      catalogId: CHAT_CATALOG_ID,
-      sessionId,
-      sendDataModel: true,
-    },
-  });
+    // ---- Generic UI action — forward to LLM ----
+    const clientDataModel = actionMsg._clientDataModel?.dataModel;
+    const formatted = formatAction(sessionId, action, clientDataModel);
 
-  // Send the component tree (flat adjacency list)
-  await mcpClient.callTool({
-    name: 'update_components',
-    arguments: {
-      surfaceId: '__chat',
-      sessionId,
-      components: [
-        {
-          id: 'root',
-          component: 'ChatContainer',
-          title: 'Chat with AI Agent',
-          height: '100%',
-          children: ['message_list', 'typing', 'chat_input'],
-        },
-        {
-          id: 'message_list',
-          component: 'ChatMessageList',
-          children: { componentId: 'msg_template', path: '/messages' },
-        },
-        {
-          id: 'msg_template',
-          component: 'ChatMessage',
-          // Properties flow from scopeData (each message object in /messages)
-          // Explicitly bind them to satisfy strict schema validation
-          role: { path: 'role' },
-          content: { path: 'content' },
-          timestamp: { path: 'timestamp' },
-        },
-        {
-          id: 'typing',
-          component: 'ChatTypingIndicator',
-          visible: { path: '/isTyping' },
-          text: 'Thinking...',
-        },
-        {
-          id: 'chat_input',
-          component: 'ChatInput',
-          placeholder: 'Type a message...',
-        },
-      ],
-    },
-  });
+    try {
+      const response = await agent.chat(formatted, sessionId);
+      console.log('[Agent] Action response:', response);
+    } catch (error) {
+      console.error('[Agent] Action processing error:', error);
+    }
+  },
+});
 
-  // Set initial data model
-  await mcpClient.callTool({
-    name: 'update_data_model',
-    arguments: {
-      surfaceId: '__chat',
-      sessionId,
-      path: '/',
-      value: { messages: [], isTyping: false },
-    },
-  });
+// Start the action polling loop
+runtime.start();
 
-  sessionChatMessages.set(sessionId, []);
-  console.log(`[Agent] Chat surface ready for session ${sessionId}`);
-}
+
+
+
 
 // ============================================================================
 // Chat Message Handler
@@ -249,7 +196,7 @@ async function handleChatSend(sessionId: string, text: string): Promise<void> {
       `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
       `you MUST use sessionId: "${sessionId}". Do NOT reuse a sessionId from a previous message.\n` +
       `IMPORTANT: Do NOT create or modify the "__chat" surface — it is managed by the framework. ` +
-      `Only create new surfaces when the user explicitly asks for visual UI.\n\n` +
+      `Only create new surfaces when you think the user needs visual UI.\n\n` +
       `User: ${text}`;
     const response = await agent.chat(sessionPrompt, sessionId);
     console.log('[Agent] Assistant:', response);
@@ -292,123 +239,6 @@ function handleSessionDisconnected(sessionId: string): void {
 }
 
 // ============================================================================
-// Action Notification Handler
-// ============================================================================
-
-/**
- * Format a generic UI action as a natural language message for the LLM.
- */
-function formatAction(
-  sessionId: string,
-  action: {
-    name?: string;
-    surfaceId?: string;
-    sourceComponentId?: string;
-    context?: Record<string, unknown>;
-  },
-  clientDataModel?: Record<string, unknown>
-): string {
-  const { name, surfaceId, sourceComponentId, context } = action;
-  const contextStr =
-    context && Object.keys(context).length > 0
-      ? `\nAction data: ${JSON.stringify(context, null, 2)}`
-      : '';
-
-  const dataModelStr =
-    clientDataModel && Object.keys(clientDataModel).length > 0
-      ? `\nClient data model (all current form/input values): ${JSON.stringify(clientDataModel, null, 2)}`
-      : '';
-
-  return `[Session Context] This action is from session "${sessionId}". Use sessionId: "${sessionId}" for ALL tool calls in your response.\n\n[UI Action] The user clicked "${name}" on component "${sourceComponentId}" in surface "${surfaceId}".${contextStr}${dataModelStr}\n\nPlease respond to this action appropriately. If form data is provided, process it. You may update the UI using your tools.`;
-}
-
-// Listen for MCP resource changes (fired when new actions or catalogs arrive)
-mcpClient.setNotificationHandler(
-  ResourceListChangedNotificationSchema,
-  async () => {
-    // Invalidate caches (catalogs/prompt may have changed)
-    agent.invalidateCache();
-
-    // Check for pending actions across all sessions
-    try {
-      const result = await mcpClient.callTool({
-        name: 'get_all_pending_actions',
-        arguments: {},
-      });
-
-      const content = result.content as Array<{ type: string; text?: string }>;
-      const text =
-        content[0]?.type === 'text'
-          ? content[0].text ?? '[]'
-          : '[]';
-
-      if (text === 'No pending actions.' || text === '[]') return;
-
-      const allActions = JSON.parse(text) as Array<{
-        sessionId: string;
-        actions: Array<{
-          action?: {
-            name: string;
-            surfaceId: string;
-            sourceComponentId: string;
-            context: Record<string, unknown>;
-          };
-          _clientDataModel?: {
-            surfaceId: string;
-            dataModel: Record<string, unknown>;
-          };
-        }>;
-      }>;
-
-      for (const entry of allActions) {
-        for (const actionMsg of entry.actions) {
-          const action = actionMsg.action;
-          if (!action) continue;
-
-          console.log(
-            `[Agent] Action: ${action.name} (session=${entry.sessionId})`
-          );
-
-          // ---- Synthetic: session connected ----
-          if (action.name === '__session_connected') {
-            queueAsync(() => bootstrapChatSurface(entry.sessionId));
-            continue;
-          }
-
-          // ---- Synthetic: session disconnected ----
-          if (action.name === '__session_disconnected') {
-            const disconnectedId =
-              (action.context?.['sessionId'] as string) ?? entry.sessionId;
-            handleSessionDisconnected(disconnectedId);
-            continue;
-          }
-
-          // ---- Chat message from __chat surface ----
-          if (action.name === 'chat_send' && action.surfaceId === '__chat') {
-            const chatText = (action.context as { text?: string })?.text;
-            if (chatText) {
-              queueAsync(() => handleChatSend(entry.sessionId, chatText));
-            }
-            continue;
-          }
-
-          // ---- Generic UI action — forward to LLM ----
-          const clientDataModel = actionMsg._clientDataModel?.dataModel;
-          const formatted = formatAction(entry.sessionId, action, clientDataModel);
-
-          queueChat(formatted, entry.sessionId).then(
-            (response) => console.log('[Agent] Action response:', response),
-            (error) => console.error('[Agent] Action processing error:', error)
-          );
-        }
-      }
-    } catch (error) {
-      console.error('[Agent] Error handling action notification:', error);
-    }
-  }
-);
-
-// ============================================================================
 // Express Server (health + clear only — chat flows through A2UI)
 // ============================================================================
 
@@ -416,14 +246,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/**
- * Clear conversation history and per-session chat state.
- */
-app.post('/clear', (_req, res) => {
-  agent.clearHistory();
-  sessionChatMessages.clear();
-  res.json({ success: true });
-});
 
 /**
  * Health check.

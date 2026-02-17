@@ -67,6 +67,8 @@ function mapJustify(justify: string | undefined): CSSProperties['justifyContent'
 export function Card({ component, children }: FreesailComponentProps) {
   const style: CSSProperties = {
     padding: (component['padding'] as string) ?? '16px',
+    width: (component['width'] as string) ?? undefined,
+    height: (component['height'] as string) ?? undefined,
     borderRadius: (component['borderRadius'] as string) ?? '8px',
     border: '1px solid #e0e0e0',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',

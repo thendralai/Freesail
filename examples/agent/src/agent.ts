@@ -15,6 +15,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage, AIMessage, ToolMessage } from '@langchain/core/messages';
 import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
+import { LangChainAdapter } from '@freesail/agentruntime';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 
 /**
@@ -35,74 +36,7 @@ export interface ChatMessage {
   content: string;
 }
 
-// ============================================================================
-// JSON Schema → Zod Converter
-// ============================================================================
 
-/**
- * Convert a JSON Schema property to a Zod type.
- */
-function propertyToZod(prop: Record<string, unknown>): z.ZodTypeAny {
-  const type = prop['type'] as string | undefined;
-
-  switch (type) {
-    case 'string': {
-      const enumValues = prop['enum'] as string[] | undefined;
-      if (enumValues && enumValues.length > 0) {
-        return z.enum(enumValues as [string, ...string[]]);
-      }
-      return z.string();
-    }
-    case 'number':
-    case 'integer':
-      return z.number();
-    case 'boolean':
-      return z.boolean();
-    case 'array': {
-      const items = prop['items'] as Record<string, unknown> | undefined;
-      return z.array(items ? propertyToZod(items) : z.unknown());
-    }
-    case 'object': {
-      const properties = prop['properties'] as Record<string, Record<string, unknown>> | undefined;
-      if (properties) {
-        return jsonSchemaToZod(prop);
-      }
-      return z.record(z.unknown());
-    }
-    default:
-      return z.unknown();
-  }
-}
-
-/**
- * Convert a JSON Schema object to a Zod object schema.
- * Handles nested objects, arrays, optionals, and descriptions.
- */
-function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodObject<z.ZodRawShape> {
-  const properties = schema['properties'] as Record<string, Record<string, unknown>> | undefined;
-  const required = schema['required'] as string[] | undefined;
-
-  if (!properties) return z.object({}).passthrough();
-
-  const shape: Record<string, z.ZodTypeAny> = {};
-
-  for (const [key, prop] of Object.entries(properties)) {
-    let field: z.ZodTypeAny = propertyToZod(prop);
-
-    const description = prop['description'] as string | undefined;
-    if (description) {
-      field = field.describe(description);
-    }
-
-    if (!required?.includes(key)) {
-      field = field.optional();
-    }
-
-    shape[key] = field;
-  }
-
-  return z.object(shape).passthrough();
-}
 
 // ============================================================================
 // Agent
@@ -155,7 +89,7 @@ export function createAgent(config: AgentConfig) {
     try {
       const result = await mcpClient.getPrompt({ name: 'a2ui_system' });
       cachedSystemPrompt = result.messages
-        .map(m => {
+        .map((m: any) => {
           if (typeof m.content === 'string') return m.content;
           if (m.content.type === 'text') return m.content.text;
           return '';
@@ -167,44 +101,26 @@ export function createAgent(config: AgentConfig) {
       cachedSystemPrompt = FALLBACK_SYSTEM_PROMPT;
     }
 
-    return cachedSystemPrompt;
+    return cachedSystemPrompt!;
   }
+
+
 
   /**
    * Build LangChain tools from MCP tools.
-   * Each MCP tool is wrapped as a DynamicStructuredTool that proxies
-   * calls through the MCP client.
    */
   async function getTools(): Promise<DynamicStructuredTool[]> {
     if (cachedTools) return cachedTools;
 
-    const { tools: mcpTools } = await mcpClient.listTools();
+    const tools = await LangChainAdapter.getTools(mcpClient);
+    cachedTools = tools;
+    
     console.log(
-      `[Agent] Loaded ${mcpTools.length} tools from MCP:`,
-      mcpTools.map(t => t.name).join(', ')
+      `[Agent] Loaded ${tools.length} tools from MCP:`,
+      tools.map((t: any) => t.name).join(', ')
     );
 
-    cachedTools = mcpTools.map(mcpTool =>
-      tool(
-        async (args: Record<string, unknown>) => {
-          const result = await mcpClient.callTool({
-            name: mcpTool.name,
-            arguments: args,
-          });
-          const content = result.content as Array<{ type: string; text?: string }>;
-          return content
-            .map(c => c.type === 'text' ? c.text ?? '' : JSON.stringify(c))
-            .join('\n');
-        },
-        {
-          name: mcpTool.name,
-          description: mcpTool.description || `MCP tool: ${mcpTool.name}`,
-          schema: jsonSchemaToZod(mcpTool.inputSchema as Record<string, unknown>),
-        }
-      )
-    );
-
-    return cachedTools;
+    return tools;
   }
 
   /**
