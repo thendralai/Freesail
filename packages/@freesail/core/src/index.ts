@@ -78,3 +78,6 @@ export type {
   SurfaceError,
 } from './surface.js';
 export { SurfaceManager, createSurfaceManager } from './surface.js';
+
+// Logger
+export type { Logger, LogFn } from './logger.js';

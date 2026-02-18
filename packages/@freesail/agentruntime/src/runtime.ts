@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { ResourceListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { formatAction } from './formatter.js';
+import { logger } from '@freesail/logger';
 
 export interface AgentRuntimeConfig {
   mcpClient: Client;
@@ -38,7 +39,7 @@ export class FreesailAgentRuntime {
         await this.checkPendingActions();
       }
     );
-    console.log('[AgentRuntime] Started action polling loop');
+    logger.info('[AgentRuntime] Started action polling loop');
   }
 
   /**
@@ -81,7 +82,7 @@ export class FreesailAgentRuntime {
           const action = actionMsg.action;
           if (!action) continue;
 
-          console.log(`[AgentRuntime] Action: ${action.name} (session=${entry.sessionId})`);
+          logger.debug(`[AgentRuntime] Action: ${action.name} (session=${entry.sessionId})`);
 
           this.queue(async () => {
              // Let the specific agent implementation handle specific actions if needed
@@ -116,7 +117,7 @@ export class FreesailAgentRuntime {
         }
       }
     } catch (error) {
-      console.error('[AgentRuntime] Error handling action notification:', error);
+      logger.error('[AgentRuntime] Error handling action notification:', error);
     }
   }
 }

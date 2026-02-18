@@ -12,6 +12,7 @@ import {
   type UpstreamMessage,
   type A2UIClientCapabilities,
 } from '@freesail/core';
+import { logger } from '@freesail/logger';
 import type { Catalog } from './converter.js';
 
 /**
@@ -177,7 +178,7 @@ export class SessionManager {
       if (session) {
         session.catalogIds.add(catalog.id);
       }
-      console.error(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.id}) for session ${sessionId}`);
+      logger.info(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.id}) for session ${sessionId}`);
     }
     // Notify listeners
     for (const listener of this.catalogListeners) {
@@ -391,12 +392,12 @@ export class SessionManager {
   getSessionBySurface(surfaceId: SurfaceId): ClientSession | undefined {
     const sessionId = this.surfaceToSession.get(surfaceId);
     if (!sessionId) {
-      console.warn(`[SessionManager] No surface-to-session mapping found for surface: ${surfaceId}`);
+      logger.warn(`[SessionManager] No surface-to-session mapping found for surface: ${surfaceId}`);
       return undefined;
     }
     const session = this.sessions.get(sessionId);
     if (!session) {
-      console.warn(`[SessionManager] Session ${sessionId} not found for surface: ${surfaceId}`);
+      logger.warn(`[SessionManager] Session ${sessionId} not found for surface: ${surfaceId}`);
     }
     return session;
   }
@@ -469,7 +470,7 @@ export class SessionManager {
   sendToSurface(surfaceId: SurfaceId, message: DownstreamMessage): boolean {
     const session = this.getSessionBySurface(surfaceId);
     if (!session) {
-      console.warn(`[SessionManager] No session found for surface: ${surfaceId}`);
+      logger.warn(`[SessionManager] No session found for surface: ${surfaceId}`);
       return false;
     }
 
@@ -482,17 +483,17 @@ export class SessionManager {
   sendToSession(sessionId: string, message: DownstreamMessage): boolean {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      console.warn(`[SessionManager] Session not found: ${sessionId}`);
+      logger.warn(`[SessionManager] Session not found: ${sessionId}`);
       return false;
     }
 
     try {
       if (message && typeof message === 'object' && 'updateComponents' in message) {
-        console.error(`[SessionManager] Sending updateComponents to session ${sessionId}:`, 
+        logger.info(`[SessionManager] Sending updateComponents to session ${sessionId}:`, 
           JSON.stringify((message as any).updateComponents, null, 2));
       }
       if (message && typeof message === 'object' && 'updateDataModel' in message) {
-        console.error(`[SessionManager] Sending updateDataModel to session ${sessionId}:`, 
+        logger.info(`[SessionManager] Sending updateDataModel to session ${sessionId}:`, 
           JSON.stringify((message as any).updateDataModel, null, 2));
       }
       const data = `data: ${JSON.stringify(message)}\n\n`;
@@ -500,7 +501,7 @@ export class SessionManager {
       session.lastActivity = Date.now();
       return true;
     } catch (error) {
-      console.error(`[SessionManager] Error sending to session ${sessionId}:`, error);
+      logger.error(`[SessionManager] Error sending to session ${sessionId}:`, error);
       this.removeSession(sessionId);
       return false;
     }
@@ -639,7 +640,7 @@ export class SessionManager {
         try {
           listener(...args);
         } catch (error) {
-          console.error(`[SessionManager] Error in ${event} listener:`, error);
+          logger.error(`[SessionManager] Error in ${event} listener:`, error);
         }
       }
     }
@@ -688,7 +689,7 @@ export class SessionManager {
     }
 
     for (const id of stale) {
-      console.error(`[SessionManager] Removing stale session: ${id}`);
+      logger.info(`[SessionManager] Removing stale session: ${id}`);
       this.removeSession(id);
     }
   }

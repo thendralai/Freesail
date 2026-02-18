@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import type { UpstreamMessage } from '@freesail/core';
 import { SessionManager } from './session.js';
 import { parseCatalog, type Catalog } from './converter.js';
+import { logger } from '@freesail/logger';
 
 /**
  * Express server configuration.
@@ -84,14 +85,14 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       end: () => res.end(),
     });
 
-    console.error(`[Express] Client connected: ${sessionId}`);
+    logger.info(`[Express] Client connected: ${sessionId}`);
 
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ connected: true, sessionId })}\n\n`);
 
     // Handle client disconnect
     req.on('close', () => {
-      console.error(`[Express] Client disconnected: ${sessionId}`);
+      logger.info(`[Express] Client disconnected: ${sessionId}`);
 
       // Inject synthetic __session_disconnected event before removal
       // so agents polling actions can observe the disconnect
@@ -158,7 +159,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         }
       }
 
-      console.error('[Express] Received upstream message:', JSON.stringify(message));
+      logger.info(`[Express] Received upstream message: ${JSON.stringify(message)}`);
 
       // Resolve session: from header, or from surface→session mapping
       let resolvedSessionId = sessionId ?? null;
@@ -183,13 +184,13 @@ export function createExpressServer(options: ExpressServerOptions): Express {
             message,
           }),
         }).catch((err) => {
-          console.error('[Express] Webhook forward failed:', err);
+          logger.error('[Express] Webhook forward failed:', err);
         });
       }
 
       res.json({ success: true, sessionId: resolvedSessionId });
     } catch (error) {
-      console.error('[Express] Error processing message:', error);
+      logger.error('[Express] Error processing message:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : String(error),
@@ -237,10 +238,10 @@ export function createExpressServer(options: ExpressServerOptions): Express {
           if (surfaceId) {
             const surfaceSent = sessionManager.sendToSurface(surfaceId, message as any);
             if (!surfaceSent) {
-              console.error(`[Express] Session ${sessionId} not found, and surface ${surfaceId} not found`);
+              logger.warn(`[Express] Session ${sessionId} not found, and surface ${surfaceId} not found`);
             }
           } else {
-            console.error(`[Express] Session ${sessionId} not found, and no surfaceId provided`);
+            logger.warn(`[Express] Session ${sessionId} not found, and no surfaceId provided`);
           }
         } else {
           // Also register surface→session mapping for createSurface
@@ -248,7 +249,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
           if (surfaceId && typeof message === 'object' && message !== null && 'createSurface' in (message as any)) {
             sessionManager.addSurface(sessionId, surfaceId);
           }
-          console.error(`[Express] Sent message to session ${sessionId}`);
+          logger.info(`[Express] Sent message to session ${sessionId}`);
         }
       } else {
         // No session: try surface-based routing, then broadcast
@@ -256,18 +257,18 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         if (surfaceId) {
           const sent = sessionManager.sendToSurface(surfaceId, message as any);
           if (sent) {
-            console.error(`[Express] Sent message to surface ${surfaceId}`);
+            logger.info(`[Express] Sent message to surface ${surfaceId}`);
           } else {
-            console.error('[Express] Surface not mapped');
+            logger.warn('[Express] Surface not mapped');
           }
         } else {
-          console.error('[Express] No session or surface specified');
+          logger.warn('[Express] No session or surface specified');
         }
       }
 
       res.json({ success: true });
     } catch (error) {
-      console.error('[Express] Error sending message:', error);
+      logger.error('[Express] Error sending message:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : String(error),
@@ -326,14 +327,14 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         onCatalogsRegistered(catalogs);
       }
 
-      console.error(`[Express] Registered ${catalogs.length} catalog(s) from session ${sessionId}`);
+      logger.info(`[Express] Registered ${catalogs.length} catalog(s) from session ${sessionId}`);
       res.json({
         success: true,
         registered: catalogs.map((c) => c.id),
         errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
-      console.error('[Express] Error registering catalogs:', error);
+      logger.error('[Express] Error registering catalogs:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : String(error),
@@ -353,9 +354,9 @@ export function startExpressServer(
 ): Promise<void> {
   return new Promise((resolve) => {
     app.listen(port, () => {
-      console.error(`[Express] HTTP server listening on port ${port}`);
-      console.error(`[Express] SSE endpoint: http://localhost:${port}/sse`);
-      console.error(`[Express] Message endpoint: http://localhost:${port}/message`);
+      logger.info(`[Express] HTTP server listening on port ${port}`);
+      logger.info(`[Express] SSE endpoint: http://localhost:${port}/sse`);
+      logger.info(`[Express] Message endpoint: http://localhost:${port}/message`);
       resolve();
     });
   });

@@ -10,6 +10,7 @@
 import { createSessionManager } from './session.js';
 import { createExpressServer, startExpressServer } from './express.js';
 import { createMCPServer, runMCPServer } from './mcp.js';
+import { configure, getConsoleSink, getFileSink, getTextFormatter, type LogRecord, logger } from '@freesail/logger';
 
 /**
  * CLI configuration.
@@ -23,6 +24,8 @@ interface CLIConfig {
   mcpPort: number;
   /** Webhook URL for forwarding upstream messages */
   webhookUrl?: string;
+  /** Path to log file */
+  logFile?: string;
 }
 
 /**
@@ -51,6 +54,9 @@ function parseArgs(): CLIConfig {
       case '--webhook-url':
         config.webhookUrl = args[++i];
         break;
+      case '--log-file':
+        config.logFile = args[++i];
+        break;
       case '--help':
         printHelp();
         process.exit(0);
@@ -74,6 +80,7 @@ Options:
   --mcp-port <port>      Port for MCP HTTP server (default: 3000)
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: stdio)
   --webhook-url <url>    URL to forward upstream UI actions to (e.g. http://localhost:3002/action)
+  --log-file <file>      Path to log file (default: logs to console/stderr only)
   --help                 Show this help message
 
 Catalogs are provided by clients on connection via the /register-catalogs endpoint.
@@ -84,6 +91,7 @@ Examples:
   freesail-gateway
   freesail-gateway --http-port 8080
   freesail-gateway --webhook-url http://localhost:3002/action
+  freesail-gateway --log-file gateway.log
 `);
 }
 
@@ -93,13 +101,35 @@ Examples:
 async function main(): Promise<void> {
   const config = parseArgs();
 
-  console.error('[Freesail] Starting server...');
-  console.error(`[Freesail] HTTP port: ${config.httpPort}`);
-  console.error(`[Freesail] MCP mode: ${config.mcpMode}`);
-  if (config.webhookUrl) {
-    console.error(`[Freesail] Webhook URL: ${config.webhookUrl}`);
+  // Configure logging
+  // If running in stdio mode, we MUST write logs to stderr to avoid corrupting the MCP protocol
+  const sink = config.mcpMode === 'stdio'
+    ? (record: LogRecord) => process.stderr.write(getTextFormatter()(record) + '\n')
+    : getConsoleSink();
+
+  const scriptSinks: Record<string, (record: LogRecord) => void> = {
+    console: sink,
+  };
+
+  if (config.logFile) {
+    scriptSinks['file'] = getFileSink(config.logFile);
   }
-  console.error('[Freesail] Waiting for client to provide catalogs...');
+  
+  await configure({
+    sinks: scriptSinks,
+    loggers: [
+      { category: [], sinks: Object.keys(scriptSinks), level: 'info' },
+    ],
+    reset: true,
+  });
+
+  logger.info('[Freesail] Starting server...');
+  logger.info(`[Freesail] HTTP port: ${config.httpPort}`);
+  logger.info(`[Freesail] MCP mode: ${config.mcpMode}`);
+  if (config.webhookUrl) {
+    logger.info(`[Freesail] Webhook URL: ${config.webhookUrl}`);
+  }
+  logger.info('[Freesail] Waiting for client to provide catalogs...');
 
   // Create session manager
   const sessionManager = createSessionManager();
@@ -112,7 +142,7 @@ async function main(): Promise<void> {
     });
   } else {
     // HTTP mode would use a different transport
-    console.error(`[Freesail] MCP HTTP mode on port ${config.mcpPort}`);
+    logger.info(`[Freesail] MCP HTTP mode on port ${config.mcpPort}`);
     // TODO: Implement HTTP SSE transport for MCP
   }
 
@@ -121,7 +151,7 @@ async function main(): Promise<void> {
     sessionManager,
     webhookUrl: config.webhookUrl,
     onUpstreamMessage: (sessionId, message) => {
-      console.error(`[Freesail] Upstream message (session=${sessionId}):`, JSON.stringify(message));
+      logger.info(`[Freesail] Upstream message (session=${sessionId}):`, JSON.stringify(message));
     },
   });
 
@@ -129,19 +159,19 @@ async function main(): Promise<void> {
 
   // Handle graceful shutdown
   process.on('SIGINT', () => {
-    console.error('\n[Freesail] Shutting down...');
+    logger.info('\n[Freesail] Shutting down...');
     sessionManager.dispose();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    console.error('\n[Freesail] Shutting down...');
+    logger.info('\n[Freesail] Shutting down...');
     sessionManager.dispose();
     process.exit(0);
   });
 }
 
 main().catch((error) => {
-  console.error('[Freesail] Fatal error:', error);
+  logger.fatal('[Freesail] Fatal error:', error);
   process.exit(1);
 });

@@ -2,6 +2,7 @@ import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { z } from 'zod';
 import { jsonSchemaToZod } from './schema.js';
+import { logger } from '@freesail/logger';
 
 export class LangChainAdapter {
   /**
@@ -66,10 +67,10 @@ export class LangChainAdapter {
         async (args: Record<string, unknown>) => {
           if (mcpTool.name === 'update_components') {
             const comps = (args as any).components;
-            console.log(`[AgentRuntime] Calling update_components for surface ${(args as any).surfaceId} with ${comps?.length} components`);
+            logger.debug(`[AgentRuntime] Calling update_components for surface ${(args as any).surfaceId} with ${comps?.length} components`);
           }
           if (mcpTool.name === 'update_data_model') {
-            console.log(`[AgentRuntime] Calling update_data_model for surface ${(args as any).surfaceId}:`, JSON.stringify(args, null, 2));
+            logger.debug(`[AgentRuntime] Calling update_data_model for surface ${(args as any).surfaceId}: ${JSON.stringify(args, null, 2)}`);
           }
 
           const result = await mcpClient.callTool({

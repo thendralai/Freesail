@@ -8,6 +8,7 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { logger } from '@freesail/logger';
 import {
   A2UI_VERSION,
   type SurfaceId,
@@ -62,11 +63,16 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
 
 
 
-      const promptText = `You are a helpful AI assistant that creates dynamic user interfaces using the A2UI protocol and Freesail tools.
+      const promptText = `You are a helpful AI assistant who can create dynamic visual user interfaces.
 
 ## How It Works
 
 You have access to tools that create and manage UI surfaces. A surface is an independent UI region displayed in the user's browser. You can create multiple surfaces, each with its own component tree and data model.
+
+## When to use visual UI?
+- Respond conversationally for regular conversations.
+- User visual UI only when presenting or receiving structured data.
+- Use Visual UI to reduce typing fatigue and improve user experience.
 
 ## Workflow
 
@@ -212,13 +218,13 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Always create a surface before updating its components.
 - Use meaningful and unique surfaceIds (e.g., "weather-dashboard", "user-profile").
 - Prefer data bindings for contents that change.
-- Respond conversationally AND create/update UI when appropriate.
 - When handling user actions, acknowledge the action and update the UI accordingly.
 - Use a single catalogId consistently per surface.
 - Each surface is bound to exactly ONE catalog. 
 - Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them.
-- Only create NEW surfaces when you think that the user will have a better experience with a Visual UI.
-- Use functions wherever possible to perform client-side logic and validation without server round-trips.`;
+- Only create NEW surfaces when you think that the user will have a better experience with a new surface.
+- Use functions wherever possible to perform client-side logic and validation without server round-trips.
+- Remove surfaces when they are no longer needed.`;
 
       return {
         messages: [{
@@ -262,7 +268,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
         })
       );
 
-      console.error(`[MCP] Registered catalog resource: ${catalog.catalogId}`);
+      logger.info(`[MCP] Registered catalog resource: ${catalog.catalogId}`);
     }
 
     // Notify MCP clients that resources (and prompt content) have changed
@@ -660,5 +666,5 @@ export async function runMCPServer(options: MCPServerOptions): Promise<void> {
   const server = createMCPServer(options);
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('[MCP] Server running on stdio');
+  logger.info('[MCP] Server running on stdio');
 }
