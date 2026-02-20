@@ -27,7 +27,7 @@ export default defineConfig({
       '@freesail/react',
       '@freesail/core',
       '@freesail/catalogs',
-      '@freesail-community/weathercatalog'
+      '@freesail-community/weathercatalog',
     ]
   }
 });

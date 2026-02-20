@@ -28,7 +28,6 @@ export type {
   ComponentAction,
   ValidationCheck,
   A2UIComponent,
-  SurfaceTheme,
   CreateSurfaceMessage,
   UpdateComponentsMessage,
   UpdateDataModelMessage,

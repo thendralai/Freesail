@@ -201,13 +201,6 @@ interface A2UIMessageBase {
   version: typeof A2UI_VERSION;
 }
 
-/**
- * Theme configuration for a surface.
- */
-export interface SurfaceTheme {
-  primaryColor?: string;
-  [key: string]: unknown;
-}
 
 /**
  * Initializes a UI container and loads a specific Catalog.
@@ -219,8 +212,6 @@ export interface CreateSurfaceMessage extends A2UIMessageBase {
     surfaceId: SurfaceId;
     /** The catalog defining allowed components for this surface */
     catalogId: CatalogId;
-    /** Optional theme parameters */
-    theme?: SurfaceTheme;
     /** If true, client sends full data model with every action */
     sendDataModel?: boolean;
   };

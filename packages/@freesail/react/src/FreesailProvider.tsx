@@ -220,8 +220,8 @@ export function FreesailProvider({
 
 function handleMessage(message: DownstreamMessage, manager: SurfaceManager): void {
   if (isCreateSurfaceMessage(message)) {
-    const { surfaceId, catalogId, theme, sendDataModel } = message.createSurface;
-    manager.createSurface({ surfaceId, catalogId, theme, sendDataModel });
+    const { surfaceId, catalogId, sendDataModel } = message.createSurface;
+    manager.createSurface({ surfaceId, catalogId, sendDataModel });
   } else if (isUpdateComponentsMessage(message)) {
     const { surfaceId, components } = message.updateComponents;
     manager.updateComponents(surfaceId, components);

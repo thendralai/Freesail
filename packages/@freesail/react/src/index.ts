@@ -40,3 +40,6 @@ export type {
   A2UIComponent,
   Surface,
 } from '@freesail/core';
+
+// Theme
+export * from './theme.js';

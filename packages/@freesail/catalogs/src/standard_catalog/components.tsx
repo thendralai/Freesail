@@ -66,13 +66,14 @@ function mapJustify(justify: string | undefined): CSSProperties['justifyContent'
  */
 export function Card({ component, children }: FreesailComponentProps) {
   const style: CSSProperties = {
-    padding: (component['padding'] as string) ?? '16px',
+    padding: (component['padding'] as string) ?? '1.5rem',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
-    borderRadius: (component['borderRadius'] as string) ?? '8px',
-    border: '1px solid #e0e0e0',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    background: (component['background'] as string) ?? '#fff',
+    borderRadius: (component['borderRadius'] as string) ?? 'var(--freesail-radius-md)',
+    border: '1px solid var(--freesail-border, #e2e8f0)',
+    boxShadow: 'var(--freesail-shadow-sm)',
+    background: (component['background'] as string) ?? 'var(--freesail-bg-surface, #ffffff)',
+    color: 'var(--freesail-text-main, #0f172a)',
   };
 
   return <div style={style}>{children}</div>;
@@ -174,21 +175,21 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   const actionContext = action?.event?.context ?? {};
 
   const baseStyle: CSSProperties = {
-    padding: '6px 12px',
-    borderRadius: '4px',
+    padding: '0.5rem 1rem',
+    borderRadius: 'var(--freesail-radius-md)',
     border: 'none',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: '500',
     opacity: disabled ? 0.6 : 1,
   };
 
   const variantStyles: Record<string, CSSProperties> = {
-    primary: { background: '#007bff', color: '#fff' },
-    secondary: { background: '#6c757d', color: '#fff' },
-    outline: { background: 'transparent', border: '1px solid #007bff', color: '#007bff' },
-    borderless: { background: 'transparent', color: '#007bff' },
-    danger: { background: '#dc3545', color: '#fff' },
+    primary: { background: 'var(--freesail-primary, #2563eb)', color: 'var(--freesail-primary-text, #ffffff)' },
+    secondary: { background: 'var(--freesail-bg-muted, #f1f5f9)', color: 'var(--freesail-text-main, #0f172a)' },
+    outline: { background: 'transparent', border: '1px solid var(--freesail-border, #e2e8f0)', color: 'var(--freesail-text-main, #0f172a)' },
+    borderless: { background: 'transparent', color: 'var(--freesail-primary, #2563eb)' },
+    danger: { background: 'var(--freesail-error, #ef4444)', color: '#fff' },
   };
 
   const style = { ...baseStyle, ...variantStyles[variant] };
@@ -278,23 +279,25 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
   };
   
   const labelStyle: CSSProperties = {
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: '500',
-    color: '#333',
+    color: 'var(--freesail-text-main, #0f172a)',
   };
   
   const inputStyle: CSSProperties = {
-    padding: '8px',
-    borderRadius: '4px',
-    border: validationError ? '1px solid #dc3545' : '1px solid #ccc',
+    padding: '0.5rem 0.75rem',
+    borderRadius: 'var(--freesail-radius-md)',
+    border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
     fontSize: '14px',
     width: '100%',
     boxSizing: 'border-box',
+    backgroundColor: 'var(--freesail-bg-root, #ffffff)',
+    color: 'var(--freesail-text-main, #0f172a)',
   };
 
   const errorStyle: CSSProperties = {
-    fontSize: '11px',
-    color: '#dc3545',
+    fontSize: '12px',
+    color: 'var(--freesail-error, #ef4444)',
     marginTop: '2px',
   };
 
@@ -463,7 +466,7 @@ export function Icon({ component }: FreesailComponentProps) {
  */
 export function Divider({ component }: FreesailComponentProps) {
   const axis = (component['axis'] as string) ?? 'horizontal';
-  const color = (component['color'] as string) ?? '#e0e0e0';
+  const color = (component['color'] as string) ?? 'var(--freesail-border, #e2e8f0)';
 
   if (axis === 'vertical') {
     return (
@@ -528,15 +531,15 @@ export function Tabs({ component, children }: FreesailComponentProps) {
 
   const tabBarStyle: CSSProperties = {
     display: 'flex',
-    borderBottom: '1px solid #e0e0e0',
-    marginBottom: '16px',
+    borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
+    marginBottom: '1rem',
   };
 
   const tabStyle = (active: boolean): CSSProperties => ({
-    padding: '8px 16px',
+    padding: '0.5rem 1rem',
     cursor: 'pointer',
-    borderBottom: active ? '2px solid #007bff' : '2px solid transparent',
-    color: active ? '#007bff' : '#666',
+    borderBottom: active ? '2px solid var(--freesail-primary, #2563eb)' : '2px solid transparent',
+    color: active ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-text-muted, #64748b)',
     fontWeight: active ? '500' : 'normal',
   });
 
@@ -640,7 +643,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
   const embed = Boolean(component['embed']);
 
   const descriptionEl = description ? (
-    <div style={{ fontSize: '14px', color: '#555' }}>{description}</div>
+    <div style={{ fontSize: '14px', color: 'var(--freesail-text-muted, #64748b)' }}>{description}</div>
   ) : null;
 
   if (embed) {
@@ -739,7 +742,7 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
           onChange={handleChange}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: '13px', color: '#666', minWidth: '32px' }}>{localValue}</span>
+        <span style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)', minWidth: '32px' }}>{localValue}</span>
       </div>
     </div>
   );
@@ -780,10 +783,12 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
         value={localValue}
         onChange={handleChange}
         style={{
-          padding: '8px',
-          borderRadius: '4px',
-          border: '1px solid #ccc',
+          padding: '0.5rem 0.75rem',
+          borderRadius: 'var(--freesail-radius-md)',
+          border: '1px solid var(--freesail-border, #e2e8f0)',
           fontSize: '14px',
+          backgroundColor: 'var(--freesail-bg-root, #ffffff)',
+          color: 'var(--freesail-text-main, #0f172a)',
         }}
       />
     </div>
@@ -889,7 +894,7 @@ export function ChoicePicker({ component, onDataChange }: FreesailComponentProps
         <select
           value={localValue[0] ?? ''}
           onChange={handleSelectChange}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: '1px solid var(--freesail-border, #e2e8f0)', backgroundColor: 'var(--freesail-bg-root, #ffffff)', color: 'var(--freesail-text-main, #0f172a)' }}
         >
           <option value="" disabled>Select an option</option>
           {options.map(opt => (
@@ -968,7 +973,7 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
       <select
         value={localValue}
         onChange={handleChange}
-        style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+        style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: '1px solid var(--freesail-border, #e2e8f0)', fontSize: '14px', backgroundColor: 'var(--freesail-bg-root, #ffffff)', color: 'var(--freesail-text-main, #0f172a)' }}
       >
         <option value="" disabled>{placeholder}</option>
         {options.map(opt => (
@@ -1002,14 +1007,15 @@ export function Modal({ component, children }: FreesailComponentProps) {
   };
 
   const modalContentStyle: CSSProperties = {
-    backgroundColor: 'white',
-    padding: '24px',
-    borderRadius: '8px',
+    backgroundColor: 'var(--freesail-bg-surface, #ffffff)',
+    color: 'var(--freesail-text-main, #0f172a)',
+    padding: '1.5rem',
+    borderRadius: 'var(--freesail-radius-lg)',
     maxWidth: '90%',
     maxHeight: '90%',
     overflow: 'auto',
     position: 'relative',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: 'var(--freesail-shadow-md)',
   };
 
   const closeButtonStyle: CSSProperties = {

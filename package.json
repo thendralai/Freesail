@@ -14,7 +14,7 @@
     "sync": "node scripts/sync-versions.js",
     "build:core": "npm run build -w @freesail/logger && npm run build -w @freesail/core && npm run build -w @freesail/react",
     "build:catalogs": "npm run build -w @freesail/catalogs && npm run build -w @freesail-community/weathercatalog",
-    "build:sdk": "npm run build -w freesail && npm run build -w @freesail/gateway&& npm run build -w @freesail/agentruntime",
+    "build:sdk": "npm run build -w freesail && npm run build -w @freesail/gateway && npm run build -w @freesail/agentruntime",
     "build:example": "npm run build -w freesail-agent-example && npm run build -w freesail-react-example",
     "build": "npm run sync && npm run build:core && npm run build:catalogs && npm run build:sdk && npm run build:example",
     "clean:publish": "rm -rf publish && mkdir publish",

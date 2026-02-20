@@ -365,12 +365,9 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
         catalogId: z.string().describe('The catalog ID defining available components'),
         sessionId: z.string().describe('Target client session ID'),
         sendDataModel: z.boolean().optional().describe('If true, client sends full data model with every action. Defaults to true.'),
-        theme: z.object({
-          primaryColor: z.string().optional(),
-        }).passthrough().optional().describe('Optional theme configuration'),
       },
     },
-    async ({ surfaceId, catalogId, sessionId, sendDataModel, theme }) => {
+    async ({ surfaceId, catalogId, sessionId, sendDataModel }) => {
       // Validate catalog against session capabilities
       const validationError = sessionManager.validateCatalogForSession(sessionId, catalogId);
       if (validationError) {
@@ -389,7 +386,6 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
           surfaceId: surfaceId as SurfaceId,
           catalogId: catalogId as CatalogId,
           sendDataModel: effectiveSendDataModel,
-          theme,
         },
       };
       const result = sendToSession(message, sessionId);

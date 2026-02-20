@@ -11,7 +11,6 @@ import type {
   ComponentId,
   A2UIComponent,
   JsonPointer,
-  SurfaceTheme,
   ClientErrorCode,
 } from './protocol.js';
 
@@ -29,8 +28,6 @@ export interface Surface {
   rootId: ComponentId | null;
   /** Data model */
   dataModel: Record<string, unknown>;
-  /** Theme configuration */
-  theme: SurfaceTheme | null;
   /** Whether to send data model with actions */
   sendDataModel: boolean;
   /** Surface creation timestamp */
@@ -45,7 +42,6 @@ export interface Surface {
 export interface CreateSurfaceOptions {
   surfaceId: SurfaceId;
   catalogId: CatalogId;
-  theme?: SurfaceTheme;
   sendDataModel?: boolean;
 }
 
@@ -87,7 +83,7 @@ export class SurfaceManager {
    * Create a new surface.
    */
   createSurface(options: CreateSurfaceOptions): Surface {
-    const { surfaceId, catalogId, theme, sendDataModel } = options;
+    const { surfaceId, catalogId, sendDataModel } = options;
 
     if (this.surfaces.has(surfaceId)) {
       // Surface already exists, update if different
@@ -95,9 +91,6 @@ export class SurfaceManager {
       if (existing.catalogId !== catalogId) {
         existing.catalogId = catalogId;
         existing.updatedAt = Date.now();
-      }
-      if (theme) {
-        existing.theme = theme;
       }
       if (sendDataModel !== undefined) {
         existing.sendDataModel = sendDataModel;
@@ -111,7 +104,6 @@ export class SurfaceManager {
       components: new Map(),
       rootId: null,
       dataModel: {},
-      theme: theme ?? null,
       sendDataModel: sendDataModel ?? false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

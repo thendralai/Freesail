@@ -130,8 +130,8 @@ import { FreesailAgentRuntime, formatAction, bootstrapChatSurface } from '@frees
 
 const runtime = new FreesailAgentRuntime({
   mcpClient,
-  onChat: async (message, sessionId) => agent.chat(message, sessionId),
-  onAction: async (actionMsg, sessionId) => {
+  onChat: async (message: string, sessionId: string) => agent.chat(message, sessionId),
+  onAction: async (actionMsg: any, sessionId: string) => {
     const action = actionMsg.action;
     if (!action) return;
 

@@ -27,7 +27,7 @@ cleanup() {
   
   [ -n "$UI_PID" ] && kill $UI_PID 2>/dev/null && echo "Stopped UI"
   [ -n "$AGENT_PID" ] && kill $AGENT_PID 2>/dev/null && echo "Stopped agent (+ gateway)"
-  
+  npm run clean
   exit 0
 }
 
