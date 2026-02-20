@@ -12,7 +12,7 @@
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",
     "sync": "node scripts/sync-versions.js",
-    "build:core": "npm run build -w @freesail/core && npm run build -w @freesail/react",
+    "build:core": "npm run build -w @freesail/logger && npm run build -w @freesail/core && npm run build -w @freesail/react",
     "build:catalogs": "npm run build -w @freesail/catalogs && npm run build -w @freesail-community/weathercatalog",
     "build:sdk": "npm run build -w freesail && npm run build -w @freesail/gateway&& npm run build -w @freesail/agentruntime",
     "build:example": "npm run build -w freesail-agent-example && npm run build -w freesail-react-example",
@@ -42,9 +42,10 @@
     "glob": "^13.0.3",
     "prettier": "^3.1.0",
     "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
-    "freesail": "^0.4.2-alpha"
+    "freesail": "^0.4.2-alpha",
+    "vite": "7.3.1"
   }
 }

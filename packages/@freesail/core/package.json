@@ -37,6 +37,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "vitest": "^1.0.0"
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "vite": "7.3.1"
   }
 }

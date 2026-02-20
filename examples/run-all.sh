@@ -51,17 +51,8 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Always rebuild packages to pick up source changes
-echo -e "${BLUE}Building @freesail/core...${NC}"
-cd packages/@freesail/core && npm run build && cd "$ROOT_DIR"
-
-echo -e "${BLUE}Building @freesail/react...${NC}"
-cd packages/@freesail/react && npm run build && cd "$ROOT_DIR"
-
-echo -e "${BLUE}Building @freesail/gateway...${NC}"
-cd packages/@freesail/gateway && npm run build && cd "$ROOT_DIR"
-
-echo -e "${BLUE}Building @freesail/catalogs...${NC}"
-cd packages/@freesail/catalogs && npm run build && cd "$ROOT_DIR"
+echo -e "${BLUE}Building Freesail SDK...${NC}"
+npm run build
 
 echo ""
 echo -e "${GREEN}Starting Freesail stack...${NC}"
