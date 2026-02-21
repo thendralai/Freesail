@@ -18,6 +18,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ResourceListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { logger } from '@freesail/logger';
 import { createAgent } from './agent.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,8 +31,7 @@ const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
 const AGENT_ID = 'freesail-example-agent';
 
 if (!GOOGLE_API_KEY) {
-  console.error('Error: GOOGLE_API_KEY environment variable is required');
-  console.error('Set it with: export GOOGLE_API_KEY=your-api-key');
+  logger.fatal('GOOGLE_API_KEY environment variable is required. Set it with: export GOOGLE_API_KEY=your-api-key');
   process.exit(1);
 }
 
@@ -59,7 +59,7 @@ function getChatMessages(sessionId: string): ChatMessage[] {
 // MCP Client Setup — spawn gateway as child process
 // ============================================================================
 
-console.log('[Agent] Spawning Freesail gateway as MCP server...');
+logger.info('Spawning Freesail gateway as MCP server...');
 
 // Resolve path to gateway CLI script (dev = source, prod = dist)
 const isDev = import.meta.url.includes('/src/');
@@ -72,7 +72,7 @@ const spawnArgs = isDev
   ? ['tsx', '--inspect=9229', gatewayScript, '--http-port', String(GATEWAY_PORT)]
   : [gatewayScript, '--http-port', String(GATEWAY_PORT)];
 
-console.log(`[Agent] Gateway command: ${spawnCommand} ${spawnArgs.join(' ')}`);
+logger.info(`Gateway command: ${spawnCommand} ${spawnArgs.join(' ')}`);
 
 const transport = new StdioClientTransport({
   command: spawnCommand,
@@ -86,21 +86,21 @@ const mcpClient = new Client(
 );
 
 await mcpClient.connect(transport);
-console.log('[Agent] Connected to gateway MCP server');
+logger.info('Connected to gateway MCP server');
 
 // Log available capabilities
 const { tools } = await mcpClient.listTools();
-console.log(`[Agent] MCP tools: ${tools.map(t => t.name).join(', ')}`);
+logger.info(`MCP tools: ${tools.map(t => t.name).join(', ')}`);
 
 const { prompts } = await mcpClient.listPrompts();
-console.log(`[Agent] MCP prompts: ${prompts.map(p => p.name).join(', ')}`);
+logger.info(`MCP prompts: ${prompts.map(p => p.name).join(', ')}`);
 
 // Use the correct notification handler API for the MCP SDK
 // The SDK v1.0.0 uses setNotificationHandler
 mcpClient.setNotificationHandler<any>(
   z.object({ method: z.literal('notifications/resources/list_changed') }).passthrough(),
   async () => {
-    console.log('[Agent] Resources changed, invalidating cache');
+    logger.info('Resources changed, invalidating cache');
     agent.invalidateCache();
   }
 );
@@ -108,7 +108,7 @@ mcpClient.setNotificationHandler<any>(
 mcpClient.setNotificationHandler<any>(
   z.object({ method: z.literal('notifications/prompts/list_changed') }).passthrough(),
   async () => {
-    console.log('[Agent] Prompts changed, invalidating cache');
+    logger.info('Prompts changed, invalidating cache');
     agent.invalidateCache();
   }
 );
@@ -135,7 +135,7 @@ const runtime = new FreesailAgentRuntime({
     const action = actionMsg.action;
     if (!action) return;
 
-    console.log(`[Agent] Action: ${action.name} (session=${sessionId})`);
+    logger.info(`Action: ${action.name} (session=${sessionId})`);
 
     // ---- Synthetic: session connected ----
     if (action.name === '__session_connected') {
@@ -164,10 +164,58 @@ const runtime = new FreesailAgentRuntime({
     const formatted = formatAction(sessionId, action, clientDataModel);
 
     try {
+      const messages = getChatMessages(sessionId);
+      
+      // Show typing indicator
+      await mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId,
+          path: '/',
+          value: { messages: [...messages], isTyping: true },
+        },
+      });
+
       const response = await agent.chat(formatted, sessionId);
-      console.log('[Agent] Action response:', response);
+      logger.info(`Action response: ${response}`);
+
+      if (response && response.trim() !== '') {
+        messages.push({
+          role: 'assistant',
+          content: response,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Hide typing indicator and update messages
+      await mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId,
+          path: '/',
+          value: { messages: [...messages], isTyping: false },
+        },
+      });
     } catch (error) {
-      console.error('[Agent] Action processing error:', error);
+      logger.error('Action processing error:', error);
+      const messages = getChatMessages(sessionId);
+      messages.push({
+        role: 'assistant',
+        content: 'An error occurred while processing your request.',
+        timestamp: new Date().toISOString(),
+      });
+      
+      await mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId,
+          path: '/',
+          value: { messages: [...messages], isTyping: false },
+        },
+      });
     }
   },
 });
@@ -209,7 +257,7 @@ async function handleChatSend(sessionId: string, text: string): Promise<void> {
   });
 
   try {
-    console.log(`[Agent] User (session=${sessionId}):`, text);
+    logger.info(`User (session=${sessionId}): ${text}`);
     // Include session context so the LLM targets the correct session
     const sessionPrompt = `[Session Context] The following message is from session "${sessionId}". ` +
       `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
@@ -218,7 +266,7 @@ async function handleChatSend(sessionId: string, text: string): Promise<void> {
       `Only create new surfaces when you think the user needs visual UI.\n\n` +
       `User: ${text}`;
     const response = await agent.chat(sessionPrompt, sessionId);
-    console.log('[Agent] Assistant:', response);
+    logger.info(`Assistant: ${response}`);
 
     // Append assistant message
     messages.push({
@@ -227,10 +275,10 @@ async function handleChatSend(sessionId: string, text: string): Promise<void> {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Agent] Chat error:', error);
+    logger.error('Chat error:', error);
     messages.push({
       role: 'assistant',
-      content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+      content: 'An error occurred while processing your message.',
       timestamp: new Date().toISOString(),
     });
   }
@@ -254,7 +302,7 @@ async function handleChatSend(sessionId: string, text: string): Promise<void> {
 function handleSessionDisconnected(sessionId: string): void {
   sessionChatMessages.delete(sessionId);
   agent.clearHistory(sessionId);
-  console.log(`[Agent] Cleaned up chat state for session ${sessionId}`);
+  logger.info(`Cleaned up chat state for session ${sessionId}`);
 }
 
 // ============================================================================
@@ -275,15 +323,15 @@ app.get('/health', (_req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`[Agent] Server running on http://localhost:${PORT}`);
-  console.log(`[Agent] Chat flows through A2UI __chat surface`);
-  console.log(`[Agent] Gateway MCP: connected via stdio`);
-  console.log(`[Agent] Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`Chat flows through A2UI __chat surface`);
+  logger.info(`Gateway MCP: connected via stdio`);
+  logger.info(`Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n[Agent] Shutting down...');
+  logger.info('Shutting down...');
   try {
     await mcpClient.close();
   } catch {
@@ -293,7 +341,7 @@ process.on('SIGINT', async () => {
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n[Agent] Shutting down...');
+  logger.info('Shutting down...');
   try {
     await mcpClient.close();
   } catch {
