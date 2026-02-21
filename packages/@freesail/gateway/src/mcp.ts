@@ -121,9 +121,10 @@ You have access to tools that create and manage UI surfaces. A surface is an ind
 1. **Create a surface**: Call \`create_surface\` with a unique surfaceId and a catalogId. The catalogId MUST be the exact catalog ID string (a URL like \`https://freesail.dev/standard_catalog_v1.json\`) — do NOT use the catalog name.
 2. **Add components**: Call \`update_components\` with a flat array of component definitions. One component MUST have id "root".
 3. **Set data**: Call \`update_data_model\` to populate dynamic data that components reference via bindings.
-4. **Handle actions**: Use \`get_pending_actions\` or \`get_all_pending_actions\` to receive user interactions (button clicks, form submissions, etc.).
-5. **Update UI**: Call \`update_components\` or \`update_data_model\` again to reflect changes.
-6. **Remove surface**: Call \`delete_surface\` when done.
+4. **Enhance with functions**: Use client-side functions within your components (e.g., \`checks\` for input validation, \`formatString\` for text, or local actions) to handle logic locally. This significantly improves UI usability and responsiveness without requiring server round-trips.
+5. **Handle actions**: Use \`get_pending_actions\` or \`get_all_pending_actions\` to receive user interactions (button clicks, form submissions, etc.).
+6. **Update UI**: Call \`update_components\` or \`update_data_model\` again to reflect changes.
+7. **Remove surface**: Call \`delete_surface\` when done.
 
 ## Component Tree Structure
 
@@ -198,7 +199,7 @@ You can use functions to perform client-side logic and validation without server
 
 ### Function Calls
 
-Use \`{"functionCall": { "call": "functionName", "args": { ... } }}\` to execute a function.
+Use \`{"functionCall": { "call": "functionName", "args": { ... } }}\` to execute a client side function.
 Arguments can be literals or data bindings.
 
 ### Input Validation (\`checks\`)
