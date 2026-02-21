@@ -126,7 +126,7 @@ const agent = createAgent({
 // Agent Runtime
 // ============================================================================
 
-import { FreesailAgentRuntime, formatAction, bootstrapChatSurface } from '@freesail/agentruntime';
+import { FreesailAgentRuntime, formatAction } from '@freesail/agentruntime';
 
 const runtime = new FreesailAgentRuntime({
   mcpClient,
@@ -139,7 +139,7 @@ const runtime = new FreesailAgentRuntime({
 
     // ---- Synthetic: session connected ----
     if (action.name === '__session_connected') {
-      await bootstrapChatSurface(mcpClient, sessionId, AGENT_ID, CHAT_CATALOG_ID);
+      // The React UI handles creating the __chat surface natively.
       return;
     }
 

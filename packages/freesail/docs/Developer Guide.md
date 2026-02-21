@@ -52,18 +52,24 @@ function App() {
 ### Adding Surfaces
 A `FreesailSurface` is a designated area in your layout that the AI agent can control. You identify surfaces by a `surfaceId`.
 
+### Surface Naming Conventions
+When defining or creating surfaces, the following rules apply:
+1. **Agent-created surfaces**: Must contain only alphanumeric characters. Agents can create (`create_surface`), update (`update_components`, `update_data_model`), and delete (`delete_surface`) these dynamically.
+2. **Client-managed surfaces**: Must start with a double underscore (`__`) and contain alphanumeric characters afterward (e.g., `__chat` or `__sidebar`). These surfaces are managed strictly by the client application.
+3. **Agent restrictions on client-managed surfaces**: Agents are *not* permitted to create, delete, or update the component structure of client-managed surfaces. They are restricted exclusively to sending `updateDataModel` messages to these surfaces.
+
 ```tsx
 import { ReactUI } from 'freesail';
 
 function MainLayout() {
   return (
     <div className="app-container">
-      {/* A surface typically used for the agent's chat interface */}
+      {/* A client-managed surface, managed by the React app (starting with __) */}
       <aside className="sidebar">
         <ReactUI.FreesailSurface surfaceId="__chat" />
       </aside>
 
-      {/* A main area for dynamic tools, dashboards, or widgets */}
+      {/* A standard agent-created surface area (alphanumeric only) */}
       <main className="content">
         <ReactUI.FreesailSurface surfaceId="workspace" />
       </main>
@@ -71,6 +77,7 @@ function MainLayout() {
   );
 }
 ```
+
 
 ---
 

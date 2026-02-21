@@ -21,6 +21,44 @@ import { generateCatalogPrompt, validateComponent } from './converter.js';
 import type { SessionManager } from './session.js';
 
 /**
+ * Validates whether an agent has permission to perform an operation on a surface,
+ * and whether the surface ID conforms to naming rules.
+ * 
+ * Rules:
+ * 1. Agent-created surfaces must be alphanumeric.
+ * 2. Client-managed surfaces start with '__' and must be alphanumeric. Agents cannot create or delete them.
+ * 3. Agents can only send 'updateDataModel' messages to client-managed surfaces.
+ * 
+ * @param surfaceId The ID of the surface.
+ * @param operation The operation being attempted ('create_surface', 'update_components', 'update_data_model', 'delete_surface').
+ * @returns An error string if access is denied, null if permitted.
+ */
+function validateAgentSurfaceAccess(surfaceId: string, operation: string): string | null {
+  const isClientManaged = surfaceId.startsWith('__');
+
+  if (isClientManaged) {
+    if (!/^__[a-zA-Z0-9]+$/.test(surfaceId)) {
+      return `Invalid client-managed surface ID '${surfaceId}'. It must start with '__' and contain only alphanumeric characters.`;
+    }
+
+    if (operation === 'create_surface' || operation === 'delete_surface') {
+      return `Agents are not permitted to create or delete client-managed surfaces ('${surfaceId}').`;
+    }
+
+    if (operation !== 'update_data_model') {
+       return `Agents are only permitted to send 'updateDataModel' messages to client-managed surfaces ('${surfaceId}'). Operation '${operation}' is forbidden.`;
+    }
+  } else {
+    // Agent-created surface
+    if (!/^[a-zA-Z0-9]+$/.test(surfaceId)) {
+      return `Invalid agent-created surface ID '${surfaceId}'. It must contain only alphanumeric characters.`;
+    }
+  }
+
+  return null;
+}
+
+/**
  * MCP Server configuration.
  */
 export interface MCPServerOptions {
@@ -73,6 +111,10 @@ You have access to tools that create and manage UI surfaces. A surface is an ind
 - Respond conversationally for regular conversations.
 - User visual UI only when presenting or receiving structured data.
 - Use Visual UI to reduce typing fatigue and improve user experience.
+
+## When NOT to use visual UI?
+- When the user asks for a simple yes/no answer.
+- Don't use visual UI for simple conversations.
 
 ## Workflow
 
@@ -216,13 +258,16 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 ## Guidelines
 
 - Always create a surface before updating its components.
-- Use meaningful and unique surfaceIds (e.g., "weather-dashboard", "user-profile").
+- Use meaningful and unique surfaceIds (e.g., "weatherDashboard", "userProfile").
+- Agent-created \`surfaceId\`s MUST be purely alphanumeric (no hyphens, no underscores).
+- Do not attempt to create or delete client-managed surfaces (those starting with \`__\`). You are only allowed to update their data bindings.
 - Prefer data bindings for contents that change.
 - When handling user actions, acknowledge the action and update the UI accordingly.
 - Use a single catalogId consistently per surface.
 - Each surface is bound to exactly ONE catalog. 
 - Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them.
 - Only create NEW surfaces when you think that the user will have a better experience with a new surface.
+- Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
 - Remove surfaces when they are no longer needed.`;
 
@@ -368,6 +413,14 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ surfaceId, catalogId, sessionId, sendDataModel }) => {
+      const accessError = validateAgentSurfaceAccess(surfaceId, 'create_surface');
+      if (accessError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
       // Validate catalog against session capabilities
       const validationError = sessionManager.validateCatalogForSession(sessionId, catalogId);
       if (validationError) {
@@ -423,6 +476,14 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ surfaceId, sessionId, components }) => {
+      const accessError = validateAgentSurfaceAccess(surfaceId, 'update_components');
+      if (accessError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
       // STRICT VALIDATION: Ensure components exist in the surface's catalog
       const catalog = sessionManager.getCatalogForSurface(surfaceId);
       if (catalog) {
@@ -474,6 +535,14 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ surfaceId, sessionId, path, value }) => {
+      const accessError = validateAgentSurfaceAccess(surfaceId, 'update_data_model');
+      if (accessError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
       const message: DownstreamMessage = {
         version: A2UI_VERSION,
         updateDataModel: {
@@ -502,6 +571,14 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ surfaceId, sessionId }) => {
+      const accessError = validateAgentSurfaceAccess(surfaceId, 'delete_surface');
+      if (accessError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
       const message: DownstreamMessage = {
         version: A2UI_VERSION,
         deleteSurface: {

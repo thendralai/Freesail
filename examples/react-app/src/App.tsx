@@ -5,10 +5,12 @@
  * to enable AI agents to drive the UI using the A2UI v0.9 protocol.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {ReactUI} from 'freesail';
 import {ChatCatalog, StandardCatalog} from '@freesail/catalogs';
 import { WeatherCatalog } from '@freesail-community/weathercatalog';
+
+const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
 
 const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
   ChatCatalog,
@@ -46,6 +48,7 @@ function App() {
             console.error('Freesail error:', error);
           }}
         >
+          <ChatBootstrapper />
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {/* Chat Surface — rendered by the agent via A2UI */}
             <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
@@ -109,6 +112,63 @@ function ThemeButton({ active, onClick, children }: { active: boolean, onClick: 
 // =============================================================================
 // Components
 // =============================================================================
+
+/**
+ * Initializes the __chat surface natively so the agent doesn't need to.
+ */
+function ChatBootstrapper() {
+  const { surfaceManager } = ReactUI.useFreesailContext();
+
+  useEffect(() => {
+    // 1. Create the __chat surface bound to the chat catalog
+    surfaceManager.createSurface({
+      surfaceId: '__chat',
+      catalogId: CHAT_CATALOG_ID,
+      sendDataModel: true,
+    });
+
+    // 2. Send the component tree (flat adjacency list)
+    surfaceManager.updateComponents('__chat', [
+      {
+        id: 'root',
+        component: 'ChatContainer',
+        title: 'Chat with AI Agent',
+        height: '100%',
+        children: ['message_list', 'typing', 'chat_input'],
+      },
+      {
+        id: 'message_list',
+        component: 'ChatMessageList',
+        children: { componentId: 'msg_template', path: '/messages' },
+      },
+      {
+        id: 'msg_template',
+        component: 'ChatMessage',
+        // Properties flow from scopeData (each message object in /messages)
+        // Explicitly bind them to satisfy strict schema validation
+        role: { path: 'role' },
+        content: { path: 'content' },
+        timestamp: { path: 'timestamp' },
+      },
+      {
+        id: 'typing',
+        component: 'ChatTypingIndicator',
+        visible: { path: '/isTyping' },
+        text: 'Thinking...',
+      },
+      {
+        id: 'chat_input',
+        component: 'ChatInput',
+        placeholder: 'Type a message...',
+      },
+    ]);
+
+    // 3. Set initial data model
+    surfaceManager.updateDataModel('__chat', '/', { messages: [], isTyping: false });
+  }, [surfaceManager]);
+
+  return null;
+}
 
 /**
  * Shows connection status.
