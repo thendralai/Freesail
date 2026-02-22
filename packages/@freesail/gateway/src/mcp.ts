@@ -810,3 +810,105 @@ export async function runMCPServer(options: MCPServerOptions): Promise<void> {
   await server.connect(transport);
   logger.info('[MCP] Server running on stdio');
 }
+
+/**
+ * Options for the HTTP MCP server.
+ */
+export interface MCPHTTPServerOptions extends MCPServerOptions {
+  /** Port for the MCP HTTP server (default: 3000) */
+  port?: number;
+  /** Host to bind to (default: '127.0.0.1' for localhost-only access) */
+  host?: string;
+}
+
+/**
+ * Run the MCP server with Streamable HTTP transport on a separate port.
+ *
+ * This is the decoupled mode: the gateway exposes MCP over HTTP
+ * so that agents (in any language) can connect as standalone processes.
+ *
+ * All MCP communication goes through a single endpoint:
+ * - GET  /mcp  → SSE stream for server-to-client messages
+ * - POST /mcp  → client-to-server JSON-RPC messages
+ * - DELETE /mcp → session termination
+ *
+ * Bound to 127.0.0.1 by default for network-level isolation.
+ */
+export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<void> {
+  const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+  const { randomUUID } = await import('crypto');
+  const express = (await import('express')).default;
+  const cors = (await import('cors')).default;
+
+  const port = options.port ?? 3000;
+  const host = options.host ?? '127.0.0.1';
+
+  const server = createMCPServer(options);
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  // Track transports by session ID for cleanup
+  const transports: Record<string, InstanceType<typeof StreamableHTTPServerTransport>> = {};
+
+  // Single /mcp endpoint handles GET (SSE), POST (messages), and DELETE (session termination)
+  app.all('/mcp', async (req, res) => {
+    // For new connections (no session header), create a new transport
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
+    if (req.method === 'POST' && !sessionId) {
+      // New session — create transport and connect to MCP server
+      logger.info('[MCP-HTTP] New session request');
+
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+      });
+
+      transport.onclose = () => {
+        const sid = transport.sessionId;
+        if (sid) {
+          logger.info(`[MCP-HTTP] Transport closed for session ${sid}`);
+          delete transports[sid];
+        }
+      };
+
+      await server.connect(transport);
+
+      // handleRequest processes the initialize request and generates the session ID.
+      // The session ID is only available AFTER this call completes.
+      await transport.handleRequest(req, res, req.body);
+
+      const sid = transport.sessionId;
+      if (sid) {
+        transports[sid] = transport;
+        logger.info(`[MCP-HTTP] Session established: ${sid}`);
+      }
+      return;
+    }
+
+    // Existing session — route to the right transport
+    if (sessionId && transports[sessionId]) {
+      await transports[sessionId].handleRequest(req, res, req.body);
+      return;
+    }
+
+    // Unknown session
+    if (sessionId) {
+      res.status(404).send('Session not found');
+      return;
+    }
+
+    // GET without session (initial SSE connection is handled by POST in Streamable HTTP)
+    res.status(400).send('Missing mcp-session-id header');
+  });
+
+  // Start the MCP HTTP server on its own port
+  return new Promise((resolve) => {
+    app.listen(port, host, () => {
+      logger.info(`[MCP-HTTP] Server listening on http://${host}:${port}`);
+      logger.info(`[MCP-HTTP] Endpoint: http://${host}:${port}/mcp`);
+      resolve();
+    });
+  });
+}
+

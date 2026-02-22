@@ -9,7 +9,7 @@
 
 import { createSessionManager } from './session.js';
 import { createExpressServer, startExpressServer } from './express.js';
-import { createMCPServer, runMCPServer } from './mcp.js';
+import { createMCPServer, runMCPServer, runMCPServerHTTP } from './mcp.js';
 import { configure, getConsoleSink, getFileSink, getTextFormatter, type LogRecord, logger } from '@freesail/logger';
 
 /**
@@ -22,6 +22,8 @@ interface CLIConfig {
   httpPort: number;
   /** MCP HTTP port (if mode is 'http') */
   mcpPort: number;
+  /** MCP HTTP host to bind to (if mode is 'http') */
+  mcpHost: string;
   /** Webhook URL for forwarding upstream messages */
   webhookUrl?: string;
   /** Path to log file */
@@ -37,6 +39,7 @@ function parseArgs(): CLIConfig {
     mcpMode: 'stdio',
     httpPort: 3001,
     mcpPort: 3000,
+    mcpHost: '127.0.0.1',
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -50,6 +53,9 @@ function parseArgs(): CLIConfig {
         break;
       case '--mcp-mode':
         config.mcpMode = (args[++i] ?? 'stdio') as 'stdio' | 'http';
+        break;
+      case '--mcp-host':
+        config.mcpHost = args[++i] ?? '127.0.0.1';
         break;
       case '--webhook-url':
         config.webhookUrl = args[++i];
@@ -76,9 +82,10 @@ Freesail Gateway
 Usage: freesail-gateway [options]
 
 Options:
-  --http-port <port>     Port for HTTP/SSE server (default: 3001)
-  --mcp-port <port>      Port for MCP HTTP server (default: 3000)
+  --http-port <port>     Port for the A2UI HTTP/SSE server (default: 3001)
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: stdio)
+  --mcp-port <port>      Port for MCP Streamable HTTP server (default: 3000, http mode only)
+  --mcp-host <host>      Host to bind MCP HTTP server to (default: 127.0.0.1, http mode only)
   --webhook-url <url>    URL to forward upstream UI actions to (e.g. http://localhost:3002/action)
   --log-file <file>      Path to log file (default: logs to console/stderr only)
   --help                 Show this help message
@@ -88,7 +95,9 @@ Upstream actions are queued per-session and exposed as MCP resources.
 If --webhook-url is set, actions are also forwarded via HTTP POST.
 
 Examples:
-  freesail-gateway
+  freesail-gateway                                          # stdio MCP mode
+  freesail-gateway --mcp-mode http                          # HTTP MCP on localhost:3000
+  freesail-gateway --mcp-mode http --mcp-port 4000          # HTTP MCP on custom port
   freesail-gateway --http-port 8080
   freesail-gateway --webhook-url http://localhost:3002/action
   freesail-gateway --log-file gateway.log
@@ -141,9 +150,12 @@ async function main(): Promise<void> {
       sessionManager,
     });
   } else {
-    // HTTP mode would use a different transport
-    logger.info(`[Freesail] MCP HTTP mode on port ${config.mcpPort}`);
-    // TODO: Implement HTTP SSE transport for MCP
+    // HTTP SSE mode: MCP on separate port, bound to localhost for network isolation
+    await runMCPServerHTTP({
+      sessionManager,
+      port: config.mcpPort,
+      host: config.mcpHost,
+    });
   }
 
   // Start HTTP/SSE server

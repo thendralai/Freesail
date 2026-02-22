@@ -1,9 +1,11 @@
 #!/bin/bash
-# Run the complete Freesail stack: Agent (spawns Gateway via MCP) + UI
+# Run the complete Freesail stack: Gateway + Agent + UI
 # Usage: ./run-all.sh
 #
-# The agent spawns the gateway as a child process via MCP stdio,
-# so only the agent and UI need to be started separately.
+# The gateway, agent, and UI all run as independent processes:
+#   - Gateway: MCP SSE server (port 3000, localhost only) + A2UI HTTP/SSE (port 3001)
+#   - Agent:   Connects to gateway MCP via SSE, exposes health endpoint (port 3002)
+#   - UI:      Vite dev server (port 5173)
 
 set -e
 
@@ -18,15 +20,17 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # PIDs for cleanup
-UI_PID=""
+GATEWAY_PID=""
 AGENT_PID=""
+UI_PID=""
 
 cleanup() {
   echo ""
   echo -e "${YELLOW}Shutting down...${NC}"
   
   [ -n "$UI_PID" ] && kill $UI_PID 2>/dev/null && echo "Stopped UI"
-  [ -n "$AGENT_PID" ] && kill $AGENT_PID 2>/dev/null && echo "Stopped agent (+ gateway)"
+  [ -n "$AGENT_PID" ] && kill $AGENT_PID 2>/dev/null && echo "Stopped agent"
+  [ -n "$GATEWAY_PID" ] && kill $GATEWAY_PID 2>/dev/null && echo "Stopped gateway"
   npm run clean
   exit 0
 }
@@ -58,17 +62,37 @@ echo ""
 echo -e "${GREEN}Starting Freesail stack...${NC}"
 echo ""
 
-# Start Agent (which spawns the gateway as an MCP child process)
+# Resolve paths
+GATEWAY_SCRIPT="$ROOT_DIR/packages/@freesail/gateway/src/cli.ts"
+
+# Port configuration
+GATEWAY_HTTP_PORT="${GATEWAY_PORT:-3001}"
+GATEWAY_MCP_PORT="${MCP_PORT:-3000}"
+AGENT_PORT_NUM="${AGENT_PORT:-3002}"
+
+# 1. Start Gateway (standalone process)
+echo -e "${BLUE}[Gateway]${NC} Starting on HTTP port ${GATEWAY_HTTP_PORT}, MCP port ${GATEWAY_MCP_PORT}"
+npx tsx "$GATEWAY_SCRIPT" \
+  --mcp-mode http \
+  --http-port "$GATEWAY_HTTP_PORT" \
+  --mcp-port "$GATEWAY_MCP_PORT" &
+GATEWAY_PID=$!
+
+# Wait for gateway to be ready
+echo -e "${BLUE}[Gateway]${NC} Waiting for gateway to start..."
+sleep 3
+
+# 2. Start Agent (connects to gateway via MCP SSE)
 echo -e "${BLUE}[Agent]${NC} Starting"
 cd "$ROOT_DIR/examples/agent"
 npm run dev &
 AGENT_PID=$!
 cd "$ROOT_DIR"
 
-# Wait for agent + gateway to start
-sleep 4
+# Wait for agent to connect
+sleep 3
 
-# Start UI
+# 3. Start UI
 echo -e "${BLUE}[UI]${NC} Starting on http://localhost:${UI_PORT:-5173}"
 cd "$ROOT_DIR/examples/react-app"
 rm -rf node_modules/.vite  # Clear Vite cache to pick up fresh workspace sources
@@ -81,8 +105,9 @@ sleep 2
 
 echo ""
 echo -e "${GREEN}All services running:${NC}"
-echo -e "  Agent:   http://localhost:${AGENT_PORT:-3002}  (Healthcheck endpoint)"
-echo -e "  Gateway: http://localhost:${GATEWAY_PORT:-3001}  (Gateway server, spawned by agent)"
+echo -e "  Gateway: http://localhost:${GATEWAY_HTTP_PORT}  (A2UI HTTP/SSE for UI)"
+echo -e "  Gateway: http://127.0.0.1:${GATEWAY_MCP_PORT}  (MCP SSE for agent, localhost only)"
+echo -e "  Agent:   http://localhost:${AGENT_PORT_NUM}  (Health endpoint)"
 echo -e "  UI:      http://localhost:${UI_PORT:-5173}"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"

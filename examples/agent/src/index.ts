@@ -1,8 +1,9 @@
 /**
  * @fileoverview Freesail Agent Server
  *
- * Spawns the Freesail gateway as an MCP server child process
- * and handles all user interaction through A2UI actions.
+ * Connects to the Freesail gateway via MCP HTTP SSE transport.
+ * The gateway runs as a separate process — this agent connects to it
+ * over HTTP rather than spawning it as a child process.
  *
  * Chat communication flows through the A2UI protocol via a __chat surface
  * rather than a separate HTTP endpoint. When a client connects, the agent
@@ -12,20 +13,20 @@
 
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { ResourceListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
-import { logger } from '@freesail/logger';
+const logger = {
+  info: (...args: any[]) => console.log('[INFO]', ...args),
+  error: (...args: any[]) => console.error('[ERROR]', ...args),
+  fatal: (...args: any[]) => console.error('[FATAL]', ...args),
+};
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { FreesailLangchainAgent, FreesailAgentRuntime, formatAction } from '@freesail/agentruntime';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Configuration
 const PORT = parseInt(process.env['AGENT_PORT'] ?? '3002', 10);
+const MCP_PORT = parseInt(process.env['MCP_PORT'] ?? '3000', 10);
 const GATEWAY_PORT = parseInt(process.env['GATEWAY_PORT'] ?? '3001', 10);
 const GOOGLE_API_KEY = process.env['GOOGLE_API_KEY'];
 const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
@@ -37,31 +38,14 @@ if (!GOOGLE_API_KEY) {
 }
 
 // ============================================================================
-// Per-session Chat State
-// ============================================================================
-// MCP Client Setup — spawn gateway as child process
+// MCP Client Setup — connect to gateway via HTTP SSE
 // ============================================================================
 
-logger.info('Spawning Freesail gateway as MCP server...');
+logger.info(`Connecting to Freesail gateway MCP at http://localhost:${MCP_PORT}/mcp ...`);
 
-// Resolve path to gateway CLI script (dev = source, prod = dist)
-const isDev = import.meta.url.includes('/src/');
-const gatewayScript = isDev
-  ? path.resolve(__dirname, '../../../packages/@freesail/gateway/src/cli.ts')
-  : path.resolve(__dirname, '../../../packages/@freesail/gateway/dist/cli.js');
-
-const spawnCommand = isDev ? 'npx' : 'node';
-const spawnArgs = isDev
-  ? ['tsx', '--inspect=9229', gatewayScript, '--http-port', String(GATEWAY_PORT)]
-  : [gatewayScript, '--http-port', String(GATEWAY_PORT)];
-
-logger.info(`Gateway command: ${spawnCommand} ${spawnArgs.join(' ')}`);
-
-const transport = new StdioClientTransport({
-  command: spawnCommand,
-  args: spawnArgs,
-  // stderr: 'inherit' is the default — gateway logs appear in agent's terminal
-});
+const transport = new StreamableHTTPClientTransport(
+  new URL(`http://localhost:${MCP_PORT}/mcp`)
+);
 
 const mcpClient = new Client(
   { name: 'freesail-agent', version: '0.1.0' },
@@ -69,7 +53,7 @@ const mcpClient = new Client(
 );
 
 await mcpClient.connect(transport);
-logger.info('Connected to gateway MCP server');
+logger.info('Connected to gateway MCP server via SSE');
 
 // Log available capabilities
 const { tools } = await mcpClient.listTools();
@@ -86,8 +70,6 @@ mcpClient.setNotificationHandler<any>(
   }
 );
 
-// Use the correct notification handler API for the MCP SDK
-// The SDK v1.0.0 uses setNotificationHandler
 mcpClient.setNotificationHandler<any>(
   z.object({ method: z.literal('notifications/resources/list_changed') }).passthrough(),
   async () => {
@@ -95,10 +77,6 @@ mcpClient.setNotificationHandler<any>(
     agent.invalidateCache();
   }
 );
-
-// ============================================================================
-// Agent Setup
-// ============================================================================
 
 // ============================================================================
 // Agent Setup
@@ -195,7 +173,7 @@ async function handleChatSend(message: string, sessionId: string, isUserChat: bo
       `User: ${message}`;
       
     const response = await agent.chat(sessionPrompt, sessionId, {
-      onToken: (token) => {
+      onToken: (token: string) => {
         mcpClient.callTool({
           name: 'stream_data_model',
           arguments: {
@@ -254,7 +232,7 @@ function handleSessionDisconnected(sessionId: string): void {
 }
 
 // ============================================================================
-// Express Server (health + clear only — chat flows through A2UI)
+// Express Server (health endpoint)
 // ============================================================================
 
 const app = express();
@@ -266,9 +244,9 @@ app.get('/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`Agent server running on http://localhost:${PORT}`);
   logger.info(`Chat flows through A2UI __chat surface`);
-  logger.info(`Gateway MCP: connected via stdio`);
+  logger.info(`Gateway MCP: http://localhost:${MCP_PORT}/mcp (SSE)`);
   logger.info(`Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
 });
 
