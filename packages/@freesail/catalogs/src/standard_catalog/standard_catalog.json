@@ -16,6 +16,7 @@
         },
         {
           "type": "object",
+          "description": "Renders text content. Key properties: text (required, the text to display), variant (h1-h5, caption, body; defaults to body).",
           "properties": {
             "component": {
               "const": "Text"
@@ -57,6 +58,7 @@
         },
         {
           "type": "object",
+          "description": "Displays an image. Key properties: url (required), fit (contain/cover/fill/none/scale-down), variant (icon/avatar/smallFeature/mediumFeature/largeFeature/header).",
           "properties": {
             "component": {
               "const": "Image"
@@ -108,6 +110,7 @@
         },
         {
           "type": "object",
+          "description": "Displays a Material Design icon. Key properties: name (required, one of the predefined icon names).",
           "properties": {
             "component": {
               "const": "Icon"
@@ -213,6 +216,7 @@
         },
         {
           "type": "object",
+          "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs).",
           "properties": {
             "component": {
               "const": "Video"
@@ -283,7 +287,7 @@
         },
         {
           "type": "object",
-          "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row.",
+          "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls vertical alignment).",
           "properties": {
             "component": {
               "const": "Row"
@@ -344,7 +348,7 @@
         },
         {
           "type": "object",
-          "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column.",
+          "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls horizontal alignment of children; default is 'start'; set to 'stretch' for list layouts where children should fill the full width).",
           "properties": {
             "component": {
               "const": "Column"
@@ -451,6 +455,7 @@
         },
         {
           "type": "object",
+          "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height.",
           "properties": {
             "component": {
               "const": "Card"
@@ -492,6 +497,7 @@
         },
         {
           "type": "object",
+          "description": "A tabbed container that shows one child at a time. Key properties: tabs (required, array of objects with title and child).",
           "properties": {
             "component": {
               "const": "Tabs"
@@ -538,6 +544,7 @@
         },
         {
           "type": "object",
+          "description": "A modal dialog that overlays the screen. Key properties: trigger (required, ID of the button/element that opens the modal), content (required, ID of the component shown inside the modal).",
           "properties": {
             "component": {
               "const": "Modal"
@@ -571,6 +578,7 @@
         },
         {
           "type": "object",
+          "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal).",
           "properties": {
             "component": {
               "const": "Divider"
@@ -606,6 +614,7 @@
         },
         {
           "type": "object",
+          "description": "A clickable button that triggers an action. Key properties: action (required), label (text for the button), child (ID of a child component, e.g. Icon), variant (primary/secondary/outline/borderless/danger; default is 'primary' which uses the theme's primary color).",
           "properties": {
             "component": {
               "const": "Button"
@@ -656,6 +665,7 @@
         },
         {
           "type": "object",
+          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured).",
           "properties": {
             "component": {
               "const": "TextField"
@@ -701,6 +711,7 @@
         },
         {
           "type": "object",
+          "description": "A checkbox toggle for boolean values. Key properties: label (required), value (required, data binding for the checked state).",
           "properties": {
             "component": {
               "const": "CheckBox"
@@ -881,6 +892,7 @@
         },
         {
           "type": "object",
+          "description": "A slider for selecting a numeric value within a range. Key properties: value (required), min (required), max (required), label.",
           "properties": {
             "component": {
               "const": "Slider"
@@ -971,6 +983,7 @@
         },
         {
           "type": "object",
+          "description": "Renders rich Markdown content. Use this for multi-paragraph text, formatted content, or when HTML-like structure is needed. Key properties: text (required, the markdown string to render).",
           "properties": {
             "component": {
               "const": "Markdown"
@@ -1002,6 +1015,7 @@
         },
         {
           "type": "object",
+          "description": "A date and/or time picker input. Key properties: value (required, ISO 8601 format), enableDate, enableTime, min, max, label.",
           "properties": {
             "component": {
               "const": "DateTimeInput"
@@ -1078,6 +1092,42 @@
           "required": [
             "component",
             "value"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Table": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        },
+        {
+          "type": "object",
+          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Table provides the table structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path).",
+          "properties": {
+            "component": {
+              "const": "Table"
+            },
+            "headers": {
+              "type": "array",
+              "items": {
+                "$ref": "../common/common_types.json#/$defs/DynamicString"
+              },
+              "description": "The column header labels displayed in the header row."
+            },
+            "children": {
+              "description": "Defines the row content. Use a template object { componentId, path } to generate rows from a data list. The componentId should reference a Row component containing Text components for each column.",
+              "$ref": "../common/common_types.json#/$defs/ChildList"
+            }
+          },
+          "required": [
+            "component",
+            "children"
           ]
         }
       ],

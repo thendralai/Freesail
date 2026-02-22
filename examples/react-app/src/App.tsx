@@ -10,6 +10,7 @@ import {ReactUI} from 'freesail';
 import {ChatCatalog,StandardCatalog} from '@freesail/catalogs';
 import { WeatherCatalog } from '@freesail-community/weathercatalog';
 
+
 const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
 
 const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [

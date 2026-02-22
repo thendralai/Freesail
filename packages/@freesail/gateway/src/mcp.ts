@@ -168,6 +168,33 @@ To combine text and data, use the formatString function with positional placehol
       }
     }
 
+## Dynamic Lists (Templates)
+
+To render a list of items from the data model, use a template in the children property:
+\`\`\`json
+{ "id": "itemList", "component": "Column", "children": { "componentId": "itemCard", "path": "/items" } }
+\`\`\`
+The template component is rendered once per item in the data list. Inside template components, data bindings are scoped to the current item.
+
+**IMPORTANT**: Use **relative paths** (without a leading /) to reference properties of the current item. Absolute paths (starting with /) reference the root data model and will NOT resolve to the item's data.
+
+- \\{ "path": "name" \\}  → resolves to the current item's "name" property ✅
+- \\{ "path": "/name" \\} → resolves to "/name" in the ROOT data model ❌
+
+Example with formatString inside a template:
+
+    {
+      "component": "Text",
+      "text": {
+        "call": "formatString",
+        "args": {
+          "0": "Name: {0}",
+          "1": { "path": "name" }
+        }
+      }
+    }
+
+
 ## Two-Way Bindings (Input Components)
 
 Input components (TextField, Input, CheckBox) support **two-way binding**. When the user types or checks, the value is written back to the local data model at the bound path.

@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useCallback, type ReactNode } from 'react';
+import { FREESAIL_LOGO_DATA_URI } from './logo.js';
 import {
   isChildListTemplate,
   isFunctionCall,
@@ -63,7 +64,7 @@ export function FreesailSurface({
   className,
   loading = <DefaultLoading />,
   error = <DefaultError />,
-  empty = null,
+  empty = <DefaultLoading />,
 }: FreesailSurfaceProps) {
   const surface = useSurface(surfaceId);
   const dispatch = useAction(surfaceId);
@@ -454,8 +455,49 @@ function getDataAtPath(data: unknown, path: string): unknown {
 
 function DefaultLoading() {
   return (
-    <div style={{ padding: '16px', color: '#666' }}>
-      Loading surface...
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 16px',
+      gap: '16px',
+    }}>
+      <style>{`
+        @keyframes freesail-pulse {
+          0%, 100% { opacity: 0.4; transform: scale(0.95); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes freesail-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      {FREESAIL_LOGO_DATA_URI ? (
+        <img
+          src={FREESAIL_LOGO_DATA_URI}
+          alt="Loading"
+          style={{
+            width: '48px',
+            height: '48px',
+            animation: 'freesail-pulse 1.5s ease-in-out infinite',
+          }}
+        />
+      ) : (
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '3px solid var(--freesail-border, #e2e8f0)',
+          borderTopColor: 'var(--freesail-primary, #2563eb)',
+          borderRadius: '50%',
+          animation: 'freesail-spin 0.8s linear infinite',
+        }} />
+      )}
+      <span style={{
+        fontSize: '13px',
+        color: 'var(--freesail-text-muted, #64748b)',
+        letterSpacing: '0.05em',
+      }}>Preparing…</span>
     </div>
   );
 }

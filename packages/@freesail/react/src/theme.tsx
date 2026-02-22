@@ -25,7 +25,7 @@ export interface A2UITheme {
 }
 
 export const defaultLightTheme: A2UIThemeTokens = {
-  bgRoot: '#ffffff',
+  bgRoot: '#f8fafc',
   bgSurface: '#ffffff',
   bgMuted: '#f1f5f9',
   textMain: '#0f172a',
@@ -33,11 +33,11 @@ export const defaultLightTheme: A2UIThemeTokens = {
   primary: '#2563eb',
   primaryHover: '#1d4ed8',
   primaryText: '#ffffff',
-  border: '#e2e8f0',
+  border: '#cbd5e1',
   radiusSm: '0.25rem',
   radiusMd: '0.5rem',
   radiusLg: '0.75rem',
-  shadowSm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+  shadowSm: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
   shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
 };
 
