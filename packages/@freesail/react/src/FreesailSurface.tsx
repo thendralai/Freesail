@@ -94,7 +94,10 @@ export function FreesailSurface({
       surface.catalogId,
       surface.dataModel,
       dispatch,
-      onDataChange
+      onDataChange,
+      undefined,
+      undefined,
+      undefined
     );
   }, [surface, dispatch, onDataChange]);
 
@@ -129,7 +132,8 @@ function renderComponent(
   dispatch: ActionDispatch,
   onDataChange: DataChangeDispatch,
   scopeData?: unknown,
-  keyOverride?: string
+  keyOverride?: string,
+  scopeBasePath?: string
 ): ReactNode {
   const componentDef = components.get(componentId);
   if (!componentDef) {
@@ -155,7 +159,9 @@ function renderComponent(
       dataModel,
       dispatch,
       onDataChange,
-      scopeData
+      scopeData,
+      undefined,
+      scopeBasePath
     );
   }
   // 2. Handle multiple standard children (Column, Row, List, etc.)
@@ -165,7 +171,7 @@ function renderComponent(
     if (Array.isArray(childList)) {
       // Static array of child IDs
       children = childList.map((childId) =>
-        renderComponent(childId, components, catalogId, dataModel, dispatch, onDataChange, scopeData)
+        renderComponent(childId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, undefined, scopeBasePath)
       );
     } else if (typeof childList === 'object' && 'componentId' in childList) {
       // Template for dynamic children
@@ -173,8 +179,10 @@ function renderComponent(
       const listData = getDataAtPath(dataModel, template.path);
 
       if (Array.isArray(listData)) {
-        children = listData.map((itemData, index) =>
-          renderComponent(
+        children = listData.map((itemData, index) => {
+          // Build the absolute path for this item in the data model
+          const itemBasePath = `${template.path}/${index}`;
+          return renderComponent(
             template.componentId,
             components,
             catalogId,
@@ -182,9 +190,10 @@ function renderComponent(
             dispatch,
             onDataChange,
             itemData, // Pass item data as scope
-            `${template.componentId}_${(itemData as any)?.id ?? index}` // Unique key per item
-          )
-        );
+            `${template.componentId}_${(itemData as any)?.id ?? index}`, // Unique key per item
+            itemBasePath // Absolute path for two-way binding
+          );
+        });
       }
     }
   }
@@ -200,7 +209,8 @@ function renderComponent(
         dispatch,
         onDataChange,
         scopeData,
-        `${componentId}_tab_${index}`
+        `${componentId}_tab_${index}`,
+        scopeBasePath
       )
     );
   } else if (componentDef.component === 'Modal') {
@@ -209,17 +219,17 @@ function renderComponent(
     const contentId = (componentDef as any).content as ComponentId | undefined;
 
     const trigger = triggerId
-      ? renderComponent(triggerId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_trigger`)
+      ? renderComponent(triggerId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_trigger`, scopeBasePath)
       : null;
     const content = contentId
-      ? renderComponent(contentId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_content`)
+      ? renderComponent(contentId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_content`, scopeBasePath)
       : null;
 
     children = [trigger, content];
   }
 
   // Resolve data bindings in component properties
-  const resolvedProps = resolveDataBindings(componentDef, dataModel, catalogId, scopeData);
+  const resolvedProps = resolveDataBindings(componentDef, dataModel, catalogId, scopeData, scopeBasePath);
 
   // Build props
   const props: FreesailComponentProps = {
@@ -248,7 +258,8 @@ function resolveDataBindings(
   component: A2UIComponent,
   dataModel: Record<string, unknown>,
   catalogId: string,
-  scopeData?: unknown
+  scopeData?: unknown,
+  scopeBasePath?: string
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
@@ -273,8 +284,14 @@ function resolveDataBindings(
     if (isFunctionCall(effectiveValue)) {
       resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
     } else if (isDataBindingObject(effectiveValue)) {
-      // Preserve the raw binding so components can find the path for two-way binding
-      resolved[`__raw${key.charAt(0).toUpperCase()}${key.slice(1)}`] = effectiveValue;
+      // Preserve the raw binding so components can find the path for two-way binding.
+      // If inside a scoped template, convert relative paths to absolute paths
+      // so onDataChange writes to the correct location in the data model.
+      const rawBinding = { ...effectiveValue };
+      if (scopeBasePath && !rawBinding.path.startsWith('/')) {
+        rawBinding.path = `${scopeBasePath}/${rawBinding.path}`;
+      }
+      resolved[`__raw${key.charAt(0).toUpperCase()}${key.slice(1)}`] = rawBinding;
       // Resolve data binding
       resolved[key] = resolveSingleBinding(effectiveValue, dataModel, scopeData);
 

@@ -302,6 +302,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
 - Remove surfaces when they are no longer needed.
+- Layout - Prefer arranging components horizontally when possible.
 - Do not talk about A2UI or Freesail or MCP internals or technical details with the user. The user may not be technical.`;
 
       return {

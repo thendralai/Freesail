@@ -96,13 +96,17 @@ export function Table({ component, children }: FreesailComponentProps) {
   // Unique class scoped to this table instance for CSS targeting
   const tableClass = `freesail-table-${component['id'] ?? 'default'}`;
 
-  const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(${colCount}, 1fr)`,
+  const wrapperStyle: CSSProperties = {
     width: '100%',
+    overflowX: 'auto',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     borderRadius: 'var(--freesail-radius-md, 8px)',
-    overflow: 'hidden',
+  };
+
+  const gridStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${colCount}, minmax(min-content, 1fr))`,
+    minWidth: '100%',
     fontSize: '14px',
     color: 'var(--freesail-text-main, #0f172a)',
   };
@@ -143,17 +147,19 @@ export function Table({ component, children }: FreesailComponentProps) {
           background: var(--freesail-bg-muted, #f8fafc);
         }
       `}</style>
-      <div className={tableClass} style={gridStyle}>
-        {/* Header row */}
-        {headers.map((header, i) => (
-          <div key={`h-${i}`} style={headerCellStyle}>{String(header)}</div>
-        ))}
-        {/* Data rows — each child is a Row component */}
-        {childArray.map((child, i) => (
-          <div key={`r-${i}`} className="freesail-table-row">
-            {child}
-          </div>
-        ))}
+      <div style={wrapperStyle}>
+        <div className={tableClass} style={gridStyle}>
+          {/* Header row */}
+          {headers.map((header, i) => (
+            <div key={`h-${i}`} style={headerCellStyle}>{String(header)}</div>
+          ))}
+          {/* Data rows — each child is a Row component */}
+          {childArray.map((child, i) => (
+            <div key={`r-${i}`} className="freesail-table-row">
+              {child}
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );
