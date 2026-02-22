@@ -45,8 +45,8 @@ function validateAgentSurfaceAccess(surfaceId: string, operation: string): strin
       return `Agents are not permitted to create or delete client-managed surfaces ('${surfaceId}').`;
     }
 
-    if (operation !== 'update_data_model') {
-       return `Agents are only permitted to send 'updateDataModel' messages to client-managed surfaces ('${surfaceId}'). Operation '${operation}' is forbidden.`;
+    if (operation !== 'update_data_model' && operation !== 'stream_data_model') {
+       return `Agents are only permitted to send 'updateDataModel' or 'stream_data_model' messages to client-managed surfaces ('${surfaceId}'). Operation '${operation}' is forbidden.`;
     }
   } else {
     // Agent-created surface
@@ -121,10 +121,11 @@ You have access to tools that create and manage UI surfaces. A surface is an ind
 1. **Create a surface**: Call \`create_surface\` with a unique surfaceId and a catalogId. The catalogId MUST be the exact catalog ID string (a URL like \`https://freesail.dev/standard_catalog_v1.json\`) — do NOT use the catalog name.
 2. **Add components**: Call \`update_components\` with a flat array of component definitions. One component MUST have id "root".
 3. **Set data**: Call \`update_data_model\` to populate dynamic data that components reference via bindings.
-4. **Enhance with functions**: Use client-side functions within your components (e.g., \`checks\` for input validation, \`formatString\` for text, or local actions) to handle logic locally. This significantly improves UI usability and responsiveness without requiring server round-trips.
-5. **Handle actions**: Use \`get_pending_actions\` or \`get_all_pending_actions\` to receive user interactions (button clicks, form submissions, etc.).
-6. **Update UI**: Call \`update_components\` or \`update_data_model\` again to reflect changes.
-7. **Remove surface**: Call \`delete_surface\` when done.
+4. **Stream data**: Call \`stream_data_model\` to stream generative text iteratively (like LLM tokens) directly to a target JSON path.
+5. **Enhance with functions**: Use client-side functions within your components (e.g., \`checks\` for input validation, \`formatString\` for text, or local actions) to handle logic locally. This significantly improves UI usability and responsiveness without requiring server round-trips.
+6. **Handle actions**: Use \`get_pending_actions\` or \`get_all_pending_actions\` to receive user interactions (button clicks, form submissions, etc.).
+7. **Update UI**: Call \`update_components\` or \`update_data_model\` again to reflect changes.
+8. **Remove surface**: Call \`delete_surface\` when done.
 
 ## Component Tree Structure
 
@@ -234,6 +235,8 @@ Components like \`Button\` and \`TextField\` support the \`checks\` property.
 Catalogs are available as MCP resources.
 To see available catalogs, use the \`list_resources\` tool. Look for resources with \`mimeType: 'text/plain'\` or names describing catalogs.
 Then read the specific resource URI to get component definitions.
+
+**CRITICAL DIRECTIVE**: You MUST use the \`list_resources\` and \`read_resource\` tools to discover what specific UI components are available in each catalog before attempting to create a surface! Do NOT guess component names. Read the catalog resource first!
  
  For example:
  1. Call \`list_resources()\` -> returns list including "Standard Catalog (mcp://freesail.dev/catalogs/standard_catalog_v1.json)"
@@ -263,6 +266,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Agent-created \`surfaceId\`s MUST be purely alphanumeric (no hyphens, no underscores).
 - Do not attempt to create or delete client-managed surfaces (those starting with \`__\`). You are only allowed to update their data bindings.
 - Prefer data bindings for contents that change.
+- Use \`stream_data_model\` exclusively for high-frequency text appending (e.g., streaming LLM responses). It is much more efficient than using \`update_data_model\` for repetitive append operations.
 - When handling user actions, acknowledge the action and update the UI accordingly.
 - Use a single catalogId consistently per surface.
 - Each surface is bound to exactly ONE catalog. 
@@ -270,7 +274,8 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Only create NEW surfaces when you think that the user will have a better experience with a new surface.
 - Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
-- Remove surfaces when they are no longer needed.`;
+- Remove surfaces when they are no longer needed.
+- Do not talk about A2UI or Freesail or MCP internals or technical details with the user. The user may not be technical.`;
 
       return {
         messages: [{
@@ -558,6 +563,41 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       }
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    'stream_data_model',
+    {
+      description:
+        'Instantly append text to a specific path in the data model. Best for streaming LLM outputs token-by-token directly to a UI component (like Text or Markdown) instead of sending full json updates.',
+      inputSchema: {
+        surfaceId: z.string().describe('The surface to stream data into'),
+        sessionId: z.string().describe('Target client session ID'),
+        path: z.string().describe('JSON pointer to the string value in the data model (e.g., "/summary/draft")'),
+        delta: z.string().describe('The text chunk to append to the existing string value'),
+        isFinal: z.boolean().optional().describe('Whether this is the last chunk in the stream. (Optional)'),
+      },
+    },
+    async ({ surfaceId, sessionId, path, delta, isFinal }) => {
+      const accessError = validateAgentSurfaceAccess(surfaceId, 'stream_data_model');
+      if (accessError) {
+        logger.error(`[MCP] stream_data_model access error: ${accessError}`);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
+      logger.info(`[MCP] Received stream_data_model for session ${sessionId}, path ${path}, delta length ${delta.length}`);
+      const result = sessionManager.sendDataStream(sessionId, surfaceId, path, delta);
+
+      if (!result) {
+        return { content: [{ type: 'text', text: JSON.stringify({ success: false }) }], isError: true };
+      }
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ success: true }) }],
       };
     }
   );

@@ -509,6 +509,30 @@ export class SessionManager {
 
 
   /**
+   * Send a fast-path data stream event to a specific session.
+   */
+  sendDataStream(sessionId: string, surfaceId: string, path: string, delta: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      logger.warn(`[SessionManager] Session not found: ${sessionId}`);
+      return false;
+    }
+
+    try {
+      // Minified SSE event: event: data_stream, data: {"s": surfaceId, "p": path, "d": delta}
+      const payload = JSON.stringify({ s: surfaceId, p: path, d: delta });
+      const data = `event: data_stream\ndata: ${payload}\n\n`;
+      session.response.write(data);
+      session.lastActivity = Date.now();
+      return true;
+    } catch (error) {
+      logger.error(`[SessionManager] Error sending data stream to session ${sessionId}:`, error);
+      this.removeSession(sessionId);
+      return false;
+    }
+  }
+
+  /**
    * Get all active sessions.
    */
   getAllSessions(): ClientSession[] {

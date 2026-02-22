@@ -19,7 +19,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ResourceListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { logger } from '@freesail/logger';
-import { createAgent } from './agent.js';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { FreesailLangchainAgent, FreesailAgentRuntime, formatAction } from '@freesail/agentruntime';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,24 +38,6 @@ if (!GOOGLE_API_KEY) {
 
 // ============================================================================
 // Per-session Chat State
-// ============================================================================
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
-/** In-memory message history per session (drives the __chat surface data model). */
-const sessionChatMessages = new Map<string, ChatMessage[]>();
-
-function getChatMessages(sessionId: string): ChatMessage[] {
-  if (!sessionChatMessages.has(sessionId)) {
-    sessionChatMessages.set(sessionId, []);
-  }
-  return sessionChatMessages.get(sessionId)!;
-}
-
 // ============================================================================
 // MCP Client Setup — spawn gateway as child process
 // ============================================================================
@@ -95,6 +78,14 @@ logger.info(`MCP tools: ${tools.map(t => t.name).join(', ')}`);
 const { prompts } = await mcpClient.listPrompts();
 logger.info(`MCP prompts: ${prompts.map(p => p.name).join(', ')}`);
 
+mcpClient.setNotificationHandler<any>(
+  z.object({ method: z.literal('notifications/prompts/list_changed') }).passthrough(),
+  async () => {
+    logger.info('Prompts changed, invalidating cache');
+    agent.invalidateCache();
+  }
+);
+
 // Use the correct notification handler API for the MCP SDK
 // The SDK v1.0.0 uses setNotificationHandler
 mcpClient.setNotificationHandler<any>(
@@ -105,195 +96,152 @@ mcpClient.setNotificationHandler<any>(
   }
 );
 
-mcpClient.setNotificationHandler<any>(
-  z.object({ method: z.literal('notifications/prompts/list_changed') }).passthrough(),
-  async () => {
-    logger.info('Prompts changed, invalidating cache');
-    agent.invalidateCache();
-  }
-);
+// ============================================================================
+// Agent Setup
+// ============================================================================
 
 // ============================================================================
 // Agent Setup
 // ============================================================================
 
-const agent = createAgent({
-  googleApiKey: GOOGLE_API_KEY,
+const model = new ChatGoogleGenerativeAI({
+  apiKey: GOOGLE_API_KEY,
+  model: 'gemini-2.5-flash',
+  temperature: 0.7,
+});
+
+const agent = new FreesailLangchainAgent({
   mcpClient,
+  model,
 });
 
 // ============================================================================
 // Agent Runtime
 // ============================================================================
 
-import { FreesailAgentRuntime, formatAction } from '@freesail/agentruntime';
-
 const runtime = new FreesailAgentRuntime({
   mcpClient,
-  onChat: async (message: string, sessionId: string) => agent.chat(message, sessionId),
+  onChat: handleChatSend,
   onAction: async (actionMsg: any, sessionId: string) => {
-    const action = actionMsg.action;
-    if (!action) return;
+     const action = actionMsg.action;
+     if (!action) return;
+     
+     if (action.name === '__session_connected' || action.name === '__session_disconnected') {
+        if (action.name === '__session_disconnected') {
+          handleSessionDisconnected((action.context?.['sessionId'] as string) ?? sessionId);
+        }
+        return; 
+     }
 
-    logger.info(`Action: ${action.name} (session=${sessionId})`);
+     
+     if (action.name === 'chat_send' && action.surfaceId === '__chat') {
+       const chatText = (action.context as { text?: string })?.text;
+       if (chatText) {
+         await handleChatSend(chatText, sessionId, true);
+       }
+       return;
+     }
 
-    // ---- Synthetic: session connected ----
-    if (action.name === '__session_connected') {
-      // The React UI handles creating the __chat surface natively.
-      return;
-    }
+     logger.info(`Action: ${action.name} (session=${sessionId})`);
 
-    // ---- Synthetic: session disconnected ----
-    if (action.name === '__session_disconnected') {
-      const disconnectedId = (action.context?.['sessionId'] as string) ?? sessionId;
-      handleSessionDisconnected(disconnectedId);
-      return;
-    }
-
-    // ---- Chat message from __chat surface ----
-    if (action.name === 'chat_send' && action.surfaceId === '__chat') {
-      const chatText = (action.context as { text?: string })?.text;
-      if (chatText) {
-        await handleChatSend(sessionId, chatText);
-      }
-      return;
-    }
-
-    // ---- Generic UI action — forward to LLM ----
-    const clientDataModel = actionMsg._clientDataModel?.dataModel;
-    const formatted = formatAction(sessionId, action, clientDataModel);
-
-    try {
-      const messages = getChatMessages(sessionId);
-      
-      // Show typing indicator
-      await mcpClient.callTool({
-        name: 'update_data_model',
-        arguments: {
-          surfaceId: '__chat',
-          sessionId,
-          path: '/',
-          value: { messages: [...messages], isTyping: true },
-        },
-      });
-
-      const response = await agent.chat(formatted, sessionId);
-      logger.info(`Action response: ${response}`);
-
-      if (response && response.trim() !== '') {
-        messages.push({
-          role: 'assistant',
-          content: response,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      // Hide typing indicator and update messages
-      await mcpClient.callTool({
-        name: 'update_data_model',
-        arguments: {
-          surfaceId: '__chat',
-          sessionId,
-          path: '/',
-          value: { messages: [...messages], isTyping: false },
-        },
-      });
-    } catch (error) {
-      logger.error('Action processing error:', error);
-      const messages = getChatMessages(sessionId);
-      messages.push({
-        role: 'assistant',
-        content: 'An error occurred while processing your request.',
-        timestamp: new Date().toISOString(),
-      });
-      
-      await mcpClient.callTool({
-        name: 'update_data_model',
-        arguments: {
-          surfaceId: '__chat',
-          sessionId,
-          path: '/',
-          value: { messages: [...messages], isTyping: false },
-        },
-      });
-    }
-  },
+     const contextStr = action.context && Object.keys(action.context).length > 0
+       ? `\\nAction data: ${JSON.stringify(action.context, null, 2)}` : '';
+     const dataModelStr = actionMsg._clientDataModel?.dataModel && Object.keys(actionMsg._clientDataModel.dataModel).length > 0
+       ? `\\nClient data model: ${JSON.stringify(actionMsg._clientDataModel.dataModel, null, 2)}` : '';
+     
+     const message = `[UI Action] The user clicked "${action.name}" on component "${action.sourceComponentId}" in surface "${action.surfaceId}".${contextStr}${dataModelStr}`;
+     
+     await handleChatSend(message, sessionId, false);
+  }
 });
 
-// Start the action polling loop
-runtime.start();
+const sessionChatMessages = new Map<string, Array<{ role: string; content: string; timestamp: string }>>();
+function getChatMessages(sessionId: string) {
+  if (!sessionChatMessages.has(sessionId)) {
+    sessionChatMessages.set(sessionId, []);
+  }
+  return sessionChatMessages.get(sessionId)!;
+}
 
-
-
-
-
-// ============================================================================
-// Chat Message Handler
-// ============================================================================
-
-/**
- * Processes a chat_send action from the __chat surface.
- * Updates the data model optimistically, calls the LLM, then updates again.
- */
-async function handleChatSend(sessionId: string, text: string): Promise<void> {
-  const messages = getChatMessages(sessionId);
-
-  // Append user message
-  messages.push({
-    role: 'user',
-    content: text,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Update UI: show user message + typing indicator
-  await mcpClient.callTool({
-    name: 'update_data_model',
-    arguments: {
-      surfaceId: '__chat',
-      sessionId,
-      path: '/',
-      value: { messages: [...messages], isTyping: true },
-    },
-  });
-
+async function handleChatSend(message: string, sessionId: string, isUserChat: boolean = true) {
   try {
-    logger.info(`User (session=${sessionId}): ${text}`);
-    // Include session context so the LLM targets the correct session
+    const messages = getChatMessages(sessionId);
+    
+    if (isUserChat) {
+      messages.push({
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const assistantIndex = messages.length;
+    messages.push({
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    });
+    
+    await mcpClient.callTool({
+      name: 'update_data_model',
+      arguments: { surfaceId: '__chat', sessionId, path: '/', value: { messages: [...messages], isTyping: true } },
+    });
+
     const sessionPrompt = `[Session Context] The following message is from session "${sessionId}". ` +
-      `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
+      `When calling ANY tool (create_surface, update_components, update_data_model, stream_data_model, delete_surface), ` +
       `you MUST use sessionId: "${sessionId}". Do NOT reuse a sessionId from a previous message.\n` +
-      `IMPORTANT: Do NOT create or modify the "__chat" surface — it is managed by the framework. ` +
+      `IMPORTANT: Do NOT create or modify the "__chat" surface (this includes using tools like update_data_model or stream_data_model on it) — it is managed by the framework. Just reply normally in chat for standard conversation. ` +
       `Only create new surfaces when you think the user needs visual UI.\n\n` +
-      `User: ${text}`;
-    const response = await agent.chat(sessionPrompt, sessionId);
+      `User: ${message}`;
+      
+    const response = await agent.chat(sessionPrompt, sessionId, {
+      onToken: (token) => {
+        mcpClient.callTool({
+          name: 'stream_data_model',
+          arguments: {
+            surfaceId: '__chat',
+            sessionId,
+            path: `/messages/${assistantIndex}/content`,
+            delta: token,
+          }
+        }).catch(err => logger.error('Streaming error', err));
+      }
+    });
+    
+    if (response && response.trim() !== '') {
+      if (messages[assistantIndex]) {
+        messages[assistantIndex].content = response;
+      }
+    } else {
+      messages.splice(assistantIndex, 1);
+    }
+    
     logger.info(`Assistant: ${response}`);
 
-    // Append assistant message
-    messages.push({
-      role: 'assistant',
-      content: response,
-      timestamp: new Date().toISOString(),
+    await mcpClient.callTool({
+      name: 'update_data_model',
+      arguments: { surfaceId: '__chat', sessionId, path: '/', value: { messages: [...messages], isTyping: false } },
     });
+
   } catch (error) {
     logger.error('Chat error:', error);
-    messages.push({
-      role: 'assistant',
-      content: 'An error occurred while processing your message.',
-      timestamp: new Date().toISOString(),
+    const messages = getChatMessages(sessionId);
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.content === '') {
+      messages.pop();
+    }
+    messages.push({ role: 'assistant', content: 'An error occurred.', timestamp: new Date().toISOString() });
+    
+    await mcpClient.callTool({
+      name: 'update_data_model',
+      arguments: { surfaceId: '__chat', sessionId, path: '/', value: { messages: [...messages], isTyping: false } },
     });
   }
-
-  // Update UI: show response + hide typing
-  await mcpClient.callTool({
-    name: 'update_data_model',
-    arguments: {
-      surfaceId: '__chat',
-      sessionId,
-      path: '/',
-      value: { messages: [...messages], isTyping: false },
-    },
-  });
+  
+  return "ok";
 }
+
+runtime.start();
 
 // ============================================================================
 // Session Cleanup
@@ -313,15 +261,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
-/**
- * Health check.
- */
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Start server
 app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Chat flows through A2UI __chat surface`);
@@ -329,14 +272,11 @@ app.listen(PORT, () => {
   logger.info(`Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
 });
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   logger.info('Shutting down...');
   try {
     await mcpClient.close();
-  } catch {
-    // ignore
-  }
+  } catch {}
   process.exit(0);
 });
 
@@ -344,8 +284,6 @@ process.on('SIGTERM', async () => {
   logger.info('Shutting down...');
   try {
     await mcpClient.close();
-  } catch {
-    // ignore
-  }
+  } catch {}
   process.exit(0);
 });

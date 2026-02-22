@@ -119,6 +119,11 @@ export function FreesailProvider({
       handleMessage(message, surfaceManager);
     });
 
+    // Handle fast-path data streaming
+    newTransport.on('dataStream', (surfaceId: SurfaceId, path: string, delta: string) => {
+      surfaceManager.appendDataModelString(surfaceId, path, delta);
+    });
+
     // Handle connection state changes
     newTransport.on('stateChange', (state) => {
       const connected = state === 'connected';

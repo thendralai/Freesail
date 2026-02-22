@@ -17,6 +17,7 @@ import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { LangChainAdapter } from '@freesail/agentruntime';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { logger } from '@freesail/logger';
 
 /**
  * Agent configuration.
@@ -61,7 +62,7 @@ export function createAgent(config: AgentConfig) {
   // Initialize Gemini model
   const model = new ChatGoogleGenerativeAI({
     apiKey: googleApiKey,
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.5-flash',
     temperature: 0.7,
   });
 
@@ -136,7 +137,13 @@ export function createAgent(config: AgentConfig) {
    * Process a chat message and return the response.
    * Uses the MCP-provided system prompt and tools.
    */
-  async function chat(userMessage: string, sessionId: string = 'default'): Promise<string> {
+  async function chat(
+    userMessage: string,
+    sessionId: string = 'default',
+    processActionParams?: { 
+      onToken?: (token: string) => void; 
+    }
+  ): Promise<string> {
     const systemPrompt = await getSystemPrompt();
     const currentTools = await getTools();
     const modelWithTools = model.bindTools(currentTools);
@@ -150,23 +157,23 @@ export function createAgent(config: AgentConfig) {
       ...conversationHistory,
     ];
 
-    // Call model with tools
-    let response = await modelWithTools.invoke(messages);
+    // Call model with tools using stream
+    let responseChunk = await streamModelResponse(modelWithTools, messages, processActionParams?.onToken);
 
     // Track tool messages for this turn (kept separate until the turn ends)
     const turnToolMessages: (AIMessage | ToolMessage)[] = [];
 
     // Process tool calls iteratively
-    while (response.tool_calls && response.tool_calls.length > 0) {
+    while (responseChunk.tool_calls && responseChunk.tool_calls.length > 0) {
       // Add AI message with tool calls to turn history
       turnToolMessages.push(new AIMessage({
-        content: typeof response.content === 'string' ? response.content : '',
-        tool_calls: response.tool_calls,
+        content: typeof responseChunk.content === 'string' ? responseChunk.content : '',
+        tool_calls: responseChunk.tool_calls,
       }));
 
       // Execute each tool call
       const toolMessages: ToolMessage[] = [];
-      for (const toolCall of response.tool_calls) {
+      for (const toolCall of responseChunk.tool_calls) {
         const matchedTool = currentTools.find(t => t.name === toolCall.name);
         let result: string;
 
@@ -183,17 +190,22 @@ export function createAgent(config: AgentConfig) {
 
         toolMessages.push(new ToolMessage({
           content: result,
+          name: toolCall.name,
           tool_call_id: toolCall.id ?? toolCall.name,
         }));
       }
 
       turnToolMessages.push(...toolMessages);
 
-      response = await modelWithTools.invoke([
-        new SystemMessage(systemPrompt),
-        ...conversationHistory,
-        ...turnToolMessages,
-      ]);
+      responseChunk = await streamModelResponse(
+        modelWithTools,
+        [
+          new SystemMessage(systemPrompt),
+          ...conversationHistory,
+          ...turnToolMessages,
+        ],
+        processActionParams?.onToken
+      );
     }
 
     // Conversation ended — persist all tool interactions so the LLM
@@ -201,15 +213,85 @@ export function createAgent(config: AgentConfig) {
     // data model values were the original ones).
     conversationHistory.push(...turnToolMessages);
 
-    const assistantMessage = typeof response.content === 'string'
-      ? response.content
-      : Array.isArray(response.content)
-        ? response.content.map((p: any) => p.text ?? '').join('')
-        : JSON.stringify(response.content);
+    // After all tools are done, there may be a final text response.
+    const assistantMessage = typeof responseChunk.content === 'string'
+      ? responseChunk.content
+      : Array.isArray(responseChunk.content)
+        ? responseChunk.content.map((p: any) => p.text ?? '').join('')
+        : JSON.stringify(responseChunk.content);
 
-    conversationHistory.push(new AIMessage(assistantMessage));
+    console.log(`[Agent] Final assistant message parsed, length: ${assistantMessage?.length}, raw content:`, JSON.stringify(responseChunk.content));
+
+    if (assistantMessage && assistantMessage.trim() !== '') {
+      conversationHistory.push(new AIMessage(assistantMessage));
+    } else {
+      // If the final response is empty (e.g. after silent tool calls), log it but don't add an empty AI message to history.
+      logger.info('[Agent] Final response chunk was empty (likely a quiet tool execution sequence).');
+    }
 
     return assistantMessage;
+  }
+
+  /**
+   * Helper to stream from the model and call onToken, while returning the final composed message chunk.
+   */
+  async function streamModelResponse(
+    modelWithTools: any, 
+    messages: any[], 
+    onToken?: (token: string) => void
+  ): Promise<any> {
+    const stream = await modelWithTools.stream(messages);
+    let finalChunk: any | null = null;
+    let accumulatedContent = '';
+
+    for await (const chunk of stream) {
+      if (typeof chunk.content === 'string' && chunk.content) {
+        // Send the new slice of text
+        if (onToken) onToken(chunk.content);
+        accumulatedContent += chunk.content;
+      } else if (Array.isArray(chunk.content)) {
+        for (const part of chunk.content) {
+          if (part.type === 'text' && part.text) {
+             if (onToken) onToken(part.text);
+             accumulatedContent += part.text;
+          }
+        }
+      }
+
+      if (!finalChunk) {
+        finalChunk = chunk;
+      } else {
+        finalChunk = finalChunk.concat(chunk);
+      }
+    }
+    
+    console.log(`[Agent] streamModelResponse finished. Content type: ${typeof finalChunk?.content}, isArray: ${Array.isArray(finalChunk?.content)}, text length: ${accumulatedContent.length}`);
+    
+    // Fallback logic for Gemini 2.5 Flash which sometimes embeds function calls inside 'content'
+    if (finalChunk && (!finalChunk.tool_calls || finalChunk.tool_calls.length === 0) && Array.isArray(finalChunk.content)) {
+      const extractedToolCalls = [];
+      for (const part of finalChunk.content) {
+        if (part.functionCall) {
+           extractedToolCalls.push({
+             name: part.functionCall.name,
+             args: part.functionCall.args,
+             id: `call_${Math.random().toString(36).substring(2, 9)}`,
+           });
+        }
+      }
+      if (extractedToolCalls.length > 0) {
+        finalChunk.tool_calls = extractedToolCalls;
+        // Clean out the content array to just be text parts, or an empty string, so the LLM format doesn't break
+        const textParts = finalChunk.content.filter((p: any) => p.type === 'text');
+        finalChunk.content = textParts.length > 0 ? textParts : '';
+      }
+    }
+
+    if (finalChunk && finalChunk.tool_calls) {
+      console.log(`[Agent] streamModelResponse yielded ${finalChunk.tool_calls.length} tool calls.`);
+    }
+    
+    return finalChunk;
   }
 
   /**

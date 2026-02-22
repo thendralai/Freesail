@@ -42,14 +42,21 @@ This specification adheres to the A2UI v0.9 Schema.
 
 These messages allow the Agent to drive the UI.
 
-| Message | Description | Example |
-| :---- | :---- | :---- |
-| **createSurface** | Initializes a UI container and locks it to a specific catalogId. | {"createSurface": {"surfaceId": "main", "catalogId": "finance\_v1", "sendDataModel": true}} |
-| **updateComponents** | Streams a tree of UI components (Rows, Columns, Text) to render. | {"updateComponents": {"surfaceId": "main", "components": \[...\]}} |
-| **updateDataModel** | Pushes atomic data updates (e.g., changing a price) without re-rendering the layout. | {"updateDataModel": {"surfaceId": "main", "path": "/price", "value": 100}} |
-| **deleteSurface** | Explicitly removes a surface and its contents from the UI. | {"deleteSurface": {"surfaceId": "main"}} |
+| **Message** | **Description** | **Example** |
+| :--- | :--- | :--- |
+| **`createSurface`** | Initializes a UI container. | `{"createSurface": {"surfaceId": "main", ...}}` |
+| **`updateComponents`** | Streams a tree of UI components. | `{"updateComponents": {"surfaceId": "main", ...}}` |
+| **`updateDataModel`** | Pushes atomic data updates (JSON Patch). | `{"updateDataModel": {"surfaceId": "main", "path": "/price", "value": 100}}` |
+| **`deleteSurface`** | Explicitly removes a surface. | `{"deleteSurface": {"surfaceId": "main"}}` |
 
-### **Upstream (Client \-\> Server) via HTTP POST**
+#### The High-Speed Data Stream (Fast Path)
+For generative text (like streaming LLM tokens into a text box or markdown renderer), Freesail uses a custom, minified SSE event type. This bypasses the heavy `updateDataModel` JSON patching logic and performs a direct string append in the state engine.
+
+| **Event** | **Description** | **Example Payload** |
+| :--- | :--- | :--- |
+| **`data_stream`** | Directly appends a text delta to a specific JSON path in the Data Model. | `event: data_stream\ndata: {"s": "main", "p": "/draft", "d": "Hello"}` |
+
+### Upstream (Client -> Server) via HTTP POST**
 
 These messages allow the User to drive the Agent. Conforms to client\_to\_server.json (A2UI v0.9).
 

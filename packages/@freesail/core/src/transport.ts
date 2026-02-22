@@ -54,6 +54,7 @@ export interface TransportOptions {
  */
 export interface TransportEvents {
   message: (message: DownstreamMessage) => void;
+  dataStream: (surfaceId: SurfaceId, path: string, delta: string) => void;
   stateChange: (state: ConnectionState) => void;
   error: (error: Error) => void;
   queueFlushed: (count: number) => void;
@@ -151,6 +152,10 @@ export class A2UITransport {
       this.eventSource.onmessage = (event) => {
         this.handleSSEMessage(event.data);
       };
+
+      this.eventSource.addEventListener('data_stream', (event: any) => {
+        this.handleDataStream(event.data);
+      });
 
       this.eventSource.onerror = () => {
         this.handleDisconnect();
@@ -375,6 +380,17 @@ export class A2UITransport {
     for (const error of result.errors) {
       this.emit('error', new Error(`Parse error: ${error.message}`));
     }
+  }
+
+  private handleDataStream(data: string): void {
+     try {
+       const parsed = JSON.parse(data);
+       if (parsed && typeof parsed === 'object') {
+          this.emit('dataStream', parsed.s as SurfaceId, parsed.p as string, parsed.d as string);
+       }
+     } catch (err) {
+       console.error('[Transport] Failed to parse data_stream event', err);
+     }
   }
 
   /**

@@ -7,14 +7,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {ReactUI} from 'freesail';
-import {ChatCatalog, StandardCatalog} from '@freesail/catalogs';
+import {ChatCatalog,StandardCatalog} from '@freesail/catalogs';
 import { WeatherCatalog } from '@freesail-community/weathercatalog';
 
 const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
 
 const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
-  ChatCatalog,
   StandardCatalog,
+  ChatCatalog,
   WeatherCatalog,
 ];
 
@@ -124,7 +124,7 @@ function ChatBootstrapper() {
     surfaceManager.createSurface({
       surfaceId: '__chat',
       catalogId: CHAT_CATALOG_ID,
-      sendDataModel: true,
+      sendDataModel: false,
     });
 
     // 2. Send the component tree (flat adjacency list)
