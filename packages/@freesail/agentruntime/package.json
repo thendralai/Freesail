@@ -1,6 +1,6 @@
 {
   "name": "@freesail/agentruntime",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3-alpha",
   "description": "Runtime library for building Freesail agents with MCP and LangChain",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,7 +34,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.22.0",
-    "@freesail/logger": "^0.4.2-alpha"
+    "@freesail/logger": "^0.4.3-alpha"
   },
   "peerDependencies": {
     "@langchain/core": "^0.3.0"

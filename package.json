@@ -1,6 +1,6 @@
 {
   "name": "freesail-dev",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3-alpha",
   "private": true,
   "description": "A2UI based Generative UI SDK",
   "workspaces": [

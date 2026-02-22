@@ -1,36 +1,88 @@
-# Freesail Developer Guide: Building Generative UI Applications
+# Freesail Developer Guide
 
-This guide focuses on how to implement **Generative UI (GenUI)** in your React applications using the **Freesail SDK**. You'll learn how to allow an AI agent to dynamically drive your user interface by leveraging existing component catalogs.
+This guide covers how to build **Generative UI (GenUI)** applications using the **Freesail SDK**. You'll learn how to set up the architecture, run the gateway, connect agents, and build interactive UIs.
 
 ---
 
 ## 1. Core Concept
 
-Freesail functions as a bridge between an **AI Agent** (the brain) and your **Frontend Application**. Instead of the agent just sending text, it sends high-level UI descriptions using the **A2UI Protocol**. Your application then renders these components inside predefined "Surfaces."
+Freesail uses a **Triangle Pattern** with three independent processes:
 
-The implementation involves two main parts:
-1.  **Frontend (React)**: Hosting the surfaces and providing the catalogs.
-2.  **AI Agent**: Using MCP tools to create and update UI components within those surfaces.
+```
+┌────────────────┐    MCP Streamable HTTP     ┌──────────────────┐    A2UI SSE   ┌──────────────┐
+│   AI Agent     │  ◄────────────────────────►│ Freesail Gateway │ ◄───────────► │ React App    │
+│  (Orchestrator)│      Port 3000             │    (Bridge)      │   Port 3001   │ (Renderer)   │
+└────────────────┘    localhost only          └──────────────────┘               └──────────────┘
+```
+
+- **Agent**: Decides *what* to show by calling MCP tools (e.g., `create_surface`, `update_components`).
+- **Gateway**: Translates between MCP (agent-facing) and A2UI (UI-facing). Validates agent output against catalog schemas.
+- **Frontend**: Renders A2UI JSON into React components and sends user actions back to the agent.
 
 ---
 
-## 2. Setting Up the React Application
+## 2. The Freesail Gateway
 
-To enable GenUI, you need to configure the Freesail environment and define where the AI is allowed to render.
+The Gateway is the central bridge between agents and frontends. It runs as a standalone Node.js process with **two network-facing interfaces**:
+
+| Interface | Port | Protocol | Purpose |
+|-----------|------|----------|---------|
+| **Agent-facing** | 3000 (default) | MCP Streamable HTTP | Exposes tools, resources, and prompts to AI agents |
+| **UI-facing** | 3001 (default) | HTTP SSE + POST | Streams A2UI updates to the frontend, receives user actions |
+
+### Starting the Gateway
+
+```bash
+# Decoupled mode (recommended) — agents connect via HTTP
+npx tsx packages/@freesail/gateway/src/cli.ts \
+  --mcp-mode http \
+  --mcp-port 3000 \
+  --http-port 3001
+
+# Stdio mode — agent spawns gateway as child process
+npx tsx packages/@freesail/gateway/src/cli.ts \
+  --http-port 3001
+```
+
+### CLI Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--mcp-mode <mode>` | `stdio` | MCP transport: `stdio` (child process) or `http` (standalone) |
+| `--mcp-port <port>` | `3000` | Port for MCP Streamable HTTP server (http mode only) |
+| `--mcp-host <host>` | `127.0.0.1` | Bind address for MCP server (http mode only) |
+| `--http-port <port>` | `3001` | Port for A2UI HTTP/SSE server |
+| `--webhook-url <url>` | — | Forward UI actions to this URL via HTTP POST |
+| `--log-file <file>` | — | Write logs to file (in addition to console) |
+
+### Network Isolation
+
+By default, the MCP server binds to `127.0.0.1` — only local processes can connect. The A2UI server binds to `0.0.0.0`, making it accessible from browsers. This provides network-level security without requiring authentication.
+
+### How the Gateway Processes Requests
+
+1. **Agent → Gateway (MCP)**: Agent calls tools like `create_surface` or `update_components`. The gateway validates the call against the catalog schema and pushes the result to the appropriate frontend session via SSE.
+
+2. **Frontend → Gateway → Agent (Actions)**: When a user clicks a button, the frontend POSTs an action to the gateway. The gateway queues it as an MCP resource, and the agent polls for pending actions.
+
+---
+
+## 3. Setting Up the React Application
 
 ### Install the SDK
+
 ```bash
 npm install freesail @freesail/catalogs
 ```
 
 ### Configure the FreesailProvider
-The `FreesailProvider` (exported via `ReactUI`) manages the connection to your AI agent gateway and handles the registration of available component catalogs.
+
+The `FreesailProvider` manages the connection to the gateway and registers available component catalogs.
 
 ```tsx
 import { ReactUI } from 'freesail';
 import { StandardCatalog, ChatCatalog } from '@freesail/catalogs';
 
-// Define which catalogs the agent is allowed to use
 const CATALOGS: ReactUI.CatalogDefinition[] = [
   StandardCatalog,
   ChatCatalog,
@@ -50,13 +102,8 @@ function App() {
 ```
 
 ### Adding Surfaces
-A `FreesailSurface` is a designated area in your layout that the AI agent can control. You identify surfaces by a `surfaceId`.
 
-### Surface Naming Conventions
-When defining or creating surfaces, the following rules apply:
-1. **Agent-created surfaces**: Must contain only alphanumeric characters. Agents can create (`create_surface`), update (`update_components`, `update_data_model`), and delete (`delete_surface`) these dynamically.
-2. **Client-managed surfaces**: Must start with a double underscore (`__`) and contain alphanumeric characters afterward (e.g., `__chat` or `__sidebar`). These surfaces are managed strictly by the client application.
-3. **Agent restrictions on client-managed surfaces**: Agents are *not* permitted to create, delete, or update the component structure of client-managed surfaces. They are restricted exclusively to sending `updateDataModel` messages to these surfaces.
+A `FreesailSurface` is a designated area that the AI agent can control.
 
 ```tsx
 import { ReactUI } from 'freesail';
@@ -64,12 +111,12 @@ import { ReactUI } from 'freesail';
 function MainLayout() {
   return (
     <div className="app-container">
-      {/* A client-managed surface, managed by the React app (starting with __) */}
+      {/* Client-managed surface (prefix with __) */}
       <aside className="sidebar">
         <ReactUI.FreesailSurface surfaceId="__chat" />
       </aside>
 
-      {/* A standard agent-created surface area (alphanumeric only) */}
+      {/* Agent-created surface (alphanumeric only) */}
       <main className="content">
         <ReactUI.FreesailSurface surfaceId="workspace" />
       </main>
@@ -78,105 +125,187 @@ function MainLayout() {
 }
 ```
 
+### Surface Naming Rules
+
+| Type | Naming | Who creates it? | Agent permissions |
+|------|--------|-----------------|-------------------|
+| **Agent-managed** | Alphanumeric (e.g., `workspace`) | Agent via `create_surface` | Full control |
+| **Client-managed** | Starts with `__` (e.g., `__chat`) | React app | `updateDataModel` only |
 
 ---
 
-## 3. How the Agent Drives the UI
+## 4. Building the AI Agent
 
-The AI agent does not "write code" for your frontend. Instead, it uses **MCP Tools** to manipulate components defined in the catalogs you've provided.
+The agent connects to the gateway's MCP endpoint and uses tools to drive the UI.
+
+### Connecting to the Gateway
+
+```typescript
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+const transport = new StreamableHTTPClientTransport(
+  new URL('http://localhost:3000/mcp')
+);
+
+const mcpClient = new Client(
+  { name: 'my-agent', version: '1.0.0' },
+  { capabilities: {} }
+);
+
+await mcpClient.connect(transport);
+```
 
 ### Creating a Surface
-The agent starts by claiming a surface and specifying which catalog to use for it.
 
 ```typescript
-// Agent call to initialize a surface
-await mcp.callTool("create_surface", {
-  surfaceId: "workspace",
-  catalogId: "https://a2ui.dev/specification/v0_9/standard_catalog.json",
-  sessionId: "session_abc123" // The unique session for this specific user
-});
-```
-
----
-
-## 4. Driving Interactivity (Data Models)
-
-GenUI applications use **Data Models** to sync state between the agent and the UI efficiently.
-
-### Using Data Binding
-The agent can bind component properties to the `dataModel`. This allows the UI to update automatically whenever the data changes.
-
-```typescript
-// Agent sets up a surface with linked data
-await mcp.callTool("create_surface", {
-  surfaceId: "ticker",
-  catalogId: "...",
-  rootComponent: {
-    id: "price_display",
-    component: "Text",
-    props: { 
-      content: { path: "/currentPrice" } // Binds to dataModel
-    }
+await mcpClient.callTool({
+  name: 'create_surface',
+  arguments: {
+    surfaceId: 'workspace',
+    catalogId: 'https://freesail.dev/catalogs/standard_catalog_v1.json',
+    sessionId: 'session_abc123',
   },
-  dataModel: {
-    currentPrice: "$150.00"
-  }
 });
 ```
 
-### Pushing Real-Time Updates
-To update the UI without re-sending the entire component tree, the agent simply updates the data model.
+### Updating Components
 
 ```typescript
-// Agent updates only the data; the UI reflects this instantly
-await mcp.callTool("update_data_model", {
-  surfaceId: "ticker",
-  patch: [
-    { op: "replace", path: "/currentPrice", value: "$155.50" }
-  ]
+await mcpClient.callTool({
+  name: 'update_components',
+  arguments: {
+    surfaceId: 'workspace',
+    sessionId: 'session_abc123',
+    components: [
+      { id: 'root', component: 'Column', children: ['greeting'] },
+      { id: 'greeting', component: 'Text', text: 'Hello from the Agent!' },
+    ],
+  },
 });
 ```
 
 ---
 
-## 5. Handling User Actions
+## 5. Driving Interactivity (Data Models)
 
-When a user interacts with a component (e.g., clicks a button), the SDK sends an **Action** back to the agent.
+### Data Binding
 
-1.  **UI Event**: The user clicks a button in the browser.
-2.  **Action Payload**: Freesail sends a message to the agent containing the action name and the current state of the `dataModel`.
-3.  **Agent Response**: The agent processes the action (e.g., performing a calculation) and responds by updating the UI or data model.
+Bind component properties to the data model for automatic UI updates:
+
+```typescript
+// Agent sets up components with data bindings
+await mcpClient.callTool({
+  name: 'update_components',
+  arguments: {
+    surfaceId: 'ticker',
+    sessionId,
+    components: [
+      {
+        id: 'price',
+        component: 'Text',
+        text: { path: '/currentPrice' },  // Binds to data model
+      },
+    ],
+  },
+});
+
+// Set the data model
+await mcpClient.callTool({
+  name: 'update_data_model',
+  arguments: {
+    surfaceId: 'ticker',
+    sessionId,
+    path: '/currentPrice',
+    value: '$150.00',
+  },
+});
+```
+
+### Real-Time Updates
+
+Update data without re-sending the component tree:
+
+```typescript
+await mcpClient.callTool({
+  name: 'update_data_model',
+  arguments: {
+    surfaceId: 'ticker',
+    sessionId,
+    path: '/currentPrice',
+    value: '$155.50',
+  },
+});
+```
+
+---
+
+## 6. Handling User Actions
+
+When a user interacts with a component, the SDK sends an **Action** back through the gateway:
+
+1. **UI Event**: User clicks a button in the browser.
+2. **Action Payload**: Freesail POSTs the action to the gateway with the surface's data model.
+3. **Agent Processing**: The agent picks up the action via MCP and responds.
 
 ```json
 {
-  "type": "action",
-  "name": "analyze_click",
-  "surfaceId": "workspace",
-  "dataModel": { ... }
+  "version": "v0.9",
+  "action": {
+    "name": "submit_form",
+    "surfaceId": "workspace",
+    "sourceComponentId": "submit-btn",
+    "context": { "formData": "..." }
+  },
+  "_clientDataModel": {
+    "surfaceId": "workspace",
+    "dataModel": { "items": [], "total": 99.99 }
+  }
 }
 ```
 
 ---
 
-## 6. Protocol Details & Debugging
+## 7. Running the Full Stack
 
-For developers debugging network traffic or implementing custom Gateways, understanding how Freesail manages sessions is critical.
+The easiest way to run everything is with the provided script:
 
-### Session Identification
-Every connection is assigned a unique `sessionId` by the Gateway.
-*   **Discovery**: When the React app connects to the SSE stream, the first message it receives contains the `sessionId`.
-*   **Upstream Routing**: The React SDK automatically attaches this ID to every HTTP POST request in the **`X-A2UI-Session`** header.
-*   **Agent Awareness**: The agent receives this `sessionId` in the `context` of the synthetic `__session_connected` action.
+```bash
+export GOOGLE_API_KEY=your-api-key
+cd examples && bash run-all.sh
+```
 
-### Monitoring Actions
-If your agent is not receiving updates, check the browser's Network tab for requests to `/message`. Verify that:
-1.  The `X-A2UI-Session` header matches the ID the agent is expecting.
-2.  The `X-A2UI-DataModel` header is present (if `sendDataModel` is enabled), which contains the encoded state of the UI.
+This starts three independent processes:
+
+| Process | URL | Purpose |
+|---------|-----|---------|
+| Gateway | `http://localhost:3001` (A2UI), `http://127.0.0.1:3000` (MCP) | Bridge between agent and UI |
+| Agent | `http://localhost:3002` | AI agent with health endpoint |
+| UI | `http://localhost:5173` | Vite React dev server |
 
 ---
 
-## 7. Best Practices
+## 8. Debugging
 
-*   **Surface Isolation**: Use different `surfaceId`s for different logical parts of your app (e.g., `sidebar`, `main`).
-*   **Data-Driven UI**: Prefer `update_data_model` for high-frequency updates (like progress bars or live data) to keep the interaction smooth.
-*   **Catalog Selection**: Only provide the catalogs necessary for a specific surface to keep the agent's "understanding" focused.
+### Session Identification
+- The gateway assigns a `sessionId` to each SSE connection.
+- The React SDK attaches this ID to every HTTP POST via the `X-A2UI-Session` header.
+- The agent receives the `sessionId` through a synthetic `__session_connected` action.
+
+### Common Issues
+
+| Symptom | Check |
+|---------|-------|
+| UI stuck on "Loading surface..." | Is the `__chat` surface being bootstrapped? Check agent logs. |
+| Agent not receiving actions | Check the gateway logs for upstream messages. Verify `X-A2UI-Session` header in browser Network tab. |
+| Components not rendering | Verify the `catalogId` matches a registered catalog. Check browser console for registry errors. |
+| TextFields not editable in templates | Ensure the agent is using relative paths (e.g., `{ path: "name" }`) for data bindings inside ChildList templates. |
+
+---
+
+## 9. Best Practices
+
+- **Surface Isolation**: Use different `surfaceId`s for different logical parts of your app.
+- **Data Updates**: Use `update_data_model` to set or replace values at any path. For streaming text (e.g., LLM token output), use `stream_data_model` which performs append-only writes to a specific path without replacing the full value.
+- **Catalog Selection**: Only provide the catalogs necessary for a surface to keep the agent focused.
+- **Network Security**: In production, keep the MCP port bound to localhost and use auth for the A2UI endpoints.

@@ -13,15 +13,15 @@ Freesail operates on a three-node architecture that separates control logic from
 ### **Node A: The Agent (Orchestrator)**
 
 * **Role:** The intelligence layer (LangChain, LlamaIndex, Claude).  
-* **Interface:** Connects to Freesail via **MCP (HTTP SSE)**.  
+* **Interface:** Connects to Freesail Gateway via **MCP Streamable HTTP** transport.  
 * **Responsibility:** Decides *what* to show. It calls atomic tools like create\_surface and update\_components. It does NOT generate raw HTML or React code; it generates structured JSON data based on the Catalog.
 
 ### **Node B: The Freesail Gateway (Bridge)**
 
-* **Role:** The translation and streaming engine.  
-* **Interface:** Exposes an MCP Server (Port 3000\) to the Agent and an HTTP SSE Stream (Port 3001\) to the Client.  
+* **Role:** The translation and streaming engine. Runs as a standalone process.  
+* **Interface:** Exposes an MCP Streamable HTTP Server (Port 3000, localhost only) to the Agent and an HTTP SSE Stream (Port 3001\) to the Client.  
 * **Responsibility:**  
-  * **Catalog Injection:** Loads catalog.json and injects it into the Agent's system prompt so the Agent knows valid inputs.  
+  * **Catalog Injection:** Receives catalog definitions from clients and injects them into the Agent's system prompt so the Agent knows valid inputs.  
   * **Validation:** Validates Agent tool calls against the Catalog schema.  
   * **Streaming:** Pushes validated A2UI payloads to the Client via Server-Sent Events (SSE).
 

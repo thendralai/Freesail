@@ -1,6 +1,6 @@
 {
   "name": "freesail",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3-alpha",
   "description": "Unified entry point for Freesail AI SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -17,8 +17,8 @@
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@freesail/core": "^0.4.2-alpha",
-    "@freesail/react": "^0.4.2-alpha"
+    "@freesail/core": "^0.4.3-alpha",
+    "@freesail/react": "^0.4.3-alpha"
   },
   "peerDependencies": {
     "react": ">=18",

@@ -1,6 +1,6 @@
 {
   "name": "@freesail/react",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3-alpha",
   "description": "React implementation for Freesail - Generative UI SDK",
   "type": "module",
   "main": "./dist/index.js",
@@ -33,7 +33,7 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@freesail/core": "^0.4.2-alpha",
+    "@freesail/core": "^0.4.3-alpha",
     "vite": "7.3.1"
   },
   "devDependencies": {

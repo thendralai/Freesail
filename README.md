@@ -21,7 +21,7 @@ Freesail operates on a "Triangle Pattern" with three nodes:
 | `@freesail/agentruntime` | Core agent functionalities and streaming integration |
 | `@freesail/catalogs` | Shared UI catalog schemas and type definitions |
 | `@freesail/core` | Pure TypeScript logic - A2UI protocol definitions, parser, transport |
-| `@freesail/gateway` | Node.js MCP bridge server with Pino structured logging |
+| `@freesail/gateway` | Node.js MCP bridge server with native structured logging |
 | `@freesail/logger` | Native structured logging for the Freesail ecosystem |
 | `@freesail/react` | React implementation of the Renderer |
 
@@ -41,7 +41,7 @@ Then run the stack from the project root:
 ./examples/run-all.sh
 ```
 
-This script will automatically build all packages, start the Example Agent (which implicitly spawns the Gateway), and launch the React UI.
+This script will automatically build all packages, then start the Gateway, Agent, and React UI as three independent processes.
 
 ## Key Concepts
 

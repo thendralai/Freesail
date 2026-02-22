@@ -1,6 +1,6 @@
 {
   "name": "@freesail/catalogs",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3-alpha",
   "description": "All first-party UI component catalogs for Freesail",
   "type": "module",
   "main": "./dist/index.js",
