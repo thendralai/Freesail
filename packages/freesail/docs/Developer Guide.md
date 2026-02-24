@@ -292,6 +292,20 @@ This starts three independent processes:
 - The React SDK attaches this ID to every HTTP POST via the `X-A2UI-Session` header.
 - The agent receives the `sessionId` through a synthetic `__session_connected` action.
 
+If you need to access the current session ID in your React components (for example, to pass it to your own backend API or a conversational agent), you can use the `useSessionId` hook:
+
+```tsx
+import { ReactUI } from 'freesail';
+
+function SessionInfo() {
+  const sessionId = ReactUI.useSessionId();
+  
+  if (!sessionId) return <div>Connecting to Gateway...</div>;
+
+  return <div>Connected Session: {sessionId}</div>;
+}
+```
+
 ### Common Issues
 
 | Symptom | Check |

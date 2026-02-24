@@ -74,7 +74,7 @@ A2UI (Agent-to-User Interface) is the JSON protocol for bi-directional communica
 - [Freesail Architecture](docs/Freesail_Architecture.md)
 - [A2UI Protocol](docs/a2ui/a2ui_protocol.md)
 - [Creating Custom Catalogs](packages/freesail/docs/Creating%20Custom%20Catalogs.md)
-- [Developer Guide](packages/freesail/docs/Developer_Guide.md)
+- [Developer Guide](packages/freesail/docs/Developer%20Guide.md)
 
 ## 👥 Maintainers & Contributors
 

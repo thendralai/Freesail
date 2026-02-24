@@ -84,7 +84,7 @@ sleep 3
 
 # 2. Start Agent (connects to gateway via MCP SSE)
 echo -e "${BLUE}[Agent]${NC} Starting"
-cd "$ROOT_DIR/examples/agent"
+cd "$ROOT_DIR/Example-Typescript/agent"
 npm run dev &
 AGENT_PID=$!
 cd "$ROOT_DIR"
@@ -94,7 +94,7 @@ sleep 3
 
 # 3. Start UI
 echo -e "${BLUE}[UI]${NC} Starting on http://localhost:${UI_PORT:-5173}"
-cd "$ROOT_DIR/examples/react-app"
+cd "$ROOT_DIR/Example-Typescript/react-app"
 rm -rf node_modules/.vite  # Clear Vite cache to pick up fresh workspace sources
 npm run dev > /dev/null 2>&1 &
 UI_PID=$!

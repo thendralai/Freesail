@@ -178,3 +178,26 @@ function getDataAtPath(
 
   return current;
 }
+
+/**
+ * Hook to access the current session ID assigned by the Gateway.
+ * This ID is available after the transport successfully connects.
+ */
+export function useSessionId(): string | null {
+  const { transport } = useFreesailContext();
+  const [sessionId, setSessionId] = useState<string | null>(() => transport?.sessionId ?? null);
+
+  useEffect(() => {
+    if (!transport) return;
+    
+    setSessionId(transport.sessionId);
+    
+    const unsub = transport.on('sessionStart', (sid) => {
+      setSessionId(sid);
+    });
+    
+    return unsub;
+  }, [transport]);
+
+  return sessionId;
+}

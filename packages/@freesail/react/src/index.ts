@@ -18,6 +18,7 @@ export {
   useAction,
   useConnectionStatus,
   useSurfaces,
+  useSessionId,
 } from './hooks.js';
 
 // Registry

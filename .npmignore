@@ -1,0 +1,11 @@
+docs
+examples
+scripts
+.github
+.vscode
+.idea
+.DS_Store
+*.log
+*.tsbuildinfo
+node_modules
+.turbo
