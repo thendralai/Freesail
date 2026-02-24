@@ -166,21 +166,24 @@ async function handleChatSend(message: string, sessionId: string, isUserChat: bo
     });
 
     const sessionPrompt = `[Session Context] The following message is from session "${sessionId}". ` +
-      `When calling ANY tool (create_surface, update_components, update_data_model, stream_data_model, delete_surface), ` +
+      `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
       `you MUST use sessionId: "${sessionId}". Do NOT reuse a sessionId from a previous message.\n` +
-      `IMPORTANT: Do NOT create or modify the "__chat" surface (this includes using tools like update_data_model or stream_data_model on it) — it is managed by the framework. Just reply normally in chat for standard conversation. ` +
+      `IMPORTANT: Do NOT create or modify the "__chat" surface (this includes using tools like update_data_model on it) — it is managed by the framework. Just reply normally in chat for standard conversation. ` +
       `Only create new surfaces when you think the user needs visual UI.\n\n` +
       `User: ${message}`;
       
     const response = await agent.chat(sessionPrompt, sessionId, {
       onToken: (token: string) => {
+        if (messages[assistantIndex]) {
+          messages[assistantIndex].content += token;
+        }
         mcpClient.callTool({
-          name: 'stream_data_model',
+          name: 'update_data_model',
           arguments: {
             surfaceId: '__chat',
             sessionId,
             path: `/messages/${assistantIndex}/content`,
-            delta: token,
+            value: messages[assistantIndex]?.content || '',
           }
         }).catch(err => logger.error('Streaming error', err));
       }

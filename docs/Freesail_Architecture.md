@@ -49,12 +49,6 @@ These messages allow the Agent to drive the UI.
 | **`updateDataModel`** | Pushes atomic data updates (JSON Patch). | `{"updateDataModel": {"surfaceId": "main", "path": "/price", "value": 100}}` |
 | **`deleteSurface`** | Explicitly removes a surface. | `{"deleteSurface": {"surfaceId": "main"}}` |
 
-#### The High-Speed Data Stream (Fast Path)
-For generative text (like streaming LLM tokens into a text box or markdown renderer), Freesail uses a custom, minified SSE event type. This bypasses the heavy `updateDataModel` JSON patching logic and performs a direct string append in the state engine.
-
-| **Event** | **Description** | **Example Payload** |
-| :--- | :--- | :--- |
-| **`data_stream`** | Directly appends a text delta to a specific JSON path in the Data Model. | `event: data_stream\ndata: {"s": "main", "p": "/draft", "d": "Hello"}` |
 
 ### Upstream (Client -> Server) via HTTP POST**
 

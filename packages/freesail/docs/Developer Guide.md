@@ -320,6 +320,6 @@ function SessionInfo() {
 ## 9. Best Practices
 
 - **Surface Isolation**: Use different `surfaceId`s for different logical parts of your app.
-- **Data Updates**: Use `update_data_model` to set or replace values at any path. For streaming text (e.g., LLM token output), use `stream_data_model` which performs append-only writes to a specific path without replacing the full value.
+- **Data Updates**: Use `update_data_model` to set or replace values at any path.
 - **Catalog Selection**: Only provide the catalogs necessary for a surface to keep the agent focused.
 - **Network Security**: In production, keep the MCP port bound to localhost and use auth for the A2UI endpoints.

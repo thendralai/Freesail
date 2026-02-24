@@ -212,68 +212,7 @@ export class SurfaceManager {
     return true;
   }
 
-  /**
-   * Directly append a string to the data model at the given path (Fast Path).
-   */
-  appendDataModelString(
-    surfaceId: SurfaceId,
-    path: JsonPointer,
-    delta: string
-  ): boolean {
-    const surface = this.surfaces.get(surfaceId);
-    if (!surface) {
-      this.emitSurfaceNotFoundError(surfaceId, 'appendDataModelString');
-      return false;
-    }
 
-    if (!path || path === '/') {
-       // Cannot append to root
-       return false;
-    }
-
-    const parts = path.split('/').filter((p) => p !== '');
-    
-    // We MUST clone the objects along the path to ensure React 
-    // detects the reference change and re-renders the UI components
-    const newDataModel = { ...surface.dataModel };
-    let current: any = newDataModel;
-
-    // Traverse and shallow clone down to the parent of the target key
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i]!;
-      if (!(part in current)) {
-        current[part] = {};
-      } else {
-        // Shallow clone arrays or objects to preserve React immutability
-        current[part] = Array.isArray(current[part]) 
-            ? [...current[part]] 
-            : { ...current[part] };
-      }
-      current = current[part];
-    }
-
-    const lastPart = parts[parts.length - 1];
-    if (lastPart) {
-      const existingValue = current[lastPart];
-      if (typeof existingValue === 'string') {
-        current[lastPart] = existingValue + delta;
-      } else if (existingValue === undefined || existingValue === null) {
-        current[lastPart] = delta;
-      } else {
-         // Standard is string concatenation
-         current[lastPart] = String(existingValue) + delta;
-      }
-      
-      // Update Surface State with new cloned root
-      surface.dataModel = newDataModel;
-      surface.updatedAt = Date.now();
-      
-      // Emit regular dataModelUpdated so components trigger re-render
-      this.emit('dataModelUpdated', surfaceId, path, current[lastPart]);
-    }
-
-    return true;
-  }
 
   /**
    * Get the data model for a surface (for sendDataModel feature).
