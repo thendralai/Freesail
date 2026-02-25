@@ -50,8 +50,8 @@ function validateAgentSurfaceAccess(surfaceId: string, operation: string): strin
     }
   } else {
     // Agent-created surface
-    if (!/^[a-zA-Z0-9]+$/.test(surfaceId)) {
-      return `Invalid agent-created surface ID '${surfaceId}'. It must contain only alphanumeric characters.`;
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_]*$/.test(surfaceId)) {
+      return `Invalid agent-created surface ID '${surfaceId}'. It must start with an alphanumeric character and contain only alphanumeric characters or underscores.`;
     }
   }
 
@@ -300,7 +300,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 
 - Always create a surface before updating its components.
 - Use meaningful and unique surfaceIds (e.g., "weatherDashboard", "userProfile").
-- Agent-created \`surfaceId\`s MUST be purely alphanumeric (no hyphens, no underscores).
+- Agent-created \`surfaceId\`s MUST start with an alphanumeric character and may contain alphanumeric characters or underscores (no hyphens or other characters).
 - Do not attempt to create or delete client-managed surfaces (those starting with \`__\`). You are only allowed to update their data bindings.
 - Prefer data bindings for contents that change.
 - When handling user actions, acknowledge the action and update the UI accordingly.
