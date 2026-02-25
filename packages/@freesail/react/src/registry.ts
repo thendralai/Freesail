@@ -115,7 +115,16 @@ class ComponentRegistry {
     if (!catalogFunctions) {
       return null;
     }
-    return catalogFunctions[functionName] ?? null;
+    // Direct lookup first
+    if (catalogFunctions[functionName] != null) {
+      return catalogFunctions[functionName];
+    }
+    // Fallback: try snake_case -> camelCase conversion (e.g. open_url -> openUrl)
+    if (functionName.includes('_')) {
+      const camelName = functionName.replace(/_([a-z])/g, (_match, p1) => p1.toUpperCase());
+      return catalogFunctions[camelName] ?? null;
+    }
+    return null;
   }
 
   /**
