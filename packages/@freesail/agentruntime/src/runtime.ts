@@ -8,6 +8,8 @@ export interface AgentRuntimeConfig {
   /**
    * Handler for chat messages from the user.
    */
+  chatActionName:string;
+  chatSurfaceId: string;
   onChat: (message: string, sessionId: string) => Promise<string>;
   /**
    * Optional handler for component actions.
@@ -21,9 +23,13 @@ export class FreesailAgentRuntime {
   private processingChain = Promise.resolve();
   private onChat: (message: string, sessionId: string) => Promise<string>;
   private onAction?: (action: any, sessionId: string) => Promise<void>;
+  private chatActionName:string;
+  private chatSurfaceId: string;
 
   constructor(config: AgentRuntimeConfig) {
     this.mcpClient = config.mcpClient;
+    this.chatActionName = config.chatActionName;
+    this.chatSurfaceId = config.chatSurfaceId;
     this.onChat = config.onChat;
     this.onAction = config.onAction;
   }
@@ -99,7 +105,7 @@ export class FreesailAgentRuntime {
 
              // Default behavior: Format generic actions as chat
              // Special case: chat_send on __chat is direct chat
-             if (action.name === 'chat_send' && action.surfaceId === '__chat') {
+             if (action.name === this.chatActionName && action.surfaceId === this.chatSurfaceId) {
                 const chatText = (action.context as { text?: string })?.text;
                 if (chatText) {
                    await this.onChat(chatText, entry.sessionId);

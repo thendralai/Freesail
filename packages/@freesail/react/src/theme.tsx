@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 
-export type A2UIThemeMode = 'light' | 'dark';
+export type FreesailThemeMode = 'light' | 'dark';
 
-export interface A2UIThemeTokens {
+export interface FreesailThemeTokens {
   bgRoot: string;
   bgSurface: string;
   bgMuted: string;
@@ -19,12 +19,12 @@ export interface A2UIThemeTokens {
   shadowMd: string;
 }
 
-export interface A2UITheme {
-  mode: A2UIThemeMode;
-  tokens: A2UIThemeTokens;
+export interface FreesailTheme {
+  mode: FreesailThemeMode;
+  tokens: FreesailThemeTokens;
 }
 
-export const defaultLightTheme: A2UIThemeTokens = {
+export const defaultLightTheme: FreesailThemeTokens = {
   bgRoot: '#f8fafc',
   bgSurface: '#ffffff',
   bgMuted: '#f1f5f9',
@@ -41,7 +41,7 @@ export const defaultLightTheme: A2UIThemeTokens = {
   shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
 };
 
-export const defaultDarkTheme: A2UIThemeTokens = {
+export const defaultDarkTheme: FreesailThemeTokens = {
   bgRoot: '#020617',
   bgSurface: '#0f172a',
   bgMuted: '#1e293b',
@@ -58,20 +58,20 @@ export const defaultDarkTheme: A2UIThemeTokens = {
   shadowMd: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
 };
 
-const ThemeContext = createContext<A2UITheme>({
+const ThemeContext = createContext<FreesailTheme>({
   mode: 'light',
   tokens: defaultLightTheme,
 });
 
-export const useA2UITheme = () => useContext(ThemeContext);
+export const useFreesailTheme = () => useContext(ThemeContext);
 
 export interface ThemeProviderProps {
-  theme?: A2UIThemeMode | Partial<A2UIThemeTokens>;
+  theme?: FreesailThemeMode | Partial<FreesailThemeTokens>;
   children: React.ReactNode;
 }
 
-export function A2UIThemeProvider({ theme = 'light', children }: ThemeProviderProps) {
-  const currentTheme = useMemo<A2UITheme>(() => {
+export function FreesailThemeProvider({ theme = 'light', children }: ThemeProviderProps) {
+  const currentTheme = useMemo<FreesailTheme>(() => {
     if (theme === 'dark') {
       return { mode: 'dark', tokens: defaultDarkTheme };
     }

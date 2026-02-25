@@ -16,13 +16,18 @@ import cors from 'cors';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
-const logger = {
-  info: (...args: any[]) => console.log('[INFO]', ...args),
-  error: (...args: any[]) => console.error('[ERROR]', ...args),
-  fatal: (...args: any[]) => console.error('[FATAL]', ...args),
-};
+import { NativeLogger, getConsoleSink, configure } from '@freesail/logger';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { FreesailLangchainAgent, FreesailAgentRuntime, formatAction } from '@freesail/agentruntime';
+import { FreesailAgentRuntime } from '@freesail/agentruntime';
+import { FreesailLangchainAgent } from './langchain-agent.js';
+
+await configure({
+  sinks: { console: getConsoleSink() },
+  loggers: [{ category: [], sinks: ['console'], level: 'info' }],
+});
+const logger = new NativeLogger('freesail-agent');
+
+
 
 // Configuration
 const PORT = parseInt(process.env['AGENT_PORT'] ?? '3002', 10);
@@ -99,6 +104,8 @@ const agent = new FreesailLangchainAgent({
 
 const runtime = new FreesailAgentRuntime({
   mcpClient,
+  chatActionName: 'chat_send',
+  chatSurfaceId: '__chat',
   onChat: handleChatSend,
   onAction: async (actionMsg: any, sessionId: string) => {
      const action = actionMsg.action;
@@ -111,7 +118,6 @@ const runtime = new FreesailAgentRuntime({
         return; 
      }
 
-     
      if (action.name === 'chat_send' && action.surfaceId === '__chat') {
        const chatText = (action.context as { text?: string })?.text;
        if (chatText) {

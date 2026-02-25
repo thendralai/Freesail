@@ -16,7 +16,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
       "freesail": ["../../packages/freesail/src"],
       "@freesail/core": ["../../packages/@freesail/core/src"],

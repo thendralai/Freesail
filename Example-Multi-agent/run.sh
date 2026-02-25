@@ -43,11 +43,11 @@ run_python() {
   local REQ_DIR=$1
   local SCRIPT=$2
   cd "$REQ_DIR"
-  if [ ! -d "venv" ]; then
+  if [ ! -d ".venv" ]; then
     echo "Creating virtualenv..."
-    python3 -m venv venv || python -m venv venv
+    python3 -m venv .venv || python -m venv .venv
   fi
-  source venv/bin/activate
+  source .venv/bin/activate
   pip install -r requirements.txt
   python "$SCRIPT" &
   echo $!
@@ -58,10 +58,10 @@ echo -e "\033[0;34m[Agent B]\033[0m Starting A2A Server on port 5002..."
 export AGENT_B_PORT=5002
 export MCP_URL="http://localhost:3000/mcp"
 cd "$SCRIPT_DIR/agent-b"
-if [ ! -d "venv" ]; then
-  python3 -m venv venv || python -m venv venv
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv || python -m venv .venv
 fi
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 python agent_b.py &
 AGENT_B_PID=$!
@@ -72,10 +72,10 @@ echo -e "\033[0;34m[Agent A]\033[0m Starting Conversation Agent on port 5001..."
 export AGENT_A_PORT=5001
 export AGENT_B_URL="http://localhost:5002"
 cd "$SCRIPT_DIR/agent-a"
-if [ ! -d "venv" ]; then
-  python3 -m venv venv || python -m venv venv
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv || python -m venv .venv
 fi
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 python agent_a.py &
 AGENT_A_PID=$!

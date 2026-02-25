@@ -1,11 +1,11 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { LangChainAdapter } from './langchain-adapter.js';
-import { fetchFreesailSystemPrompt, extractGeminiToolCalls } from './utils.js';
+import {LangChainAdapter} from './langchain-adapter.js';
+import { fetchFreesailSystemPrompt, extractGeminiToolCalls } from '@freesail/agentruntime';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
-export interface FreesailLangchainAgentConfig {
+interface FreesailLangchainAgentConfig {
   /** The connected MCP Client instance */
   mcpClient: Client;
   /** The Langchain Chat Model (e.g. ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI) */
@@ -69,7 +69,7 @@ export class FreesailLangchainAgent {
   private async getSystemPrompt(): Promise<string> {
     if (this.cachedSystemPrompt) return this.cachedSystemPrompt;
     this.cachedSystemPrompt = await fetchFreesailSystemPrompt(this.mcpClient);
-    return this.cachedSystemPrompt;
+    return this.cachedSystemPrompt??"";
   }
 
   private async getTools(): Promise<DynamicStructuredTool[]> {

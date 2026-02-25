@@ -164,7 +164,7 @@ function ChatApp() {
 
 export default function App() {
   return (
-    <ReactUI.A2UIThemeProvider theme="dark">
+    <ReactUI.FreesailThemeProvider theme="dark">
       <ReactUI.FreesailProvider
         sseUrl="http://localhost:3001/sse"
         postUrl="http://localhost:3001/message"
@@ -172,7 +172,7 @@ export default function App() {
       >
         <ChatApp />
       </ReactUI.FreesailProvider>
-    </ReactUI.A2UIThemeProvider>
+    </ReactUI.FreesailThemeProvider>
   );
 }
 

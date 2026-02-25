@@ -6,7 +6,10 @@
   "workspaces": [
     "packages/@freesail/*",
     "packages/freesail",
-    "packages/@freesail-community/*"
+    "packages/@freesail-community/*",
+    "Example-Typescript/agent",
+    "Example-Typescript/react-app",
+    "Example-Multi-agent/react-app"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",
@@ -34,6 +37,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/node": "^20.10.0",
     "glob": "^13.0.3",
     "prettier": "^3.1.0",
@@ -41,6 +45,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@langchain/google-genai": "^2.1.20",
     "vite": "7.3.1"
   }
 }

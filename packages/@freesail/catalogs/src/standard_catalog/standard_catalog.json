@@ -1097,7 +1097,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "Table": {
+    "GridLayout": {
       "type": "object",
       "allOf": [
         {
@@ -1108,10 +1108,10 @@
         },
         {
           "type": "object",
-          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Table provides the table structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path).",
+          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path).",
           "properties": {
             "component": {
-              "const": "Table"
+              "const": "GridLayout"
             },
             "headers": {
               "type": "array",

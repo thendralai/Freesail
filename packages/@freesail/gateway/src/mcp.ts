@@ -180,6 +180,17 @@ The template component is rendered once per item in the data list. Inside templa
 - \\{ "path": "name" \\}  → resolves to the current item's "name" property ✅
 - \\{ "path": "/name" \\} → resolves to "/name" in the ROOT data model ❌
 
+**IMPORTANT**: List items MUST be objects with named fields — never plain strings or numbers.
+If you have a list of scalar values (e.g., \`["Pollen", "Penicillin"]\`), wrap each item as an object:
+
+    // ❌ Wrong — scalar array, can't use relative paths
+    "allergies": ["Pollen", "Penicillin"]
+
+    // ✅ Correct — object array, use relative path "label"
+    "allergies": [{ "label": "Pollen" }, { "label": "Penicillin" }]
+
+Then reference the field with a relative path: \`{ "path": "label" }\`.
+
 Example with formatString inside a template:
 
     {
@@ -299,7 +310,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Only create NEW surfaces when you think that the user will have a better experience with a new surface.
 - Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
-- Remove surfaces when they are no longer needed.
+- Always remove surfaces when they are no longer needed, like when the conversation moves to a new topic or when the same data is displayed in a different surface.
 - Layout - Prefer arranging components horizontally when possible.
 - Do not talk about A2UI or Freesail or MCP internals or technical details with the user. The user may not be technical.`;
 

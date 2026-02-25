@@ -48,11 +48,9 @@ fi
 
 cd "$ROOT_DIR"
 
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-  echo -e "${BLUE}Installing dependencies...${NC}"
-  npm install
-fi
+# Install/update dependencies (always run so workspace links are up to date)
+echo -e "${BLUE}Installing dependencies...${NC}"
+npm install
 
 # Always rebuild packages to pick up source changes
 echo -e "${BLUE}Building Freesail SDK...${NC}"
@@ -96,7 +94,7 @@ sleep 3
 echo -e "${BLUE}[UI]${NC} Starting on http://localhost:${UI_PORT:-5173}"
 cd "$ROOT_DIR/Example-Typescript/react-app"
 rm -rf node_modules/.vite  # Clear Vite cache to pick up fresh workspace sources
-npm run dev > /dev/null 2>&1 &
+npm run dev &
 UI_PID=$!
 cd "$ROOT_DIR"
 

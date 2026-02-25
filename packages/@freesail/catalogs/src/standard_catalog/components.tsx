@@ -80,7 +80,7 @@ export function Card({ component, children }: FreesailComponentProps) {
 }
 
 /**
- * Table - displays tabular data with column headers and styled rows.
+ * GridLayout - displays tabular data with column headers and styled rows.
  * Follows A2UI composition: headers come from props, row content is
  * composed using existing Row/Text components via the children template.
  *
@@ -88,13 +88,13 @@ export function Card({ component, children }: FreesailComponentProps) {
  * wrapper makes its children (Text components) become direct grid cells,
  * aligning them under each column header.
  */
-export function Table({ component, children }: FreesailComponentProps) {
+export function GridLayout({ component, children }: FreesailComponentProps) {
   const headers = (component['headers'] as string[]) ?? [];
   const colCount = headers.length || 1;
   const childArray = Array.isArray(children) ? children : children ? [children] : [];
 
-  // Unique class scoped to this table instance for CSS targeting
-  const tableClass = `freesail-table-${component['id'] ?? 'default'}`;
+  // Unique class scoped to this grid instance for CSS targeting
+  const gridClass = `freesail-grid-${component['id'] ?? 'default'}`;
 
   const wrapperStyle: CSSProperties = {
     width: '100%',
@@ -132,30 +132,30 @@ export function Table({ component, children }: FreesailComponentProps) {
     <>
       {/* Make the Row wrapper and its flex div transparent to the grid */}
       <style>{`
-        .${tableClass} > .freesail-table-row,
-        .${tableClass} > .freesail-table-row > div {
+        .${gridClass} > .freesail-grid-row,
+        .${gridClass} > .freesail-grid-row > div {
           display: contents !important;
         }
-        .${tableClass} > .freesail-table-row > div > * {
+        .${gridClass} > .freesail-grid-row > div > * {
           padding: 10px 16px;
           border-bottom: 1px solid var(--freesail-border, #e2e8f0);
         }
-        .${tableClass} > .freesail-table-row:nth-child(odd) > div > * {
+        .${gridClass} > .freesail-grid-row:nth-child(odd) > div > * {
           background: var(--freesail-bg-surface, #ffffff);
         }
-        .${tableClass} > .freesail-table-row:nth-child(even) > div > * {
+        .${gridClass} > .freesail-grid-row:nth-child(even) > div > * {
           background: var(--freesail-bg-muted, #f8fafc);
         }
       `}</style>
       <div style={wrapperStyle}>
-        <div className={tableClass} style={gridStyle}>
+        <div className={gridClass} style={gridStyle}>
           {/* Header row */}
           {headers.map((header, i) => (
             <div key={`h-${i}`} style={headerCellStyle}>{String(header)}</div>
           ))}
           {/* Data rows — each child is a Row component */}
           {childArray.map((child, i) => (
-            <div key={`r-${i}`} className="freesail-table-row">
+            <div key={`r-${i}`} className="freesail-grid-row">
               {child}
             </div>
           ))}
@@ -1140,7 +1140,7 @@ export const standardCatalogComponents = {
   Column,
   Row,
   Card,
-  Table,
+  GridLayout,
   Text,
   Button,
   TextField,

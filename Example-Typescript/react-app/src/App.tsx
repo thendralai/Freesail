@@ -20,7 +20,7 @@ const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
 ];
 
 // A custom hot-pink theme just to show overrides working
-const customThemeProps: Partial<ReactUI.A2UIThemeTokens> = {
+const customThemeProps: Partial<ReactUI.FreesailThemeTokens> = {
   primary: '#e11d48', // Rose 600
   primaryHover: '#be123c', // Rose 700
   bgSurface: '#fff1f2', // Rose 50
@@ -37,7 +37,7 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <ReactUI.A2UIThemeProvider theme={activeTheme}>
+      <ReactUI.FreesailThemeProvider theme={activeTheme}>
         <ReactUI.FreesailProvider
           sseUrl="http://localhost:3001/sse"
           postUrl="http://localhost:3001/message"
@@ -84,7 +84,7 @@ function App() {
             </div>
           </div>
         </ReactUI.FreesailProvider>
-      </ReactUI.A2UIThemeProvider>
+      </ReactUI.FreesailThemeProvider>
     </div>
   );
 }

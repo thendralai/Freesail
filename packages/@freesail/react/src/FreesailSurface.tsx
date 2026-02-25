@@ -137,7 +137,7 @@ function renderComponent(
 ): ReactNode {
   const componentDef = components.get(componentId);
   if (!componentDef) {
-    console.warn(`[Freesail] Component not found: ${componentId}`);
+    // Component may arrive in a subsequent update_components batch — render nothing for now
     return null;
   }
 
@@ -341,6 +341,11 @@ function resolveSingleBinding(
 ): unknown {
   const path = binding.path;
   let resolvedValue: unknown;
+
+  // "." or "" means "the current scoped item" — used when iterating scalar arrays
+  if (path === '.' || path === '') {
+    return scopeData !== undefined ? scopeData : getDataAtPath(dataModel, '/');
+  }
 
   if (path.startsWith('/')) {
     resolvedValue = getDataAtPath(dataModel, path);
