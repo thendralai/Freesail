@@ -11,6 +11,7 @@
 import React, { useState, useEffect, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
+import type { FunctionCall } from '@freesail/core';
 import { standardCatalogFunctions } from './functions.js';
 
 // =============================================================================
@@ -245,37 +246,95 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   const label = children ?? (component['label'] as string) ?? 'Button';
   const variant = (component['variant'] as string) ?? 'primary';
   const disabled = (component['disabled'] as boolean) ?? false;
-  
+
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [isActive, setIsActive] = React.useState(false);
+
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
   const isDisabled = disabled || !!validationError;
 
   // v0.9 action structure
-  const action = component['action'] as { 
-      event?: { name: string; context?: Record<string, unknown> },
-      functionCall?: any // LocalAction
-  } | undefined;
+  const action = component['action'] as
+    | { event?: { name: string; context?: Record<string, unknown> }; functionCall?: any }
+    | FunctionCall
+    | undefined;
   
-  const actionName = action?.event?.name ?? (component['action'] as string) ?? 'button_click';
+  const eventAction = action && 'event' in action ? action : undefined;
+  const actionName = eventAction?.event?.name ?? (component['action'] as string) ?? 'button_click';
   // Pass context as-is — the framework resolves data bindings at dispatch time
-  const actionContext = action?.event?.context ?? {};
+  const actionContext = eventAction?.event?.context ?? {};
 
   const baseStyle: CSSProperties = {
     padding: '0.5rem 1rem',
     borderRadius: 'var(--freesail-radius-md)',
     border: 'none',
-    cursor: disabled ? 'not-allowed' : 'pointer',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    opacity: disabled ? 0.6 : 1,
+    opacity: isDisabled ? 0.55 : 1,
+    transition: 'background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease, opacity 0.15s ease',
+    transform: !isDisabled && isActive ? 'scale(0.97)' : 'scale(1)',
+    userSelect: 'none',
+    outline: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.375rem',
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
   };
 
   const variantStyles: Record<string, CSSProperties> = {
-    primary: { background: 'var(--freesail-primary, #2563eb)', color: 'var(--freesail-primary-text, #ffffff)' },
-    secondary: { background: 'var(--freesail-bg-muted, #f1f5f9)', color: 'var(--freesail-text-main, #0f172a)' },
-    outline: { background: 'transparent', border: '1px solid var(--freesail-border, #e2e8f0)', color: 'var(--freesail-text-main, #0f172a)' },
-    borderless: { background: 'transparent', color: 'var(--freesail-primary, #2563eb)' },
-    danger: { background: 'var(--freesail-error, #ef4444)', color: '#fff' },
+    primary: {
+      background: !isDisabled && isActive
+        ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 80%, #000)'
+        : !isDisabled && isHovered
+          ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 88%, #000)'
+          : 'var(--freesail-primary, #2563eb)',
+      color: 'var(--freesail-primary-text, #ffffff)',
+      boxShadow: !isDisabled && isActive
+        ? 'none'
+        : !isDisabled && isHovered
+          ? '0 2px 8px color-mix(in srgb, var(--freesail-primary, #2563eb) 40%, transparent)'
+          : '0 1px 3px rgba(0,0,0,0.15)',
+    },
+    secondary: {
+      background: !isDisabled && isActive
+        ? 'color-mix(in srgb, var(--freesail-bg-muted, #f1f5f9) 70%, #000)'
+        : !isDisabled && isHovered
+          ? 'color-mix(in srgb, var(--freesail-bg-muted, #f1f5f9) 85%, #000)'
+          : 'var(--freesail-bg-muted, #f1f5f9)',
+      color: 'var(--freesail-text-main, #0f172a)',
+      boxShadow: !isDisabled && isActive ? 'none' : !isDisabled && isHovered ? '0 2px 6px rgba(0,0,0,0.1)' : '0 1px 2px rgba(0,0,0,0.08)',
+    },
+    outline: {
+      background: !isDisabled && isActive
+        ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 10%, transparent)'
+        : !isDisabled && isHovered
+          ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 6%, transparent)'
+          : 'transparent',
+      border: `1px solid ${!isDisabled && isHovered ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-border, #e2e8f0)'}`,
+      color: !isDisabled && isHovered ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-text-main, #0f172a)',
+    },
+    borderless: {
+      background: !isDisabled && isActive
+        ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 12%, transparent)'
+        : !isDisabled && isHovered
+          ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 7%, transparent)'
+          : 'transparent',
+      color: 'var(--freesail-primary, #2563eb)',
+      textDecoration: !isDisabled && isHovered ? 'underline' : 'none',
+    },
+    danger: {
+      background: !isDisabled && isActive
+        ? 'color-mix(in srgb, var(--freesail-error, #ef4444) 80%, #000)'
+        : !isDisabled && isHovered
+          ? 'color-mix(in srgb, var(--freesail-error, #ef4444) 88%, #000)'
+          : 'var(--freesail-error, #ef4444)',
+      color: '#fff',
+      boxShadow: !isDisabled && isActive ? 'none' : !isDisabled && isHovered ? '0 2px 8px rgba(239,68,68,0.35)' : '0 1px 3px rgba(0,0,0,0.15)',
+    },
   };
 
   const style = { ...baseStyle, ...variantStyles[variant] };
@@ -283,8 +342,15 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   const handleClick = () => {
     if (isDisabled) return;
 
-    if (action?.functionCall && onFunctionCall) {
+    // Case 1: action is { functionCall: { call, args } }
+    if (action && 'functionCall' in action && action.functionCall && onFunctionCall) {
         onFunctionCall(action.functionCall);
+        return;
+    }
+
+    // Case 2: action IS a FunctionCall directly — { call, args }
+    if (action && 'call' in action && onFunctionCall) {
+        onFunctionCall(action);
         return;
     }
 
@@ -325,6 +391,12 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
       onClick={handleClick} 
       disabled={isDisabled}
       title={validationError || undefined}
+      onMouseEnter={() => !isDisabled && setIsHovered(true)}
+      onMouseLeave={() => { setIsHovered(false); setIsActive(false); }}
+      onMouseDown={() => !isDisabled && setIsActive(true)}
+      onMouseUp={() => setIsActive(false)}
+      onFocus={() => !isDisabled && setIsHovered(true)}
+      onBlur={() => { setIsHovered(false); setIsActive(false); }}
     >
       {label}
     </button>
