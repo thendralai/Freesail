@@ -96,6 +96,7 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
 
   // Unique class scoped to this grid instance for CSS targeting
   const gridClass = `freesail-grid-${component['id'] ?? 'default'}`;
+  const rowPadding = (component['rowPadding'] as string) ?? '10px 16px';
 
   const wrapperStyle: CSSProperties = {
     width: '100%',
@@ -138,8 +139,13 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
           display: contents !important;
         }
         .${gridClass} > .freesail-grid-row > div > * {
-          padding: 10px 16px;
+          padding: ${rowPadding};
           border-bottom: 1px solid var(--freesail-border, #e2e8f0);
+        }
+        .${gridClass} > .freesail-grid-row > div > button {
+          width: fit-content;
+          align-self: center;
+          justify-self: start;
         }
         .${gridClass} > .freesail-grid-row:nth-child(odd) > div > * {
           background: var(--freesail-bg-surface, #ffffff);
@@ -408,6 +414,7 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
  */
 export function TextField({ component, onAction, onDataChange }: FreesailComponentProps) {
   const label = (component['label'] as string) ?? '';
+  const hideLabel = (component['hideLabel'] as boolean) ?? false;
   const name = (component['name'] as string) ?? component.id;
   const placeholder = (component['placeholder'] as string) ?? label;
   const variant = (component['variant'] as string) ?? 'shortText';
@@ -433,7 +440,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    marginBottom: '8px',
+    marginBottom: hideLabel ? '0' : '8px',
   };
   
   const labelStyle: CSSProperties = {
@@ -460,7 +467,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
 
   return (
     <div style={containerStyle}>
-      {label && <label style={labelStyle}>{label}</label>}
+      {label && !hideLabel && <label style={labelStyle}>{label}</label>}
       {variant === 'longText' ? (
         <textarea 
           placeholder={placeholder}
@@ -1087,6 +1094,7 @@ export function ChoicePicker({ component, onDataChange }: FreesailComponentProps
  */
 export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
   const label = component['label'] as string | undefined;
+  const hideLabel = (component['hideLabel'] as boolean) ?? false;
   const placeholder = (component['placeholder'] as string | undefined) ?? 'Select an option';
 
   const rawOptions = component['options'];
@@ -1126,7 +1134,7 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {label && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
+      {label && !hideLabel && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
       <select
         value={localValue}
         onChange={handleChange}

@@ -665,7 +665,7 @@
         },
         {
           "type": "object",
-          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured).",
+          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label — use this when the TextField is inside a GridLayout where column headers already describe the field).",
           "properties": {
             "component": {
               "const": "TextField"
@@ -687,6 +687,11 @@
                 "shortText",
                 "obscured"
               ]
+            },
+            "hideLabel": {
+              "type": "boolean",
+              "description": "When true, hides the label above the input. Use this when the TextField is inside a GridLayout — the column headers already act as labels, so showing them again inside each cell is redundant and makes rows too tall.",
+              "default": false
             }
           },
           "required": [
@@ -830,6 +835,11 @@
             "label": {
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "The label for the dropdown."
+            },
+            "hideLabel": {
+              "type": "boolean",
+              "description": "When true, hides the label above the dropdown. Use this when the Dropdown is inside a GridLayout — the column headers already act as labels.",
+              "default": false
             },
             "placeholder": {
               "$ref": "../common/common_types.json#/$defs/DynamicString",
@@ -1108,7 +1118,7 @@
         },
         {
           "type": "object",
-          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path).",
+          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path), rowPadding (controls the padding of each cell; default '10px 16px'; use to add vertical spacing between rows, e.g. '14px 16px'). IMPORTANT: Row padding is controlled by rowPadding on the GridLayout, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a GridLayout, always set hideLabel: true on each one — the column headers already serve as labels, and showing them again inside each cell makes rows unnecessarily tall.",
           "properties": {
             "component": {
               "const": "GridLayout"
@@ -1123,6 +1133,11 @@
             "children": {
               "description": "Defines the row content. Use a template object { componentId, path } to generate rows from a data list. The componentId should reference a Row component containing Text components for each column.",
               "$ref": "../common/common_types.json#/$defs/ChildList"
+            },
+            "rowPadding": {
+              "description": "CSS padding applied to every cell in each data row. Use this to control row height and vertical spacing. Defaults to '10px 16px'. Example: '16px' for taller rows with more breathing room.",
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "default": "10px 16px"
             }
           },
           "required": [
