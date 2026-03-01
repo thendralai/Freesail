@@ -281,7 +281,7 @@ export function generateCatalogPrompt(catalog: Catalog): string {
         if (propName === 'component') continue;
 
         // Handle $ref types for display
-        let typeStr: string | undefined = prop.type;
+        let typeStr: string | undefined = prop.type as string | undefined;
         if (!typeStr && prop.$ref) {
           const ref = prop.$ref;
           const baseType = ref.split('/').pop() || 'unknown';
@@ -293,6 +293,20 @@ export function generateCatalogPrompt(catalog: Catalog): string {
           } else {
             typeStr = baseType;
           }
+        } else if (typeStr === 'array' && prop.items) {
+          let itemTypeStr: string | undefined = prop.items.type as string | undefined;
+          if (!itemTypeStr && prop.items.$ref) {
+            const ref = prop.items.$ref;
+            const baseType = ref.split('/').pop() || 'unknown';
+            if (baseType.startsWith('Dynamic')) {
+              itemTypeStr = `${baseType.replace('Dynamic', '').toLowerCase()} | Binding`;
+            } else if (baseType === 'ChildList') {
+              itemTypeStr = 'string[] | ChildTemplate';
+            } else {
+              itemTypeStr = baseType;
+            }
+          }
+          typeStr = `array[${itemTypeStr || 'unknown'}]`;
         }
 
         const desc = prop.description ? ` - ${prop.description}` : '';
@@ -465,6 +479,18 @@ export function validateComponent(
     // Validate array items if schema specifies items structure
     if (propSchema.type === 'array' && propSchema.items && Array.isArray(propValue)) {
       const itemSchema = propSchema.items;
+
+      // Check if items should be primitive types
+      if (itemSchema.type === 'string' || itemSchema.type === 'number' || itemSchema.type === 'boolean') {
+        for (let i = 0; i < propValue.length; i++) {
+          const item = propValue[i];
+          if (typeof item !== itemSchema.type) {
+            errors.push(
+              `Property '${propName}[${i}]' must be of type ${itemSchema.type}. Got ${typeof item}.`
+            );
+          }
+        }
+      }
 
       // Check if items should be objects with specific properties
       if (itemSchema.type === 'object' && itemSchema.properties) {

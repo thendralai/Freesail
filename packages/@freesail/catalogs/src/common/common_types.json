@@ -32,7 +32,9 @@
           "$ref": "#/$defs/AccessibilityAttributes"
         }
       },
-      "required": ["id"]
+      "required": [
+        "id"
+      ]
     },
     "ChildList": {
       "oneOf": [
@@ -55,7 +57,10 @@
               "description": "The path to the list of component property objects in the data model."
             }
           },
-          "required": ["componentId", "path"],
+          "required": [
+            "componentId",
+            "path"
+          ],
           "additionalProperties": false
         }
       ]
@@ -68,7 +73,9 @@
           "description": "A JSON Pointer path to a value in the data model."
         }
       },
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "additionalProperties": false
     },
     "DynamicValue": {
@@ -206,19 +213,37 @@
           "description": "The name of the function to call."
         },
         "args": {
-          "type": "object",
           "description": "Arguments passed to the function.",
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/DynamicValue"
-              },
-              {
-                "type": "object",
-                "description": "A literal object argument (e.g. configuration)."
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/DynamicValue"
+                  },
+                  {
+                    "type": "object",
+                    "description": "A literal object argument (e.g. configuration)."
+                  }
+                ]
               }
-            ]
-          }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/DynamicValue"
+                  },
+                  {
+                    "type": "object",
+                    "description": "A literal object argument (e.g. configuration)."
+                  }
+                ]
+              }
+            }
+          ]
         },
         "returnType": {
           "type": "string",
@@ -235,9 +260,13 @@
           "default": "boolean"
         }
       },
-      "required": ["call"],
+      "required": [
+        "call"
+      ],
       "oneOf": [
-        { "$ref": "catalog.json#/$defs/anyFunction" }
+        {
+          "$ref": "catalog.json#/$defs/anyFunction"
+        }
       ]
     },
     "CheckRule": {
@@ -252,7 +281,10 @@
           "description": "The error message to display if the check fails."
         }
       },
-      "required": ["condition", "message"],
+      "required": [
+        "condition",
+        "message"
+      ],
       "additionalProperties": false
     },
     "Checkable": {
@@ -291,11 +323,15 @@
                   }
                 }
               },
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "additionalProperties": false
             }
           },
-          "required": ["event"],
+          "required": [
+            "event"
+          ],
           "additionalProperties": false
         },
         {
@@ -306,7 +342,9 @@
               "$ref": "#/$defs/FunctionCall"
             }
           },
-          "required": ["functionCall"],
+          "required": [
+            "functionCall"
+          ],
           "additionalProperties": false
         }
       ]

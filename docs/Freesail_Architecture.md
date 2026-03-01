@@ -2,7 +2,7 @@
 
 ## **1\. Executive Summary**
 
-Freesail is a Generative UI SDK that enables AI Agents to drive user interfaces across any frontend framework (React, Angular, Legacy). It achieves this by decoupling the **Agent** (Brain) from the **Client** (Renderer) using the **Model Context Protocol (MCP)** and the **A2UI Protocol**.
+Freesail is an Agent-driven UI SDK that enables AI Agents to drive user interfaces across any frontend framework (React, Angular, Legacy). It achieves this by decoupling the **Agent** (Brain) from the **Client** (Renderer) using the **Model Context Protocol (MCP)** and the **A2UI Protocol**.
 
 The core philosophy is **"Headless & Contract-First"**. The system relies on a strict JSON schema (catalog.json) to define the UI capabilities, ensuring the Agent never "hallucinates" invalid UI components.
 

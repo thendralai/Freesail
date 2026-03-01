@@ -157,9 +157,12 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
       <div style={wrapperStyle}>
         <div className={gridClass} style={gridStyle}>
           {/* Header row */}
-          {headers.map((header, i) => (
-            <div key={`h-${i}`} style={headerCellStyle}>{String(header)}</div>
-          ))}
+          {headers.map((header, i) => {
+            const headerText = typeof header === 'object' && header !== null && 'label' in header 
+              ? String((header as any).label)
+              : String(header);
+            return <div key={`h-${i}`} style={headerCellStyle}>{headerText}</div>;
+          })}
           {/* Data rows — each child is a Row component */}
           {childArray.map((child, i) => (
             <div key={`r-${i}`} className="freesail-grid-row">
@@ -343,7 +346,8 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
     },
   };
 
-  const style = { ...baseStyle, ...variantStyles[variant] };
+  const safeVariant = variant === 'text' ? 'borderless' : (variantStyles[variant] ? variant : 'primary');
+  const style = { ...baseStyle, ...variantStyles[safeVariant] };
 
   const handleClick = () => {
     if (isDisabled) return;

@@ -1,7 +1,7 @@
 {
   "name": "@freesail/react",
   "version": "0.4.3-alpha",
-  "description": "React implementation for Freesail - Generative UI SDK",
+  "description": "React implementation for Freesail - Agent-driven UI SDK",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,7 +25,7 @@
   "keywords": [
     "freesail",
     "react",
-    "generative-ui",
+    "agent-driven-ui",
     "a2ux"
   ],
   "peerDependencies": {

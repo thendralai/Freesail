@@ -395,7 +395,27 @@ export function evaluateFunction(
   }
 
   // Resolve arguments
-  const args = Object.values(call.args || {}).map(arg => {
+  let rawArgs: unknown[] = [];
+  if (Array.isArray(call.args)) {
+    rawArgs = call.args;
+  } else if (call.args && typeof call.args === 'object') {
+    // If it's an object, we need to extract the values in the correct order.
+    // Agents often generate object keys like "'0'", "'1'" out of numerical order,
+    // so we parse the keys as numbers and sort them.
+    const entries = Object.entries(call.args);
+    entries.sort(([keyA], [keyB]) => {
+      // Remove surrounding quotes if present to cleanly parse as number
+      const numA = parseInt(keyA.replace(/^'|'$/g, ''), 10);
+      const numB = parseInt(keyB.replace(/^'|'$/g, ''), 10);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      return 0; // fallback to stable sort for non-numeric keys
+    });
+    rawArgs = entries.map(([, value]) => value);
+  }
+
+  const args = rawArgs.map(arg => {
     if (isFunctionCall(arg)) {
       return evaluateFunction(arg, dataModel, catalogId, scopeData);
     }

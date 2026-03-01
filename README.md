@@ -1,6 +1,6 @@
 # Freesail
 
-**Generative UI SDK** - Enables AI Agents to drive user interfaces across any frontend framework. Currently in alpha.
+**Agent-driven UI SDK** - Enables AI Agents to drive user interfaces across any frontend framework. Currently in alpha.
 
 ## Overview
 

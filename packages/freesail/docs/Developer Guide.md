@@ -1,6 +1,6 @@
 # Freesail Developer Guide
 
-This guide covers how to build **Generative UI (GenUI)** applications using the **Freesail SDK**. You'll learn how to set up the architecture, run the gateway, connect agents, and build interactive UIs.
+This guide covers how to build **Agent-driven UI** applications using the **Freesail SDK**. You'll learn how to set up the architecture, run the gateway, connect agents, and build interactive UIs.
 
 ---
 

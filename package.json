@@ -2,7 +2,7 @@
   "name": "freesail-dev",
   "version": "0.4.3-alpha",
   "private": true,
-  "description": "A2UI based Generative UI SDK",
+  "description": "A2UI based Agent-driven UI SDK",
   "workspaces": [
     "packages/@freesail/*",
     "packages/freesail",
@@ -24,7 +24,7 @@
   },
   "keywords": [
     "ai",
-    "generative-ui",
+    "agent-driven-ui",
     "a2ui",
     "agent"
   ],

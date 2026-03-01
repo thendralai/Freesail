@@ -345,15 +345,34 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
           description: catalog.description ?? `UI component catalog: ${catalog.title}`,
           mimeType: 'text/plain',
         },
-        async () => ({
-          contents: [
-            {
-              uri: catalog.catalogId,
-              mimeType: 'text/plain',
-              text: generateCatalogPrompt(catalog),
-            },
-          ],
-        })
+        async () => {
+          const promptText = generateCatalogPrompt(catalog);
+          // Write to file for debugging
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const logDir = path.join(process.cwd(), '.freesail_logs');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            
+            // Clean up catalogId to be a valid filesystem name
+            let safeName = catalog.catalogId.replace(/[^a-zA-Z0-9_\-]/g, '_');
+            if (safeName.length > 50) safeName = safeName.substring(safeName.length - 50);
+            
+            fs.writeFileSync(path.join(logDir, `prompt_${safeName}.md`), promptText);
+          } catch (e) {
+            logger.warn(`Failed to write catalog prompt to log: ${e}`);
+          }
+
+          return {
+            contents: [
+              {
+                uri: catalog.catalogId,
+                mimeType: 'text/plain',
+                text: promptText,
+              },
+            ],
+          };
+        }
       );
 
       logger.info(`[MCP] Registered catalog resource: ${catalog.catalogId}`);

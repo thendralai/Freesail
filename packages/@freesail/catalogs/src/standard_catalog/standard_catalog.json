@@ -635,7 +635,8 @@
                 "secondary",
                 "outline",
                 "borderless",
-                "danger"
+                "danger",
+                "text"
               ],
               "default": "primary"
             },
