@@ -94,23 +94,21 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     req.on('close', () => {
       logger.info(`[Express] Client disconnected: ${sessionId}`);
 
-      // Inject synthetic __session_disconnected event before removal
-      // so agents polling actions can observe the disconnect
-      const disconnectEvent = {
-        version: 'v0.9' as const,
-        action: {
-          name: '__session_disconnected',
-          surfaceId: '__system',
-          sourceComponentId: '__gateway',
-          timestamp: new Date().toISOString(),
-          context: { sessionId },
-        },
-      };
-      // Enqueue into all OTHER sessions so agents observing those queues see it
-      for (const s of sessionManager.getAllSessions()) {
-        if (s.id !== sessionId) {
-          sessionManager.enqueueAction(s.id, disconnectEvent as any);
-        }
+      const agentId = sessionManager.getAgentForSession(sessionId);
+      if (agentId) {
+        // Inject synthetic __session_disconnected event for the claiming agent
+        // so it can observe the disconnect even though the session is removed
+        const disconnectEvent = {
+          version: 'v0.9' as const,
+          action: {
+            name: '__session_disconnected',
+            surfaceId: '__system' as const,
+            sourceComponentId: '__gateway',
+            timestamp: new Date().toISOString(),
+            context: { sessionId },
+          },
+        };
+        sessionManager.enqueueOfflineAction(agentId, sessionId, disconnectEvent as any);
       }
 
       sessionManager.removeSession(sessionId);

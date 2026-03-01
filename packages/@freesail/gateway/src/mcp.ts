@@ -286,7 +286,7 @@ Then read the specific resource URI to get component definitions.
 - Use \`claim_session\` to bind yourself to a session — claimed sessions route actions exclusively to you.
 - Use \`release_session\` to give up ownership of a session.
 - When a new client connects, a synthetic \`__session_connected\` action is injected so you discover new clients via \`get_all_pending_actions\`.
-- When a client disconnects, a \`__session_disconnected\` action is injected into other sessions.
+- When a client disconnects, a \`__session_disconnected\` action is sent to the agent that claimed the session.
 
 
 ## Action Handling
@@ -653,6 +653,14 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ sessionId }) => {
+      const session = sessionManager.getSession(sessionId);
+      if (!session) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Session ${sessionId} not found or has disconnected.` }) }],
+          isError: true,
+        };
+      }
+
       const actions = sessionManager.dequeueActions(sessionId);
       return {
         content: [
@@ -680,12 +688,17 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
       },
     },
     async ({ agentId }) => {
-      let allActions;
+      let allActions: Array<{ sessionId: string, actions: any[] }>;
       if (agentId) {
         const sessionIds = sessionManager.getSessionsForAgent(agentId);
         allActions = sessionIds
           .map(sid => ({ sessionId: sid, actions: sessionManager.dequeueActions(sid) }))
           .filter(a => a.actions.length > 0);
+          
+        const offlineActions = sessionManager.dequeueOfflineActions(agentId);
+        if (offlineActions.length > 0) {
+          allActions.push(...offlineActions);
+        }
       } else {
         allActions = sessionManager.dequeueAllActions();
       }

@@ -87,6 +87,7 @@ export class SessionManager {
   private agentBindings: Map<string, AgentBinding> = new Map();
   private sessionToAgent: Map<string, string> = new Map();
   private sessionEventListeners: Map<keyof SessionManagerEvents, Array<(...args: any[]) => void>> = new Map();
+  private offlineAgentActions: Map<string, Array<{ sessionId: string, actions: UpstreamMessage[] }>> = new Map();
   private options: Required<SessionManagerOptions>;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -342,6 +343,35 @@ export class SessionManager {
       }
     }
     return result;
+  }
+
+  /**
+   * Enqueue an action for an agent whose session has disconnected.
+   */
+  enqueueOfflineAction(agentId: string, sessionId: string, message: UpstreamMessage): void {
+    let queues = this.offlineAgentActions.get(agentId);
+    if (!queues) {
+      queues = [];
+      this.offlineAgentActions.set(agentId, queues);
+    }
+    
+    // Check if we already have an entry for this session
+    let sessionQueue = queues.find(q => q.sessionId === sessionId);
+    if (!sessionQueue) {
+      sessionQueue = { sessionId, actions: [] };
+      queues.push(sessionQueue);
+    }
+    sessionQueue.actions.push(message);
+  }
+
+  /**
+   * Dequeue all offline actions for an agent.
+   */
+  dequeueOfflineActions(agentId: string): Array<{ sessionId: string; actions: UpstreamMessage[] }> {
+    const queues = this.offlineAgentActions.get(agentId);
+    if (!queues || queues.length === 0) return [];
+    this.offlineAgentActions.delete(agentId);
+    return queues;
   }
 
   /**
@@ -666,6 +696,7 @@ export class SessionManager {
     this.surfaceToSession.clear();
     this.surfaceToCatalog.clear();
     this.actionQueue.clear();
+    this.offlineAgentActions.clear();
     this.agentBindings.clear();
     this.sessionToAgent.clear();
   }
