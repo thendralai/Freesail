@@ -57,12 +57,19 @@ export class LangChainAdapter {
     return [...mcpTools.map(mcpTool =>
       tool(
         async (args: Record<string, unknown>) => {
+          // Block LLM from writing to client-managed surfaces (__chat, __system, etc.)
+          // Agent code uses mcpClient.callTool() directly and bypasses this wrapper.
+          const surfaceId = (args as any).surfaceId as string | undefined;
+          if (surfaceId?.startsWith('__')) {
+            return `Error: "${surfaceId}" is a client-managed surface. Agents may not call ${mcpTool.name} on it. Use a surface you created with create_surface instead.`;
+          }
+
           if (mcpTool.name === 'update_components') {
             const comps = (args as any).components;
-            logger.debug(`[AgentRuntime] Calling update_components for surface ${(args as any).surfaceId} with ${comps?.length} components`);
+            logger.debug(`[AgentRuntime] Calling update_components for surface ${surfaceId} with ${comps?.length} components`);
           }
           if (mcpTool.name === 'update_data_model') {
-            logger.debug(`[AgentRuntime] Calling update_data_model for surface ${(args as any).surfaceId}: ${JSON.stringify(args, null, 2)}`);
+            logger.debug(`[AgentRuntime] Calling update_data_model for surface ${surfaceId}: ${JSON.stringify(args, null, 2)}`);
           }
 
           const result = await mcpClient.callTool({

@@ -18,7 +18,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/system-prompt.md dist/system-prompt.md",
     "dev": "tsx watch src/cli.ts",
     "start": "node dist/cli.js",
     "test": "vitest run",

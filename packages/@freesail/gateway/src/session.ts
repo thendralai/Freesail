@@ -262,6 +262,30 @@ export class SessionManager {
   }
 
   /**
+   * Validate that a surface exists for a session before sending data/components.
+   * System surfaces (prefixed with __) are always allowed.
+   * Agent-created surfaces must have been registered via create_surface.
+   * Returns an error string if invalid, null if OK.
+   */
+  validateSurfaceForSession(sessionId: string, surfaceId: string): string | null {
+    // System surfaces (__chat, __system, etc.) are always valid
+    if (surfaceId.startsWith('__')) return null;
+
+    const session = this.sessions.get(sessionId);
+    if (!session) return `Session ${sessionId} not found`;
+
+    if (!session.surfaces.has(surfaceId as SurfaceId)) {
+      const existing = Array.from(session.surfaces);
+      const hint = existing.length > 0
+        ? ` Active surfaces: [${existing.join(', ')}]. Call create_surface first.`
+        : ' No surfaces have been created for this session yet. Call create_surface first.';
+      return `Surface '${surfaceId}' does not exist for session ${sessionId}.${hint}`;
+    }
+
+    return null;
+  }
+
+  /**
    * Subscribe to catalog registration events.
    */
   onCatalogsRegistered(listener: (catalogs: Catalog[]) => void): () => void {
