@@ -31,38 +31,69 @@ export async function fetchFreesailSystemPrompt(mcpClient: Client): Promise<stri
   }
 }
 
-/**
- * Fallback logic for Gemini 2.5 Flash which sometimes embeds function calls directly
- * inside the raw 'content' array payload during streaming instead of populating `tool_calls`.
- * 
- * By passing the final chunk parsed from `streamModelResponse` through this function, 
- * you can safely extract nested `functionCall` elements and map them to the standard array format.
- * 
- * @param finalChunk The aggregated final chunk from a Langchain `.stream` operation
- * @returns A cleaned chunk reference with tool calls appropriately extracted
- */
-export function extractGeminiToolCalls(finalChunk: any): any {
-  if (!finalChunk) return finalChunk;
-
-  if ((!finalChunk.tool_calls || finalChunk.tool_calls.length === 0) && Array.isArray(finalChunk.content)) {
-    const extractedToolCalls = [];
-    for (const part of finalChunk.content) {
-      if (part.functionCall) {
-         extractedToolCalls.push({
-           name: part.functionCall.name,
-           args: part.functionCall.args,
-           id: `call_${Math.random().toString(36).substring(2, 9)}`, // Synthetic unique ID
-         });
-      }
-    }
-    
-    if (extractedToolCalls.length > 0) {
-      finalChunk.tool_calls = extractedToolCalls;
-      // Clean out the content array to just be text parts, or an empty string, so the LLM format doesn't break
-      const textParts = finalChunk.content.filter((p: any) => p.type === 'text');
-      finalChunk.content = textParts.length > 0 ? textParts : '';
-    }
-  }
-
-  return finalChunk;
+/** Represents a single MCP resource entry. */
+export interface McpResourceEntry {
+  uri: string;
+  name: string;
+  mimeType?: string;
+  description?: string;
 }
+
+/**
+ * List all MCP resources (catalogs, files, etc.) registered on the gateway.
+ *
+ * Every agent LLM MUST have access to this via a tool. The A2UI system prompt
+ * instructs the model to call `list_resources` to discover available catalogs
+ * before creating any surface. Without this tool the model will guess component
+ * names and likely produce invalid UI.
+ *
+ * @returns Array of resource entries, or an empty array on failure
+ */
+export async function listCatalogResources(mcpClient: Client): Promise<McpResourceEntry[]> {
+  try {
+    const result = await mcpClient.listResources();
+    return result.resources.map(r => ({
+      uri: r.uri,
+      name: r.name,
+      mimeType: r.mimeType,
+      description: r.description ?? undefined,
+    }));
+  } catch (error) {
+    logger.error('[FreesailUtils] Failed to list MCP resources:', error);
+    return [];
+  }
+}
+
+/**
+ * Read the content of a single MCP resource by URI (e.g. a catalog definition).
+ *
+ * Every agent LLM MUST have access to this via a tool. The A2UI system prompt
+ * instructs the model to call `read_resource` to load component definitions
+ * from a catalog before creating a surface.
+ *
+ * If the resource cannot be read, this function **re-throws** so the framework
+ * adapter can return the error as a tool result. The system prompt instructs the
+ * LLM to surface this failure to the user as a visible warning rather than
+ * silently continuing with guessed component names.
+ *
+ * @param uri The exact URI returned by `listCatalogResources`
+ * @returns The resource content as a string
+ * @throws If the MCP resource cannot be read
+ */
+export async function readCatalogResource(mcpClient: Client, uri: string): Promise<string> {
+  try {
+    const result = await mcpClient.readResource({ uri });
+    return result.contents
+      .map(c => {
+        if ('text' in c) return c.text;
+        if ('blob' in c) return `[Binary resource: ${c.mimeType}]`;
+        return '';
+      })
+      .join('\n\n');
+  } catch (error) {
+    logger.error(`[FreesailUtils] Failed to read MCP resource "${uri}":`, error);
+    throw error; // surface to LLM as a tool error → LLM warns the user
+  }
+}
+
+

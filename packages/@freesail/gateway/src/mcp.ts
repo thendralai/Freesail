@@ -269,15 +269,20 @@ Components like \`Button\` and \`TextField\` support the \`checks\` property.
 
 ## Available Catalogs
  
-Catalogs are available as MCP resources.
-To see available catalogs, use the \`list_resources\` tool. Look for resources with \`mimeType: 'text/plain'\` or names describing catalogs.
-Then read the specific resource URI to get component definitions.
+Catalogs define the UI components you can use. Each client session declares which catalogs it supports.
 
-**CRITICAL DIRECTIVE**: You MUST use the \`list_resources\` and \`read_resource\` tools to discover what specific UI components are available in each catalog before attempting to create a surface! Do NOT guess component names. Read the catalog resource first!
- 
- For example:
- 1. Call \`list_resources()\` -> returns list including "Standard Catalog (mcp://freesail.dev/catalogs/standard_catalog_v1.json)"
- 2. Call \`read_resource("mcp://freesail.dev/catalogs/standard_catalog_v1.json")\` to get the component definitions.
+**Before creating any surface, you MUST do the following two steps:**
+1. Call \`get_catalogs(sessionId)\` to get the list of catalog names and their resource URIs for that specific session.
+2. Call \`read_resource(uri)\` with the exact URI to load that catalog's component definitions.
+
+Do NOT guess or invent component names. Read the catalog first.
+
+**If \`get_catalogs\` returns no catalogs:**
+Tell the user clearly: "I'm unable to create a UI right now because this session has no component catalogs registered yet. Please wait a moment and try again." Do not attempt to create any surface.
+
+**If \`read_resource\` fails for a specific catalog URI:**
+Tell the user clearly: "I was unable to load the component definitions for catalog [name]. I cannot create UI components from that catalog right now." Offer to try a different catalog from the same session if others are available, or fall back to a conversational response.
+
 
 ## Session Management
 
@@ -736,6 +741,54 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
               : 'No active sessions.',
           },
         ],
+      };
+    }
+  );
+
+  // Tool to get catalog resource URIs for a specific session
+  server.registerTool(
+    'get_catalogs',
+    {
+      description:
+        'Get the catalog resource URIs supported by a specific client session. ' +
+        'Returns catalog names and URIs — call read_resource(uri) on each one ' +
+        'to load its component definitions before creating a surface. ' +
+        'Use this instead of list_resources to get only catalogs the session supports.',
+      inputSchema: {
+        sessionId: z.string().describe('The client session ID'),
+      },
+    },
+    async ({ sessionId }) => {
+      const session = sessionManager.getSession(sessionId);
+      if (!session) {
+        return {
+          content: [{ type: 'text', text: `Session ${sessionId} not found.` }],
+          isError: true,
+        };
+      }
+
+      const catalogs = sessionManager.getCatalogsForSession(sessionId);
+      if (catalogs.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: 'No catalogs registered for this session yet. ' +
+              'The client may still be initializing — retry in a moment, ' +
+              'or tell the user no UI components are available.',
+          }],
+        };
+      }
+
+      const lines = catalogs.map(c =>
+        `- ${c.title} (URI: ${c.catalogId})`
+      );
+      return {
+        content: [{
+          type: 'text',
+          text:
+            `Catalogs available for session ${sessionId}:\n${lines.join('\n')}\n\n` +
+            `Call read_resource(uri) with the exact URI above to load component definitions.`,
+        }],
       };
     }
   );

@@ -1,92 +1,223 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import {LangChainAdapter} from './langchain-adapter.js';
-import { fetchFreesailSystemPrompt, extractGeminiToolCalls } from '@freesail/agentruntime';
+import type { FreesailAgent, ActionEvent } from '@freesail/agentruntime';
+import { SharedCache } from '@freesail/agentruntime';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
+import { NativeLogger } from '@freesail/logger';
+
+const logger = new NativeLogger('langchain-agent');
+
+/**
+ * Workaround for a transient Gemini streaming bug: Gemini 2.5 sometimes embeds
+ * function calls inside the raw `content` array instead of `tool_calls`.
+ * TODO: Remove once Gemini fixes this in their API.
+ */
+function extractGeminiToolCalls(finalChunk: any): any {
+  if (!finalChunk) return finalChunk;
+  if ((!finalChunk.tool_calls || finalChunk.tool_calls.length === 0) && Array.isArray(finalChunk.content)) {
+    const extracted = finalChunk.content
+      .filter((p: any) => p.functionCall)
+      .map((p: any) => ({
+        name: p.functionCall.name,
+        args: p.functionCall.args,
+        id: `call_${Math.random().toString(36).substring(2, 9)}`,
+      }));
+    if (extracted.length > 0) {
+      finalChunk.tool_calls = extracted;
+      const textParts = finalChunk.content.filter((p: any) => p.type === 'text');
+      finalChunk.content = textParts.length > 0 ? textParts : '';
+    }
+  }
+  return finalChunk;
+}
 
 interface FreesailLangchainAgentConfig {
   /** The connected MCP Client instance */
   mcpClient: Client;
   /** The Langchain Chat Model (e.g. ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI) */
   model: BaseChatModel;
-  /** Optional custom system prompt. If omitted, fetches `a2ui_system` from the MCP gateway. */
-  systemPrompt?: string;
+  /** Shared cache for system prompt and tools — mutex-safe across concurrent sessions */
+  sharedCache: SharedCache<DynamicStructuredTool[]>;
 }
 
 /**
- * A batteries-included wrapper that orchestrates an entire Freesail 
- * conversational agent using Langchain and MCP.
- * 
- * It automatically manages tool discovery, iterative tool execution loops, 
- * session histories, and Gemini streaming quirks.
+ * A per-session agent instance implementing FreesailAgent.
+ *
+ * The AgentFactory creates one of these per connected session. All
+ * per-session state (chat messages, conversation history) lives here as
+ * instance fields — there is no shared mutable state between sessions.
  */
-export class FreesailLangchainAgent {
+export class FreesailLangchainSessionAgent implements FreesailAgent {
+  private sessionId: string;
   private mcpClient: Client;
   private model: BaseChatModel;
-  
-  // Per-session conversation history
-  private sessionHistories = new Map<string, (HumanMessage | AIMessage | ToolMessage)[]>();
-  
-  // Cached MCP data
-  private cachedSystemPrompt: string | null = null;
-  private cachedTools: DynamicStructuredTool[] | null = null;
+  private sharedCache: SharedCache<DynamicStructuredTool[]>;
 
-  constructor(config: FreesailLangchainAgentConfig) {
+  // Per-session state
+  private conversationHistory: (HumanMessage | AIMessage | ToolMessage)[] = [];
+  private chatMessages: Array<{ role: string; content: string; timestamp: string }> = [];
+
+  constructor(sessionId: string, config: FreesailLangchainAgentConfig) {
+    this.sessionId = sessionId;
     this.mcpClient = config.mcpClient;
     this.model = config.model;
-    if (config.systemPrompt) {
-      this.cachedSystemPrompt = config.systemPrompt;
+    this.sharedCache = config.sharedCache;
+  }
+
+  // ============================================================================
+  // FreesailAgent lifecycle hooks
+  // ============================================================================
+
+  async onSessionConnected(sessionId: string): Promise<void> {
+    // Invalidate the cache so this session fetches the latest catalog list.
+    // A new session may have registered catalogs that weren't present before;
+    // the MCP notification fires the invalidation too, but this closes the
+    // race window where the poll could fire before the notification arrives.
+    this.sharedCache.invalidate();
+    logger.info(`[${sessionId}] Session connected — agent ready`);
+  }
+
+  async onSessionDisconnected(sessionId: string): Promise<void> {
+    // State is held on this instance, so garbage collection handles cleanup.
+    // Explicit clear for large allocations (conversation history, chat log).
+    this.conversationHistory = [];
+    this.chatMessages = [];
+    logger.info(`[${sessionId}] Session disconnected — agent state cleared`);
+  }
+
+  async onAction(action: ActionEvent): Promise<void> {
+    // Route chat_send on __chat surface → conversational reply
+    if (action.name === 'chat_send' && action.surfaceId === '__chat') {
+      const chatText = (action.context as { text?: string })?.text;
+      if (chatText) {
+        await this.handleChat(chatText, true);
+      }
+      return;
+    }
+
+    // All other UI actions are formatted into a natural-language message
+    const contextStr =
+      action.context && Object.keys(action.context).length > 0
+        ? `\nAction data: ${JSON.stringify(action.context, null, 2)}`
+        : '';
+    const dataModelStr =
+      action.clientDataModel && Object.keys(action.clientDataModel).length > 0
+        ? `\nClient data model: ${JSON.stringify(action.clientDataModel, null, 2)}`
+        : '';
+
+    const message =
+      `[UI Action] The user clicked "${action.name}" on component ` +
+      `"${action.sourceComponentId}" in surface "${action.surfaceId}".${contextStr}${dataModelStr}`;
+
+    logger.info(`[${this.sessionId}] Action: ${action.name}`);
+    await this.handleChat(message, false);
+  }
+
+  // ============================================================================
+  // Internal chat handler
+  // ============================================================================
+
+  private async handleChat(message: string, isUserChat: boolean): Promise<void> {
+    try {
+      if (isUserChat) {
+        this.chatMessages.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
+      }
+
+      const assistantIndex = this.chatMessages.length;
+      this.chatMessages.push({ role: 'assistant', content: '', timestamp: new Date().toISOString() });
+
+      await this.mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId: this.sessionId,
+          path: '/',
+          value: { messages: [...this.chatMessages], isTyping: true },
+        },
+      });
+
+      const sessionPrompt =
+        `[Session Context] The following message is from session "${this.sessionId}". ` +
+        `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
+        `you MUST use sessionId: "${this.sessionId}". Do NOT reuse a sessionId from a previous message.\n` +
+        `IMPORTANT: Do NOT create or modify the "__chat" surface — it is managed by the framework. ` +
+        `Just reply normally in chat for standard conversation. ` +
+        `Only create new surfaces when you think the user needs visual UI.\n\n` +
+        `User: ${message}`;
+
+      const response = await this.chat(sessionPrompt, {
+        onToken: (token: string) => {
+          const current = this.chatMessages[assistantIndex];
+          if (current) current.content += token;
+          this.mcpClient.callTool({
+            name: 'update_data_model',
+            arguments: {
+              surfaceId: '__chat',
+              sessionId: this.sessionId,
+              path: `/messages/${assistantIndex}/content`,
+              value: this.chatMessages[assistantIndex]?.content ?? '',
+            },
+          }).catch(err => logger.error('Streaming update error', err));
+        },
+      });
+
+      const current = this.chatMessages[assistantIndex];
+      if (response && response.trim() !== '') {
+        if (current) current.content = response;
+      } else {
+        this.chatMessages.splice(assistantIndex, 1);
+      }
+
+      logger.info(`[${this.sessionId}] Assistant: ${response?.slice(0, 120)}...`);
+
+      await this.mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId: this.sessionId,
+          path: '/',
+          value: { messages: [...this.chatMessages], isTyping: false },
+        },
+      });
+    } catch (error) {
+      logger.error(`[${this.sessionId}] Chat error:`, error);
+      const lastMsg = this.chatMessages[this.chatMessages.length - 1];
+      if (lastMsg && lastMsg.content === '') this.chatMessages.pop();
+      this.chatMessages.push({ role: 'assistant', content: 'An error occurred.', timestamp: new Date().toISOString() });
+      await this.mcpClient.callTool({
+        name: 'update_data_model',
+        arguments: {
+          surfaceId: '__chat',
+          sessionId: this.sessionId,
+          path: '/',
+          value: { messages: [...this.chatMessages], isTyping: false },
+        },
+      });
     }
   }
 
-  /**
-   * Clears the internal prompt and tool caches so they will be re-fetched 
-   * on the next turn. Useful when upstream catalogs change.
-   */
-  public invalidateCache(): void {
-    this.cachedSystemPrompt = null;
-    this.cachedTools = null;
+  // ============================================================================
+  // LLM execution loop (Langchain agentic pattern)
+  // ============================================================================
+
+  private getSystemPrompt(): Promise<string> {
+    return this.sharedCache.getSystemPrompt();
   }
 
-  /**
-   * Returns the array of messages for a given session.
-   */
-  public getHistory(sessionId: string): (HumanMessage | AIMessage | ToolMessage)[] {
-    if (!this.sessionHistories.has(sessionId)) {
-      this.sessionHistories.set(sessionId, []);
-    }
-    return this.sessionHistories.get(sessionId)!;
+  private getTools(): Promise<DynamicStructuredTool[]> {
+    return this.sharedCache.getTools();
   }
 
-  /**
-   * Clears the conversation history for a given session.
-   */
-  public clearHistory(sessionId: string): void {
-    this.sessionHistories.delete(sessionId);
+  /** Invalidates the shared prompt/tool cache (e.g. when catalogs change upstream). */
+  invalidateCache(): void {
+    this.sharedCache.invalidate();
   }
 
-  private async getSystemPrompt(): Promise<string> {
-    if (this.cachedSystemPrompt) return this.cachedSystemPrompt;
-    this.cachedSystemPrompt = await fetchFreesailSystemPrompt(this.mcpClient);
-    return this.cachedSystemPrompt??"";
-  }
-
-  private async getTools(): Promise<DynamicStructuredTool[]> {
-    if (this.cachedTools) return this.cachedTools;
-    const tools = await LangChainAdapter.getTools(this.mcpClient);
-    this.cachedTools = tools;
-    console.log(`[FreesailLangchainAgent] Loaded ${tools.length} tools from MCP`);
-    return tools;
-  }
-
-  /**
-   * Helper to stream from the model, call onToken callbacks, and aggregate the chunks.
-   */
   private async streamModelResponse(
-    modelWithTools: any, 
-    messages: any[], 
-    onToken?: (token: string) => void
+    modelWithTools: any,
+    messages: any[],
+    onToken?: (token: string) => void,
   ): Promise<any> {
     const stream = await modelWithTools.stream(messages);
     let finalChunk: any | null = null;
@@ -94,62 +225,37 @@ export class FreesailLangchainAgent {
 
     for await (const chunk of stream) {
       if (typeof chunk.content === 'string' && chunk.content) {
-        if (onToken) onToken(chunk.content);
+        onToken?.(chunk.content);
         accumulatedContent += chunk.content;
       } else if (Array.isArray(chunk.content)) {
         for (const part of chunk.content) {
           if (part.type === 'text' && part.text) {
-             onToken?.(part.text);
-             accumulatedContent += part.text;
+            onToken?.(part.text);
+            accumulatedContent += part.text;
           }
         }
       }
-
-      if (!finalChunk) {
-        finalChunk = chunk;
-      } else {
-        finalChunk = finalChunk.concat(chunk);
-      }
+      finalChunk = finalChunk ? finalChunk.concat(chunk) : chunk;
     }
-    
-    // Pass strictly through the utility parser to catch Gemini bugs
+
     return extractGeminiToolCalls(finalChunk);
   }
 
-  /**
-   * Process a single turn of conversation for a specific session.
-   * Runs the Langchain execution loop autonomously until all tools resolve.
-   * 
-   * @param userMessage The new text from the user
-   * @param sessionId The unique ID of the session
-   * @param callbacks Optional callbacks for real-time streaming tokens
-   * @returns The final generated text string from the assistant
-   */
-  public async chat(
+  private async chat(
     userMessage: string,
-    sessionId: string = 'default',
-    callbacks?: { onToken?: (token: string) => void }
+    callbacks?: { onToken?: (token: string) => void },
   ): Promise<string> {
     const systemPrompt = await this.getSystemPrompt();
     const currentTools = await this.getTools();
     const modelWithTools = (this.model as any).bindTools(currentTools);
 
-    const conversationHistory = this.getHistory(sessionId);
-    conversationHistory.push(new HumanMessage(userMessage));
+    this.conversationHistory.push(new HumanMessage(userMessage));
 
-    const messages = [
-      new SystemMessage(systemPrompt),
-      ...conversationHistory,
-    ];
-
+    const messages = [new SystemMessage(systemPrompt), ...this.conversationHistory];
     let responseChunk = await this.streamModelResponse(modelWithTools, messages, callbacks?.onToken);
-
-    // Track tool messages for this complex turn
     const turnToolMessages: (AIMessage | ToolMessage)[] = [];
 
-    // Iteratively execute tools until the LLM yields a final conclusion
-    while (responseChunk && responseChunk.tool_calls && responseChunk.tool_calls.length > 0) {
-      // Add the AI's call intent to the history
+    while (responseChunk?.tool_calls?.length > 0) {
       turnToolMessages.push(new AIMessage({
         content: typeof responseChunk.content === 'string' ? responseChunk.content : '',
         tool_calls: responseChunk.tool_calls,
@@ -159,18 +265,14 @@ export class FreesailLangchainAgent {
       for (const toolCall of responseChunk.tool_calls) {
         const matchedTool = currentTools.find(t => t.name === toolCall.name);
         let result: string;
-
         try {
-          if (matchedTool) {
-            result = String(await matchedTool.invoke(toolCall.args));
-          } else {
-            result = `Unknown tool: ${toolCall.name}`;
-          }
+          result = matchedTool
+            ? String(await matchedTool.invoke(toolCall.args))
+            : `Unknown tool: ${toolCall.name}`;
         } catch (error) {
           result = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          console.error(`[FreesailLangchainAgent] Tool error (${toolCall.name}):`, error);
+          logger.error(`Tool error (${toolCall.name}):`, error);
         }
-
         toolMessages.push(new ToolMessage({
           content: result,
           name: toolCall.name,
@@ -179,33 +281,24 @@ export class FreesailLangchainAgent {
       }
 
       turnToolMessages.push(...toolMessages);
-
-      // Stream again with the results fed back to the LLM
       responseChunk = await this.streamModelResponse(
         modelWithTools,
-        [
-          new SystemMessage(systemPrompt),
-          ...conversationHistory,
-          ...turnToolMessages,
-        ],
-        callbacks?.onToken
+        [new SystemMessage(systemPrompt), ...this.conversationHistory, ...turnToolMessages],
+        callbacks?.onToken,
       );
     }
 
-    // Persist all intermediate tool sequences
-    conversationHistory.push(...turnToolMessages);
+    this.conversationHistory.push(...turnToolMessages);
 
-    // Parse the final text output
-    const assistantMessage = typeof responseChunk?.content === 'string'
-      ? responseChunk.content
-      : Array.isArray(responseChunk?.content)
-        ? responseChunk.content.map((p: any) => p.text ?? '').join('')
-        : JSON.stringify(responseChunk?.content ?? '');
+    const assistantMessage =
+      typeof responseChunk?.content === 'string'
+        ? responseChunk.content
+        : Array.isArray(responseChunk?.content)
+          ? responseChunk.content.map((p: any) => p.text ?? '').join('')
+          : JSON.stringify(responseChunk?.content ?? '');
 
-    if (assistantMessage && assistantMessage.trim() !== '') {
-      conversationHistory.push(new AIMessage(assistantMessage));
-    } else {
-      console.log('[FreesailLangchainAgent] Final response chunk was empty (silent execution).');
+    if (assistantMessage?.trim()) {
+      this.conversationHistory.push(new AIMessage(assistantMessage));
     }
 
     return assistantMessage;
