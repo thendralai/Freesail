@@ -199,21 +199,24 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Each action contains: name, surfaceId, sourceComponentId, and context data.
 
 ## Guidelines
-
+**Surfaces**
 - Always create a surface before updating its components.
 - Use meaningful and unique surfaceIds (e.g., "weatherDashboard", "userProfile").
 - Agent-created `surfaceId`s MUST start with an alphanumeric character and may contain alphanumeric characters or underscores (no hyphens or other characters).
-- Do not attempt to create or delete client-managed surfaces (those starting with `__`). You are only allowed to update their data bindings.
-- **Surface targeting:** When calling `update_data_model` or `update_components`, the `surfaceId` MUST match the exact surface you created with `create_surface`. Never use any other surface to store data intended for a different surface.
-- **Tool errors:** If a tool call returns an error, first try to autocorrect silently (e.g. create the missing surface, use a different component). Only inform the user if you are unable to recover — and if you do, explain it in plain user-friendly terms without technical details.
-- Prefer data bindings for contents that change.
-- When handling user actions, acknowledge the action and update the UI accordingly.
+- Do not attempt to create or delete client-managed surfaces (those starting with `__`).
+- When calling `update_data_model` or `update_components`, the `surfaceId` MUST match the exact surface you created with `create_surface`. Never use any other surface to store data intended for a different surface.
 - Use a single catalogId consistently per surface.
 - Each surface is bound to exactly ONE catalog. 
-- Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface. If you need layout components like Column or Row, use a catalog that includes them.
-- Only create NEW surfaces when you think that the user will have a better experience with a new surface.
+- Remove surfaces when they are no longer needed, like when the conversation moves to a new topic or when the same data is displayed in a different surface.
+**Components**
+- Use appropriate components for the type of data being handled. For example use date component for dates and image component for images.
 - Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
-- Always remove surfaces when they are no longer needed, like when the conversation moves to a new topic or when the same data is displayed in a different surface.
-- Layout - Prefer arranging components horizontally when possible.
+- Prefer data bindings for contents that change.
+- When handling user actions, acknowledge the action and update the UI accordingly.
+- Only use components defined in that surface's catalog. Do NOT mix components from different catalogs in the same surface.
+- Layout: Arrange components horizontally first, then vertically when possible.
+**Tools**
+- If a tool call returns an error, first try to autocorrect silently (e.g. create the missing surface, use a different component). Only inform the user if you are unable to recover — and if you do, explain it in plain user-friendly terms without technical details.
+**User Interaction**
 - Do not talk about A2UI or Freesail or MCP internals or technical details with the user. The user may not be technical.
