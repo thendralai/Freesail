@@ -17,7 +17,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
 import { NativeLogger, getConsoleSink, configure } from '@freesail/logger';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { FreesailAgentRuntime, SharedCache } from '@freesail/agentruntime';
 import { FreesailLangchainSessionAgent } from './langchain-agent.js';
 import { LangChainAdapter } from './langchain-adapter.js';
@@ -32,12 +32,50 @@ const logger = new NativeLogger('freesail-agent');
 const PORT = parseInt(process.env['AGENT_PORT'] ?? '3002', 10);
 const MCP_PORT = parseInt(process.env['MCP_PORT'] ?? '3000', 10);
 const GATEWAY_PORT = parseInt(process.env['GATEWAY_PORT'] ?? '3001', 10);
-const GOOGLE_API_KEY = process.env['GOOGLE_API_KEY'];
 const AGENT_ID = 'freesail-example-agent';
 
-if (!GOOGLE_API_KEY) {
-  logger.fatal('GOOGLE_API_KEY environment variable is required. Set it with: export GOOGLE_API_KEY=your-api-key');
-  process.exit(1);
+// ============================================================================
+// LLM Provider Selection
+// Supported: 'gemini' (default), 'openai'
+// Set LLM_PROVIDER=openai and OPENAI_API_KEY, or
+//     LLM_PROVIDER=gemini and GOOGLE_API_KEY.
+// ============================================================================
+
+const LLM_PROVIDER = (process.env['LLM_PROVIDER'] ?? 'gemini').toLowerCase();
+const LLM_TEMPERATURE = parseFloat(process.env['LLM_TEMPERATURE'] ?? '0.7');
+
+let model: BaseChatModel;
+
+if (LLM_PROVIDER === 'openai') {
+  const OPENAI_API_KEY = process.env['OPENAI_API_KEY'];
+  if (!OPENAI_API_KEY) {
+    logger.fatal('OPENAI_API_KEY environment variable is required when LLM_PROVIDER=openai.');
+    process.exit(1);
+  }
+  const { ChatOpenAI } = await import('@langchain/openai');
+  const openaiModel = process.env['OPENAI_MODEL'] ?? 'gpt-4o';
+  model = new ChatOpenAI({
+    apiKey: OPENAI_API_KEY,
+    model: openaiModel,
+    temperature: LLM_TEMPERATURE,
+    streaming: true,
+  });
+  logger.info(`LLM provider: OpenAI (${openaiModel})`);
+} else {
+  // Default: Gemini
+  const GOOGLE_API_KEY = process.env['GOOGLE_API_KEY'];
+  if (!GOOGLE_API_KEY) {
+    logger.fatal('GOOGLE_API_KEY environment variable is required when LLM_PROVIDER=gemini (default). Set it with: export GOOGLE_API_KEY=your-api-key');
+    process.exit(1);
+  }
+  const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
+  const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-pro';
+  model = new ChatGoogleGenerativeAI({
+    apiKey: GOOGLE_API_KEY,
+    model: geminiModel,
+    temperature: LLM_TEMPERATURE,
+  });
+  logger.info(`LLM provider: Google Gemini (${geminiModel})`);
 }
 
 // ============================================================================
@@ -84,20 +122,14 @@ mcpClient.setNotificationHandler<any>(
 mcpClient.setNotificationHandler<any>(
   z.object({ method: z.literal('notifications/resources/list_changed') }).passthrough(),
   async () => {
-    logger.info('Resources changed — invalidating shared cache');
-    sharedCache.invalidate();
+    // NOTE: The gateway sends resources/list_changed on every upstream UI action
+    // (to signal pending actions in the mcp://freesail.dev/actions/{sessionId} resource).
+    // Do NOT invalidate the shared cache here — the system prompt and tools have not changed.
+    // Cache invalidation is handled by prompts/list_changed, which the gateway sends
+    // only when a genuinely new catalog resource is registered.
   }
 );
 
-// ============================================================================
-// LLM Model
-// ============================================================================
-
-const model = new ChatGoogleGenerativeAI({
-  apiKey: GOOGLE_API_KEY,
-  model: 'gemini-2.5-pro',
-  temperature: 0.7,
-});
 
 // ============================================================================
 // Agent Runtime — session-based factory pattern

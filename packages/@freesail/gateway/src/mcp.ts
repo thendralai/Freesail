@@ -77,9 +77,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const systemPromptText = readFileSync(join(__dirname, 'system-prompt.md'), 'utf-8');
 
-/** Cache of generated catalog prompts keyed by catalogId. Catalogs are immutable after registration. */
-const catalogPromptCache = new Map<string, string>();
-
 /**
  * Creates the MCP server with Freesail tools.
  */
@@ -127,9 +124,16 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
   const registeredCatalogs = new Set<string>();
 
   const registerCatalogResources = (catalogs: Catalog[]) => {
+    let newlyRegistered = 0;
     for (const catalog of catalogs) {
       if (registeredCatalogs.has(catalog.catalogId)) continue;
       registeredCatalogs.add(catalog.catalogId);
+      newlyRegistered++;
+
+      // Generate the prompt eagerly at registration time so the first
+      // read_resource call is instant and the log file appears on connection.
+      // The prompt string is captured by the resource handler's closure below.
+      const prompt = generateCatalogPrompt(catalog);
 
       server.registerResource(
         catalog.title,
@@ -138,53 +142,47 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
           description: catalog.description ?? `UI component catalog: ${catalog.title}`,
           mimeType: 'text/plain',
         },
-        async () => {
-          let prompt = catalogPromptCache.get(catalog.catalogId);
-          if (!prompt) {
-            prompt = generateCatalogPrompt(catalog);
-            catalogPromptCache.set(catalog.catalogId, prompt);
-
-            // Optionally write the catalog prompt to a file for inspection.
-            // Set FREESAIL_LOG_DIR=<directory> to enable.
-            const logDir = process.env['FREESAIL_LOG_DIR'];
-            if (logDir) {
-              const slug = catalog.catalogId
-                .replace(/https?:\/\//, '')
-                .replace(/[^a-zA-Z0-9]/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '');
-              const filePath = join(logDir, `catalog-prompt-${slug}.md`);
-              try {
-                mkdirSync(logDir, { recursive: true });
-                writeFileSync(filePath, prompt, 'utf-8');
-                logger.info(`[MCP] Catalog prompt written to: ${filePath}`);
-              } catch (err) {
-                logger.warn(`[MCP] Failed to write catalog prompt to ${filePath}: ${err}`);
-              }
-            }
-          }
-
-          return {
-            contents: [
-              {
-                uri: catalog.catalogId,
-                mimeType: 'text/plain',
-                text: prompt,
-              },
-            ],
-          };
-        }
+        async () => ({
+          contents: [{ uri: catalog.catalogId, mimeType: 'text/plain', text: prompt }],
+        })
       );
 
       logger.info(`[MCP] Registered catalog resource: ${catalog.catalogId}`);
+
+      // Optionally write the catalog prompt to a file for inspection.
+      // Set FREESAIL_LOG_DIR=<directory> to enable.
+      const logDir = process.env['FREESAIL_LOG_DIR'];
+      if (logDir) {
+        const slug = catalog.catalogId
+          .replace(/https?:\/\//, '')
+          .replace(/[^a-zA-Z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        const filePath = join(logDir, `catalog-prompt-${slug}.md`);
+        try {
+          mkdirSync(logDir, { recursive: true });
+          writeFileSync(filePath, prompt, 'utf-8');
+          logger.info(`[MCP] Catalog prompt written to: ${filePath}`);
+        } catch (err) {
+          logger.warn(`[MCP] Failed to write catalog prompt to ${filePath}: ${err}`);
+        }
+      }
     }
 
-    // Notify MCP clients that resources (and prompt content) have changed
-    try {
-      server.sendResourceListChanged();
-      server.sendPromptListChanged();
-    } catch {
-      // Server may not be connected yet
+
+    // Only notify agents if something actually changed — avoids spurious cache
+    // invalidations when clients reconnect with the same catalogs as before.
+    //
+    // Contract:
+    //   sendPromptListChanged → signals new catalogs available; agents SHOULD invalidate their cache.
+    //   sendResourceListChanged → signals new resources (could be catalog OR pending action).
+    if (newlyRegistered > 0) {
+      try {
+        server.sendResourceListChanged();
+        server.sendPromptListChanged(); // Used as the "new catalog" signal for agents
+      } catch {
+        // Server may not be connected yet
+      }
     }
   };
 
@@ -197,7 +195,10 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
     registerCatalogResources(existing);
   }
 
-  // Listen for upstream actions and notify MCP clients
+  // Listen for upstream actions and notify MCP clients.
+  // Sends resources/list_changed so resource-polling agents can wake up and check
+  // mcp://freesail.dev/actions/{sessionId}. Does NOT send prompts/list_changed
+  // (that signal is reserved for new catalog registrations).
   sessionManager.onAction((_sessionId, _message) => {
     try {
       server.sendResourceListChanged();

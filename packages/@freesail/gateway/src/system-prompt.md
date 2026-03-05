@@ -209,7 +209,7 @@ When users interact with UI (clicking buttons, submitting forms), actions are qu
 - Each surface is bound to exactly ONE catalog. 
 - Remove surfaces when they are no longer needed, like when the conversation moves to a new topic or when the same data is displayed in a different surface.
 **Components**
-- Use appropriate components for the type of data being handled. For example use date component for dates and image component for images.
+- Use appropriate components according to the type of data being handled. For example use datepicker component for dates.
 - Use containers or cards for organizing UI elements if available in the catalog.
 - Use functions wherever possible to perform client-side logic and validation without server round-trips.
 - Prefer data bindings for contents that change.
