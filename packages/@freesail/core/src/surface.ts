@@ -132,6 +132,19 @@ export class SurfaceManager {
   }
 
   /**
+   * Clear all active surfaces.
+   */
+  clearSurfaces(): void {
+    const surfaceIds = Array.from(this.surfaces.keys());
+    this.surfaces.clear();
+    
+    // Emit deletion event for each surface so hooks/listeners can clean up
+    for (const id of surfaceIds) {
+      this.emit('surfaceDeleted', id);
+    }
+  }
+
+  /**
    * Get a surface by ID.
    */
   getSurface(surfaceId: SurfaceId): Surface | undefined {

@@ -1,6 +1,6 @@
 {
   "name": "freesail-react-example",
-  "version": "0.4.2-alpha",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "scripts": {

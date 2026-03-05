@@ -125,6 +125,12 @@ export function FreesailProvider({
     newTransport.on('stateChange', (state) => {
       const connected = state === 'connected';
       setIsConnected(connected);
+      
+      if (!connected) {
+        // Clear all surfaces when connection is lost
+        surfaceManager.clearSurfaces();
+      }
+      
       onConnectionChange?.(connected);
     });
 

@@ -11,12 +11,12 @@
       "import": "./dist/index.js"
     },
     "./standard": {
-      "types": "./dist/standard_catalog_v1/index.d.ts",
-      "import": "./dist/standard_catalog_v1/index.js"
+      "types": "./dist/standard_catalog/index.d.ts",
+      "import": "./dist/standard_catalog/index.js"
     },
     "./chat": {
-      "types": "./dist/chat_catalog_v1/index.d.ts",
-      "import": "./dist/chat_catalog_v1/index.js"
+      "types": "./dist/chat_catalog/index.d.ts",
+      "import": "./dist/chat_catalog/index.js"
     }
   },
   "files": [
