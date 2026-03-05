@@ -83,7 +83,9 @@ export const formatString: FunctionImplementation = (format: string, ...args: un
   if (args.length > 0) {
     return format.replace(/\{(\d+)\}/g, (match, index) => {
       const idx = parseInt(index, 10);
-      return args[idx] !== undefined ? String(args[idx]) : match;
+      const val = args[idx];
+      if (val === undefined) return match;
+      return typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val);
     });
   }
   

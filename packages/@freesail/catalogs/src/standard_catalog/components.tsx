@@ -185,7 +185,9 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
 export function Text({ component }: FreesailComponentProps) {
   // Text value may come from resolved data binding
   const rawText = component['text'] ?? '';
-  const text = String(rawText);
+  const text = typeof rawText === 'object' && rawText !== null 
+    ? JSON.stringify(rawText) 
+    : String(rawText);
 
   const style: CSSProperties = {
     fontSize: (component['size'] as string) ?? '14px',
@@ -227,7 +229,9 @@ export function Text({ component }: FreesailComponentProps) {
  */
 export function Markdown({ component }: FreesailComponentProps) {
   const rawText = component['text'] ?? '';
-  const text = String(rawText);
+  const text = typeof rawText === 'object' && rawText !== null 
+    ? JSON.stringify(rawText) 
+    : String(rawText);
 
   const style: CSSProperties = {
     fontSize: (component['size'] as string) ?? '14px',
