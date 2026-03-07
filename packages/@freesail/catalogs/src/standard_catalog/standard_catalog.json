@@ -1423,6 +1423,16 @@
       }
     },
     {
+      "name": "now",
+      "description": "Returns the current date and time as an ISO 8601 string.",
+      "returnType": "string",
+      "parameters": {
+        "type": "array",
+        "items": [],
+        "maxItems": 0
+      }
+    },
+    {
       "name": "openUrl",
       "description": "Opens the specified URL in a browser or handler. This function has no return value.",
       "returnType": "void",

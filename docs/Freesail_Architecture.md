@@ -124,4 +124,4 @@ We do not write code first. We write the **Contract** (catalog.json) first.
 The AI Agent is treated as stateless. It does not remember the history of every UI update.
 
 * **Client Responsibility:** The Client holds the "Truth" (the Data Model).  
-* **Sync:** Every time the user acts (action), the Client sends the **Full Relevant Context** back to the Agent.
+* **Sync:** Every time the user acts (action), the Client sends the **Relevant Context** back to the Agent.

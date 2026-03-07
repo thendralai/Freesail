@@ -49,48 +49,16 @@ export const email: FunctionImplementation = (value: unknown) => {
 // =============================================================================
 
 export const formatString: FunctionImplementation = (format: string, ...args: unknown[]) => {
-  // Simple variable replacement: "Hello ${0}!" -> "Hello World!"
-  // But the schema description says: "The value string can contain interpolated expressions in the `${expression}` format."
-  // However, the `formatString` definition in the schema takes a format string and then variable arguments.
-  // The SDK/Evaluator should have already resolved the arguments.
-  // So if the usage is `formatString("Hello ${name}", name)`, the evaluator resolves `name` and passes it.
-  // BUT: The description suggests the format string *itself* contains the placeholders.
-  // A common pattern for `formatString` with variable params is substitution.
-  // Let's assume the evaluator passes `format` as first arg, and then resolved values for any other bindings.
-  
-  // Actually, looking at the schema:
-  // "parameters": { "items": [ { "description": "The format string.", "type": "string" } ], "additionalItems": { "$ref": "DynamicValue" } }
-  // So it takes a format string and N arguments.
-  // We need to implement a replacement logic. Since we don't know the *names* of the extra args, 
-  // we probably just support positional replacement like `{0}`, `{1}` OR the schema implies something else.
-  
-  // "The value string can contain interpolated expressions in the `${expression}` format."
-  // This description seems to describe CLIENT-SIDE interpolation where the client has access to the data model.
-  // But `formatString` is a function *called* by the client.
-  
-  // If the prompt is `${path/to/data}`, the *evaluator* resolves that before calling this function if it's passed as an arg.
-  // But here `formatString` receives the *format string template* itself.
-  
-  // Let's strictly follow standard substitution:
-  // If args are provided, we replace placeholders.
-  // If the format string uses `${...}` syntax, it might be expecting us to allow injection.
-  // Given we don't have access to the data model *inside* this function (only values),
-  // we can only do positional replacement if extra args are passed.
-  
-  // However, for `${expression}` inside the string, that usually implies the string *is* the expression.
-  // But safely, let's implement a simple substitution if args are present.
-  
+  // ${...} interpolation is pre-processed by the evaluator before this function is called.
+  // This handles positional {0}, {1} placeholders for any additionally-passed arguments.
   if (args.length > 0) {
-    return format.replace(/\{(\d+)\}/g, (match, index) => {
+    return format.replace(/\{(\d+)\}/g, (_match, index) => {
       const idx = parseInt(index, 10);
       const val = args[idx];
       if (val === undefined || val === null) return '';
       return typeof val === 'object' ? JSON.stringify(val) : String(val);
     });
   }
-  
-  // If no args, just return the string (expressions might have been pre-interpolated if the *string itself* was a dynamic value, 
-  // but here it's a function argument).
   return format;
 };
 
@@ -216,6 +184,8 @@ export const gte: FunctionImplementation = (a: unknown, b: unknown) => Number(a)
 export const lt: FunctionImplementation = (a: unknown, b: unknown) => Number(a) < Number(b);
 export const lte: FunctionImplementation = (a: unknown, b: unknown) => Number(a) <= Number(b);
 
+export const now: FunctionImplementation = () => new Date().toISOString();
+
 export const openUrl: FunctionImplementation = (url: unknown) => {
   if (typeof url === 'string') {
     window.open(url, '_blank');
@@ -233,6 +203,7 @@ export const standardCatalogFunctions: Record<string, FunctionImplementation> = 
   formatCurrency,
   formatDate,
   pluralize,
+  now,
   openUrl,
   not,
   and,

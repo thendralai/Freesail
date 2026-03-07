@@ -435,8 +435,23 @@ export function evaluateFunction(
     return arg;
   });
 
+  // formatString: pre-process the format string for ${...} template interpolation
+  let callArgs = args;
+  if (functionName === 'formatString' && callArgs.length > 0 && typeof callArgs[0] === 'string') {
+    callArgs = [
+      interpolateTemplate(
+        callArgs[0] as string,
+        dataModel,
+        catalogId,
+        scopeData,
+        (nestedCall) => evaluateFunction(nestedCall, dataModel, catalogId, scopeData)
+      ),
+      ...callArgs.slice(1),
+    ];
+  }
+
   try {
-    return funcImpl(...args);
+    return funcImpl(...callArgs);
   } catch (error) {
     console.error(`[Freesail] Error evaluating function ${functionName}:`, error);
     return undefined;
@@ -489,6 +504,166 @@ function getDataAtPath(data: unknown, path: string): unknown {
   }
 
   return current;
+}
+
+// =============================================================================
+// Template Interpolation (for formatString ${...} syntax)
+// =============================================================================
+
+/**
+ * Finds the position of the closing brace that matches the opening brace at openPos,
+ * respecting nested braces and quoted strings.
+ */
+function findMatchingBrace(str: string, openPos: number): number {
+  let depth = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  for (let i = openPos; i < str.length; i++) {
+    const ch = str[i];
+    const escaped = i > 0 && str[i - 1] === '\\';
+    if (ch === "'" && !inDoubleQuote && !escaped) inSingleQuote = !inSingleQuote;
+    if (ch === '"' && !inSingleQuote && !escaped) inDoubleQuote = !inDoubleQuote;
+    if (!inSingleQuote && !inDoubleQuote) {
+      if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) return i; }
+    }
+  }
+  return -1;
+}
+
+/** Converts a value to a display string for interpolation output. */
+function interpolatedValueToString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+/**
+ * Splits a comma-separated args string into individual tokens,
+ * respecting nested ${...} and quoted strings.
+ */
+function splitInterpolationArgs(argsStr: string): string[] {
+  const parts: string[] = [];
+  let current = '';
+  let depth = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  for (let i = 0; i < argsStr.length; i++) {
+    const ch = argsStr[i];
+    const escaped = i > 0 && argsStr[i - 1] === '\\';
+    if (ch === "'" && !inDoubleQuote && !escaped) inSingleQuote = !inSingleQuote;
+    else if (ch === '"' && !inSingleQuote && !escaped) inDoubleQuote = !inDoubleQuote;
+    else if (!inSingleQuote && !inDoubleQuote) {
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+      else if (ch === ',' && depth === 0) { parts.push(current.trim()); current = ''; continue; }
+    }
+    current += ch;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+/**
+ * Parses a single argument token from an interpolation expression.
+ * Supports: 'string', "string", number, boolean, ${nested}, bare path.
+ */
+function parseInterpolationValue(
+  token: string,
+  dataModel: Record<string, unknown>,
+  catalogId: string,
+  scopeData: unknown,
+  evalFn: (call: FunctionCall) => unknown
+): unknown {
+  token = token.trim();
+  if ((token.startsWith("'") && token.endsWith("'")) || (token.startsWith('"') && token.endsWith('"')))
+    return token.slice(1, -1);
+  if (token.startsWith('${') && token.endsWith('}'))
+    return evaluateInterpolationExpr(token.slice(2, -1), dataModel, catalogId, scopeData, evalFn);
+  if (token === 'true') return true;
+  if (token === 'false') return false;
+  const num = Number(token);
+  if (!isNaN(num) && token !== '') return num;
+  if (token.startsWith('/')) return getDataAtPath(dataModel, token);
+  if (scopeData !== undefined) return getDataAtPath(scopeData as Record<string, unknown>, '/' + token);
+  return getDataAtPath(dataModel, '/' + token);
+}
+
+/**
+ * Evaluates the expression inside ${...}: either a data path or a function call.
+ */
+function evaluateInterpolationExpr(
+  expr: string,
+  dataModel: Record<string, unknown>,
+  catalogId: string,
+  scopeData: unknown,
+  evalFn: (call: FunctionCall) => unknown
+): unknown {
+  expr = expr.trim();
+  // Function call: word(...)
+  if (/^\w[\w.]*\(.*\)$/s.test(expr)) {
+    const parenOpen = expr.indexOf('(');
+    const funcName = expr.slice(0, parenOpen).trim();
+    const argsStr = expr.slice(parenOpen + 1, -1).trim();
+    const args: Record<string, unknown> = {};
+    if (argsStr) {
+      splitInterpolationArgs(argsStr).forEach((part, index) => {
+        const colonIdx = part.indexOf(':');
+        if (colonIdx > 0) {
+          const potentialKey = part.slice(0, colonIdx).trim();
+          if (/^[a-zA-Z_]\w*$/.test(potentialKey)) {
+            args[potentialKey] = parseInterpolationValue(
+              part.slice(colonIdx + 1).trim(), dataModel, catalogId, scopeData, evalFn
+            );
+            return;
+          }
+        }
+        args[String(index)] = parseInterpolationValue(part, dataModel, catalogId, scopeData, evalFn);
+      });
+    }
+    return evalFn({ call: funcName, args } as unknown as FunctionCall);
+  }
+  // Data path
+  if (expr.startsWith('/')) return getDataAtPath(dataModel, expr);
+  if (scopeData !== undefined) return getDataAtPath(scopeData as Record<string, unknown>, '/' + expr);
+  return getDataAtPath(dataModel, '/' + expr);
+}
+
+/**
+ * Processes ${...} template expressions in a formatString format string.
+ * Supports: ${/absolute/path}, ${relative/field}, ${funcName(args)},
+ * nested expressions (${upper(${/name})}), and escaped literals (\${).
+ */
+function interpolateTemplate(
+  template: string,
+  dataModel: Record<string, unknown>,
+  catalogId: string,
+  scopeData: unknown,
+  evalFn: (call: FunctionCall) => unknown
+): string {
+  let result = '';
+  let i = 0;
+  while (i < template.length) {
+    // Escaped: \${ → literal ${
+    if (template[i] === '\\' && template[i + 1] === '$' && template[i + 2] === '{') {
+      result += '${';
+      i += 3;
+      continue;
+    }
+    // Expression: ${...}
+    if (template[i] === '$' && template[i + 1] === '{') {
+      const closeBrace = findMatchingBrace(template, i + 1);
+      if (closeBrace === -1) { result += template[i++]; continue; }
+      const expr = template.slice(i + 2, closeBrace);
+      result += interpolatedValueToString(
+        evaluateInterpolationExpr(expr, dataModel, catalogId, scopeData, evalFn)
+      );
+      i = closeBrace + 1;
+      continue;
+    }
+    result += template[i++];
+  }
+  return result;
 }
 
 // =============================================================================
