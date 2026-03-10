@@ -1,7 +1,7 @@
 /**
- * @deprecated Use `freesail catalog validate` instead.
+ * @deprecated Use `freesail validate catalog` instead.
  * This script is kept for backwards compatibility with existing monorepo `verify` npm scripts.
- * The `freesail catalog validate` command supersedes this and includes mandatory function enforcement.
+ * The `freesail validate catalog` command supersedes this and includes mandatory function enforcement.
  */
 import fs from 'fs';
 import path from 'path';

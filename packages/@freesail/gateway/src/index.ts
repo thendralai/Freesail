@@ -33,3 +33,6 @@ export { createMCPServer, runMCPServer } from './mcp.js';
 // Express Server
 export type { ExpressServerOptions } from './express.js';
 export { createExpressServer, startExpressServer } from './express.js';
+
+// Gateway CLI entry point — used by `freesail run gateway`
+export { run as startGateway } from './cli.js';

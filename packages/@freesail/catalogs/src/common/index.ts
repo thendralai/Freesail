@@ -6,7 +6,7 @@
  * the system prompt and are available by default in every catalog.
  *
  * `formatString` is MANDATORY — the system prompt relies on it and
- * `freesail catalog validate` will error if it is absent from a catalog's
+ * `freesail validate catalog` will error if it is absent from a catalog's
  * runtime function map.
  *
  * Usage in a custom catalog's index.ts:

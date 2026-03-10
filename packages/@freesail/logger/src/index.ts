@@ -52,35 +52,38 @@ const LEVELS: Record<LogLevel, number> = {
 
 /**
  * Get sinks for a category.
+ * Uses the most specific matching logger config (longest category prefix).
+ * A more-specific logger overrides less-specific ones so that per-subsystem
+ * level filters actually suppress messages instead of falling through to the
+ * root logger.
  */
 function getSinks(category: string[], level: LogLevel): Sink[] {
-  // Find matching logger config
-  // For simplicity, we match the most specific category first (longest match)
   const sortedLoggers = [...globalConfig.loggers].sort((a, b) => b.category.length - a.category.length);
-  
-  const sinks: Sink[] = [];
 
   for (const loggerCfg of sortedLoggers) {
-    // Check if category matches (prefix match)
-    const isMatch = loggerCfg.category.length === 0 || 
-      (loggerCfg.category.length <= category.length && 
+    // Prefix match: empty category matches everything
+    const isMatch = loggerCfg.category.length === 0 ||
+      (loggerCfg.category.length <= category.length &&
        loggerCfg.category.every((part, i) => part === category[i]));
 
     if (isMatch) {
+      // Most-specific match wins — check its level threshold
       if (loggerCfg.level && LEVELS[level] > LEVELS[loggerCfg.level]) {
-        continue;
+        return []; // Filtered out; don't fall through to less-specific loggers
       }
-      
+
+      const sinks: Sink[] = [];
       if (loggerCfg.sinks) {
         for (const sinkName of loggerCfg.sinks) {
-            const sink = globalConfig.sinks[sinkName];
-            if (sink) sinks.push(sink);
+          const sink = globalConfig.sinks[sinkName];
+          if (sink) sinks.push(sink);
         }
       }
+      return sinks;
     }
   }
 
-  return sinks;
+  return [];
 }
 
 /**
@@ -237,8 +240,9 @@ export function getFileSink(filePath: string): Sink {
 
 /**
  * Create a logger instance.
+ * @param name - Logger name or category path (e.g. 'myapp' or ['myapp', 'http'])
  */
-export function createLogger(name: string, level: string = 'info'): Logger {
+export function createLogger(name: string | string[]): Logger {
   return new NativeLogger(name);
 }
 

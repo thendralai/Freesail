@@ -7,8 +7,8 @@
     "packages/@freesail/*",
     "packages/freesail",
     "packages/@freesail-community/*",
-    "Example-Typescript/agent",
-    "Example-Typescript/react-app",
+    "example/agent",
+    "example/react-app",
     "Example-Multi-agent/react-app"
   ],
   "scripts": {

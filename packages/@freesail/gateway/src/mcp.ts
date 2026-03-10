@@ -11,7 +11,9 @@ import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { logger } from '@freesail/logger';
+import { createLogger } from '@freesail/logger';
+
+const logger = createLogger(['freesail', 'mcp']);
 import {
   A2UI_VERSION,
   type SurfaceId,

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://freesail.dev/schemas/catalog/v1.json",
   "title": "Freesail Catalog Definition",
-  "description": "Meta-schema for catalog.json files. Describes the structure required by the Freesail gateway converter and the freesail catalog validate CLI. Set \"$schema\" to this file's URI or a local relative path (e.g. \"../../schemas/catalog.schema.json\") to enable IDE validation and autocompletion.",
+  "description": "Meta-schema for catalog.json files. Describes the structure required by the Freesail gateway converter and the freesail validate catalog CLI. Set \"$schema\" to this file's URI or a local relative path (e.g. \"../../schemas/catalog.schema.json\") to enable IDE validation and autocompletion.",
   "type": "object",
   "required": ["catalogId", "title", "components"],
   "additionalProperties": false,
@@ -29,11 +29,6 @@
     "description": {
       "type": "string",
       "description": "Overview of this catalog's domain and purpose. Shown in the system prompt below the title."
-    },
-    "freesailVersion": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+",
-      "description": "Freesail SDK version this catalog was built against (e.g. '0.5.0'). Populated automatically by the catalog index.ts via freesailVersion from the freesail package."
     },
     "components": {
       "type": "object",

@@ -138,10 +138,7 @@ export function FreesailProvider({
     newTransport.on('sessionStart', (_sessionId) => {
       if (catalogDefinitions.length > 0) {
         const schemas = catalogDefinitions
-          .map((def) => ({
-            ...def.schema,
-            ...(def.freesailVersion ? { freesailSdkVersion: def.freesailVersion } : {}),
-          }))
+          .map((def) => def.schema)
           .filter((s) => s && Object.keys(s).length > 0);
 
         if (schemas.length > 0) {

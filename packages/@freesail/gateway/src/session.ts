@@ -14,8 +14,23 @@ import {
 } from '@freesail/core';
 import { writeFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
-import { logger } from '@freesail/logger';
+import { createLogger } from '@freesail/logger';
+
+const logger = createLogger(['freesail', 'session']);
+// Sub-loggers for surface events — filterable independently via --log-filter
+const agentSurfaceLogger  = createLogger(['freesail', 'session', 'agent-surface']);
+const clientSurfaceLogger = createLogger(['freesail', 'session', 'client-surface']);
 import { generateCatalogPrompt, type Catalog } from './converter.js';
+
+/** Extract the surfaceId embedded in any DownstreamMessage variant. */
+function getSurfaceId(message: DownstreamMessage): string | null {
+  const m = message as any;
+  return m.createSurface?.surfaceId
+    ?? m.updateComponents?.surfaceId
+    ?? m.updateDataModel?.surfaceId
+    ?? m.deleteSurface?.surfaceId
+    ?? null;
+}
 
 /**
  * Represents a connected client session.
@@ -557,13 +572,19 @@ export class SessionManager {
     }
 
     try {
-      if (message && typeof message === 'object' && 'updateComponents' in message) {
-        logger.info(`[SessionManager] Sending updateComponents to session ${sessionId}:`, 
+      const surfaceId = getSurfaceId(message);
+      const isClientSurface = surfaceId?.startsWith('__') ?? false;
+      const surfaceLogger = isClientSurface ? clientSurfaceLogger : agentSurfaceLogger;
+
+      if ('updateComponents' in message) {
+        surfaceLogger.info(`[SessionManager] Sending updateComponents to session ${sessionId}:`,
           JSON.stringify((message as any).updateComponents, null, 2));
-      }
-      if (message && typeof message === 'object' && 'updateDataModel' in message) {
-        logger.info(`[SessionManager] Sending updateDataModel to session ${sessionId}:`, 
+      } else if ('updateDataModel' in message) {
+        surfaceLogger.info(`[SessionManager] Sending updateDataModel to session ${sessionId}:`,
           JSON.stringify((message as any).updateDataModel, null, 2));
+      } else if ('createSurface' in message) {
+        surfaceLogger.info(`[SessionManager] Sending createSurface to session ${sessionId}:`,
+          JSON.stringify((message as any).createSurface, null, 2));
       }
       const data = `data: ${JSON.stringify(message)}\n\n`;
       session.response.write(data);

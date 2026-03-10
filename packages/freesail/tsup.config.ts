@@ -18,6 +18,6 @@ export default defineConfig([
     banner: {
       js: '#!/usr/bin/env node',
     },
-    external: ['@freesail/core', '@freesail/react'],
+    external: ['@freesail/core', '@freesail/react', '@freesail/gateway'],
   },
 ]);

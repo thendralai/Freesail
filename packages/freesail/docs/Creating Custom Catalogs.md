@@ -1,155 +1,291 @@
 # Creating Custom Catalogs
 
-This guide explains how to create a custom catalog of UI components and register them with the Freesail SDK.
+This guide explains how to create a custom Freesail catalog — a package that bundles a JSON schema describing UI components with their concrete React implementations. Agents use the schema to know what components exist; the React code renders them in the browser.
 
-## Overview
+## Package Structure
 
-A **catalog** in Freesail bundles a JSON schema (describing available components and their properties) with concrete React implementations of those components. By creating a custom catalog you can extend the UI vocabulary that Freesail agents can use to build interfaces.
+```
+{name}_catalog/
+  package.json          # "prebuild": "freesail validate catalog"
+  tsconfig.json
+  src/
+    {name}_catalog.json # Component schema — edit this first
+    components.tsx      # React implementations
+    functions.ts        # Custom client-side functions (optional)
+    index.ts            # Exports CatalogDefinition
+```
 
-> **Import convention** — This guide uses the unified `freesail` package which exposes `ReactUI` (from `@freesail/react`) and `Core` (from `@freesail/core`) namespaces. You can also import directly from `@freesail/react` if you prefer.
+---
 
-## 1. Define Your Schema
+## Step 1: Define the Schema (`{name}_catalog.json`)
 
-Create a `catalog.json` file that describes every component your catalog provides, including its properties and children.
+The schema is a JSON file that tells the agent exactly which components exist and what properties each one accepts. The gateway uses it to validate agent output before it reaches the browser.
 
 ```json
 {
-  "$id": "https://example.com/myown_catalog_v1.json",
-  "title": "My Own Catalog",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/catalogs/myapp_catalog_v1.json",
+  "catalogId": "https://example.com/catalogs/myapp_catalog_v1.json",
+  "title": "MyApp Catalog",
+  "description": "Custom components for MyApp.",
   "components": {
-    "MyCustomCard": {
-      "description": "A custom card component",
+    "StatusCard": {
+      "description": "A card displaying a status with a title, message, and severity level.",
       "properties": {
-        "title":    { "type": "string", "description": "Card title" },
-        "subtitle": { "type": "string", "description": "Card subtitle" },
-        "imageUrl": { "type": "string", "description": "Hero image URL" }
+        "title":    { "type": "string", "description": "Card heading" },
+        "message":  { "type": "string", "description": "Body text" },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error", "success"],
+          "description": "Visual severity level"
+        }
       },
-      "children": "allowed"
+      "required": ["title"]
     }
-  }
+  },
+  "functions": []
 }
 ```
 
-## 2. Create React Components
+**Key rules:**
+- `$id` and `catalogId` must be the same URL. Use a real published URL before shipping; a placeholder is fine during development.
+- `components` keys are the component names agents will use (e.g. `"component": "StatusCard"`).
+- `description` fields are included in the agent's system prompt — write them clearly.
+- `functions` is an array of custom function definitions. Leave it empty (`[]`) if you have none; common functions (`formatString`, `not`, `isEmpty`, etc.) are inherited automatically.
 
-Write a standard React component that implements `FreesailComponentProps`. The `component` object passed as a prop contains all property values sent by the agent.
+---
+
+## Step 2: Implement Components (`components.tsx`)
+
+Each key in `components` needs a matching React function. All components receive `FreesailComponentProps` — the `component` object holds the resolved prop values sent by the agent.
 
 ```tsx
-// components/MyCustomCard.tsx
-import React from 'react';
-import type { ReactUI } from 'freesail';
+import React, { type CSSProperties } from 'react';
+import type { FreesailComponentProps } from '@freesail/react';
 
-export function MyCustomCard({ component, children }: ReactUI.FreesailComponentProps) {
-  const title    = component['title'] as string | undefined;
-  const subtitle = component['subtitle'] as string | undefined;
-  const imageUrl = component['imageUrl'] as string | undefined;
+// ── StatusCard ─────────────────────────────────────────────────────────────
+
+export function StatusCard({ component, children }: FreesailComponentProps) {
+  const title    = (component['title'] as string) ?? '';
+  const message  = (component['message'] as string) ?? '';
+  const severity = (component['severity'] as string) ?? 'info';
+
+  const colors: Record<string, string> = {
+    info:    'var(--freesail-info, #3b82f6)',
+    warning: 'var(--freesail-warning, #f59e0b)',
+    error:   'var(--freesail-error, #ef4444)',
+    success: 'var(--freesail-success, #22c55e)',
+  };
+
+  const style: CSSProperties = {
+    padding: '16px',
+    borderRadius: '8px',
+    border: `1px solid ${colors[severity] ?? colors.info}`,
+    background: 'var(--freesail-bg-surface, #ffffff)',
+    color: 'var(--freesail-text-main, #0f172a)',
+  };
 
   return (
-    <div style={{ border: '1px solid #ccc', borderRadius: 8, overflow: 'hidden' }}>
-      {imageUrl && <img src={imageUrl} alt={title} style={{ width: '100%' }} />}
-      <div style={{ padding: 16 }}>
-        {title && <h3>{title}</h3>}
-        {subtitle && <p>{subtitle}</p>}
-        {children}
-      </div>
+    <div style={style}>
+      <strong>{title}</strong>
+      {message && <p style={{ margin: '8px 0 0' }}>{message}</p>}
+      {children}
+    </div>
+  );
+}
+
+// ── Component map (must match keys in the JSON schema) ─────────────────────
+
+export const myappCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
+  StatusCard,
+};
+```
+
+**Conventions followed by all Freesail catalogs:**
+- Export each component as a named `export function`.
+- Cast props with `as string` (or the appropriate type) — all values arrive as `unknown`.
+- Use CSS custom properties (`var(--freesail-*)`) for colors and spacing so components respect the host app's theme.
+- Collect all components in a single `export const {name}CatalogComponents` map at the bottom of the file. The map keys must exactly match the component names in the JSON schema.
+
+### `FreesailComponentProps` reference
+
+| Prop | Type | Purpose |
+|------|------|---------|
+| `component` | `A2UIComponent` | All resolved props the agent sent for this component instance |
+| `children` | `ReactNode` | Rendered child components (for containers) |
+| `scopeData` | `unknown` | Current item data when inside a dynamic list template |
+| `dataModel` | `Record<string, unknown>` | Full surface data model (read-only snapshot) |
+| `onAction` | `(name, context) => void` | Dispatch a named action to the agent |
+| `onDataChange` | `(path, value) => void` | Write a value to the local data model (two-way binding) |
+| `onFunctionCall` | `(call) => void` | Execute a client-side function call |
+
+### Two-way binding (input components)
+
+For components that let users enter data, read the bound path from `component['__rawValue']` and call `onDataChange` on every change:
+
+```tsx
+export function MyInput({ component, onDataChange }: FreesailComponentProps) {
+  const value = (component['value'] as string) ?? '';
+
+  // __rawValue holds the original binding object before resolution
+  const rawValue = component['__rawValue'] as { path?: string } | string | undefined;
+  const boundPath = typeof rawValue === 'object' && rawValue?.path
+    ? rawValue.path
+    : `/input/${component.id}`;   // auto-bind fallback
+
+  return (
+    <input
+      value={value}
+      onChange={(e) => onDataChange?.(boundPath, e.target.value)}
+    />
+  );
+}
+```
+
+### Validation (`checks`)
+
+Any component can render validation errors from the agent's `checks` array. Add this helper and call it in your component:
+
+```tsx
+function validateChecks(checks: any[]): string | null {
+  for (const check of checks) {
+    if (check.condition === false) return check.message ?? 'Invalid';
+  }
+  return null;
+}
+
+export function MyInput({ component, onDataChange }: FreesailComponentProps) {
+  const checks = (component['checks'] as any[]) ?? [];
+  const validationError = validateChecks(checks);
+
+  return (
+    <div>
+      <input
+        style={{ border: validationError ? '1px solid red' : undefined }}
+        // ...
+      />
+      {validationError && (
+        <div style={{ color: 'var(--freesail-error, #ef4444)', fontSize: '12px' }}>
+          {validationError}
+        </div>
+      )}
     </div>
   );
 }
 ```
 
-## 3. (Optional) Bind with `withCatalog`
+---
 
-You can use the `withCatalog` higher-order function to register a component imperatively. This is useful when you want auto-registration on import.
+## Step 3: Add Custom Functions (`functions.ts`)
 
-```tsx
-import { ReactUI } from 'freesail';
-import { MyCustomCard as MyCustomCardImpl } from './components/MyCustomCard';
+Skip this file if you don't need custom client-side logic — common functions (`formatString`, `not`, `isEmpty`, `lte`, `now`, etc.) are inherited automatically via `commonFunctions` in `index.ts`.
 
-const CATALOG_ID = 'https://example.com/myown_catalog_v1.json';
-
-export const MyCustomCard = ReactUI.withCatalog(CATALOG_ID, 'MyCustomCard', MyCustomCardImpl);
-```
-
-## 4. Bundle into a `CatalogDefinition`
-
-Create an `index.ts` that exports a single `CatalogDefinition` object. This is the recommended approach for declarative registration.
+To add custom functions:
 
 ```ts
-// catalogs/myown/index.ts
-import type { ReactUI } from 'freesail';
-import catalog from './catalog.json';
-import { MyCustomCard } from './components/MyCustomCard';
+import type { FunctionImplementation } from '@freesail/react';
 
-export const MyOwnCatalog: ReactUI.CatalogDefinition = {
-  namespace: 'https://example.com/myown_catalog_v1.json',
-  schema: catalog,
-  components: {
-    'MyCustomCard': MyCustomCard,
+export const myappCatalogFunctions: Record<string, FunctionImplementation> = {
+  // Custom function: truncates a string to maxLength characters
+  truncate: (value: unknown, maxLength: number) => {
+    const str = String(value ?? '');
+    return str.length > maxLength ? str.slice(0, maxLength) + '…' : str;
   },
 };
 ```
 
-### Recommended folder structure
+To declare the function for agents, add an entry to `functions` in the JSON schema:
 
+```json
+"functions": [
+  {
+    "name": "truncate",
+    "description": "Truncates a string to maxLength characters, appending '…' if shortened.",
+    "args": [
+      { "name": "value",     "type": "string", "description": "The string to truncate" },
+      { "name": "maxLength", "type": "number", "description": "Maximum character count" }
+    ]
+  }
+]
 ```
-/src
-  /catalogs
-    /myown
-      ├── catalog.json          # Schema definition
-      ├── index.ts              # Entry point exporting CatalogDefinition
-      └── /components
-          ├── MyCustomCard.tsx   # Component implementation
-          └── ...
+
+---
+
+## Step 4: Wire Up `index.ts`
+
+```ts
+import type { CatalogDefinition } from '@freesail/react';
+import { commonFunctions } from '@freesail/catalogs/common';
+import catalogSchema from './myapp_catalog.json';
+import { myappCatalogComponents } from './components.js';
+import { myappCatalogFunctions } from './functions.js';
+
+export * from './components.js';
+export * from './functions.js';
+
+export const MYAPP_CATALOG_ID = catalogSchema.catalogId;
+
+export const MyappCatalog: CatalogDefinition = {
+  namespace: MYAPP_CATALOG_ID,
+  schema: catalogSchema,
+  components: myappCatalogComponents,
+  functions: {
+    ...commonFunctions,         // Inherits formatString and all standard functions
+    ...myappCatalogFunctions,   // Custom functions override common ones if names clash
+  },
+};
 ```
 
-## 5. Register with `FreesailProvider`
+> **`commonFunctions` is required.** The agent system prompt relies on `formatString`. The `freesail validate catalog` command will error if it is absent from the runtime function map.
 
-Pass your catalog definition to `FreesailProvider` via the `catalogDefinitions` prop. The provider will automatically register the components and advertise the catalog to the connected agent.
+---
+
+## Step 5: Register with `FreesailProvider`
 
 ```tsx
-// App.tsx
-import { ReactUI } from 'freesail';
-import { MyOwnCatalog } from './catalogs/myown';
+import { FreesailProvider } from '@freesail/react';
+import { MyappCatalog } from 'myapp-catalog';
+import { StandardCatalog } from '@freesail/catalogs/standard';
 
 function App() {
   return (
-    <ReactUI.FreesailProvider
+    <FreesailProvider
       sseUrl="/api/sse"
       postUrl="/api/message"
-      catalogDefinitions={[MyOwnCatalog]}
+      catalogDefinitions={[StandardCatalog, MyappCatalog]}
     >
-      {/* your app */}
-    </ReactUI.FreesailProvider>
+      <YourApp />
+    </FreesailProvider>
   );
 }
 ```
 
-You can also combine custom catalogs with the built-in catalogs from `@freesail/catalogs`:
+Multiple catalogs can coexist. Each surface is bound to exactly one catalog, identified by `catalogId`.
 
-```tsx
-import { StandardCatalog } from '@freesail/catalogs/standard';
+---
 
-<ReactUI.FreesailProvider
-  sseUrl="/api/sse"
-  postUrl="/api/message"
-  catalogDefinitions={[StandardCatalog, MyOwnCatalog]}
->
+## Validation
+
+Before building, run:
+
+```bash
+npx freesail validate catalog
 ```
 
-## API Reference
+This checks that:
+- Every component key in the JSON schema has a matching entry in the components map.
+- `formatString` is present in the runtime function map.
+- Required schema fields (`catalogId`, `$id`) are set.
 
-### `ReactUI.CatalogDefinition`
+The `prebuild` script in the generated `package.json` runs this automatically on every `npm run build`.
 
-| Property     | Type                                            | Description                                      |
-| ------------ | ----------------------------------------------- | ------------------------------------------------ |
-| `namespace`  | `string`                                        | Unique identifier for the catalog (URI or name)  |
-| `schema`     | `any`                                           | JSON schema object describing available components |
-| `components` | `Record<string, ComponentType<ReactUI.FreesailComponentProps>>` | Map of component names → React implementations   |
+---
 
-### `ReactUI.withCatalog(catalogId, componentName, Component)`
+## `CatalogDefinition` API Reference
 
-Registers a single component in the global registry and returns the component unchanged. Useful for auto-registration on import.
-
-### `ReactUI.registerCatalog(catalogId, components)`
-
-Registers all components for a catalog at once in the global registry. Called automatically by `FreesailProvider` when `catalogDefinitions` are provided.
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `namespace` | `string` | ✅ | The `catalogId` URI — must match `schema.catalogId` |
+| `schema` | `object` | ✅ | The parsed JSON schema object |
+| `components` | `Record<string, ComponentType<FreesailComponentProps>>` | ✅ | Component name → React component map |
+| `functions` | `Record<string, FunctionImplementation>` | ✅ | Function name → implementation map (always spread `commonFunctions`) |

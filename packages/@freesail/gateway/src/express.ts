@@ -10,7 +10,9 @@ import { randomUUID } from 'crypto';
 import type { UpstreamMessage } from '@freesail/core';
 import { SessionManager } from './session.js';
 import { parseCatalog, type Catalog } from './converter.js';
-import { logger } from '@freesail/logger';
+import { createLogger } from '@freesail/logger';
+
+const logger = createLogger(['freesail', 'express']);
 
 /**
  * Express server configuration.

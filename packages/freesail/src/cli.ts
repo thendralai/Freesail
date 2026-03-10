@@ -4,24 +4,32 @@
  * Entry point for the `freesail` command-line tool.
  *
  * Usage:
- *   freesail catalog new       — scaffold a new catalog package
- *   freesail catalog validate  — validate an existing catalog package
+ *   freesail validate catalog  — validate an existing catalog package
+ *   freesail run gateway       — start the Freesail gateway server
  */
 
-const [, , noun, verb] = process.argv;
+const [, , verb, noun] = process.argv;
 
-if (noun === 'catalog') {
-  if (verb === 'new') {
-    import('./commands/catalog-new.js').then((m) => m.run());
-  } else if (verb === 'validate') {
+if (verb === 'validate') {
+  if (noun === 'catalog') {
     import('./commands/catalog-validate.js').then((m) => m.run());
   } else {
-    console.error(`Unknown catalog command: ${verb ?? '(none)'}`);
-    console.error('Usage: freesail catalog <new|validate>');
+    console.error(`Unknown target for validate: ${noun ?? '(none)'}`);
+    console.error('Usage: freesail validate catalog');
+    process.exit(1);
+  }
+} else if (verb === 'run') {
+  if (noun === 'gateway') {
+    import('./commands/gateway-run.js').then((m) => m.run());
+  } else {
+    console.error(`Unknown target for run: ${noun ?? '(none)'}`);
+    console.error('Usage: freesail run gateway');
     process.exit(1);
   }
 } else {
-  console.error(`Unknown command: ${noun ?? '(none)'}`);
-  console.error('Usage: freesail catalog <new|validate>');
+  console.error(`Unknown command: ${verb ?? '(none)'}`);
+  console.error('Usage:');
+  console.error('  freesail validate catalog');
+  console.error('  freesail run gateway');
   process.exit(1);
 }

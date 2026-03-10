@@ -56,7 +56,7 @@ export function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodObject<z.
     }
 
     if (!required?.includes(key)) {
-      field = field.nullish();
+      field = field.optional();
     }
 
     shape[key] = field;

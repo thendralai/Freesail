@@ -2,15 +2,25 @@
 # Run the complete Freesail stack: Gateway + Agent + UI
 # Usage: ./run-all.sh
 #
+# Configure via .env in this directory (copy .env.example to .env).
+#
 # The gateway, agent, and UI all run as independent processes:
-#   - Gateway: MCP SSE server (port 3000, localhost only) + A2UI HTTP/SSE (port 3001, all interfaces)
-#   - Agent:   Connects to gateway MCP via SSE, exposes health endpoint (port 3002)
+#   - Gateway: MCP Streamable HTTP (port 3000, localhost only) + A2UI HTTP/SSE (port 3001, all interfaces)
+#   - Agent:   Connects to gateway MCP, exposes health endpoint (port 3002)
 #   - UI:      Vite dev server (port 5173, all interfaces)
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Load .env if present
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,7 +47,7 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-# Check for Google API key
+# Check for Google API key (can be set in .env)
 if [ -z "$GOOGLE_API_KEY" ]; then
   echo -e "${RED}Error: GOOGLE_API_KEY environment variable is required${NC}"
   echo ""
@@ -72,21 +82,23 @@ echo ""
 echo -e "${GREEN}Starting Freesail stack...${NC}"
 echo ""
 
-# Resolve paths
-GATEWAY_SCRIPT="$ROOT_DIR/packages/@freesail/gateway/src/cli.ts"
-
 # Port configuration
 GATEWAY_HTTP_PORT="${GATEWAY_PORT:-3001}"
 GATEWAY_MCP_PORT="${MCP_PORT:-3000}"
 AGENT_PORT_NUM="${AGENT_PORT:-3002}"
 
+# Build gateway args — log settings come from .env (LOG_LEVEL, LOG_FILE, LOG_FILTER)
+GATEWAY_ARGS=(--http-port "$GATEWAY_HTTP_PORT" --mcp-port "$GATEWAY_MCP_PORT")
+[ -n "${LOG_LEVEL:-}" ]  && GATEWAY_ARGS+=(--log-level "$LOG_LEVEL")
+[ -n "${LOG_FILE:-}" ]   && GATEWAY_ARGS+=(--log-file "$LOG_FILE")
+for _filter in ${LOG_FILTER:-}; do
+  GATEWAY_ARGS+=(--log-filter "$_filter")
+done
+
 # 1. Start Gateway (standalone process)
 # Gateway HTTP binds to 0.0.0.0 (all interfaces) by default; MCP stays on localhost.
 echo -e "${BLUE}[Gateway]${NC} Starting on HTTP port ${GATEWAY_HTTP_PORT}, MCP port ${GATEWAY_MCP_PORT}"
-npx tsx "$GATEWAY_SCRIPT" \
-  --mcp-mode http \
-  --http-port "$GATEWAY_HTTP_PORT" \
-  --mcp-port "$GATEWAY_MCP_PORT" &
+node "$ROOT_DIR/packages/freesail/dist/cli.js" run gateway "${GATEWAY_ARGS[@]}" &
 GATEWAY_PID=$!
 
 # Wait for gateway to be ready
@@ -95,7 +107,7 @@ sleep 3
 
 # 2. Start Agent (connects to gateway via MCP SSE)
 echo -e "${BLUE}[Agent]${NC} Starting"
-cd "$ROOT_DIR/Example-Typescript/agent"
+cd "$ROOT_DIR/example/agent"
 npm run dev &
 AGENT_PID=$!
 cd "$ROOT_DIR"
@@ -105,7 +117,7 @@ sleep 3
 
 # 3. Start UI
 echo -e "${BLUE}[UI]${NC} Starting on http://localhost:${UI_PORT:-5173}"
-cd "$ROOT_DIR/Example-Typescript/react-app"
+cd "$ROOT_DIR/example/react-app"
 rm -rf node_modules/.vite  # Clear Vite cache to pick up fresh workspace sources
 npm run dev &
 UI_PID=$!

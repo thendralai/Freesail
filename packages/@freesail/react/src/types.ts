@@ -37,8 +37,6 @@ export interface CatalogDefinition {
   components: Record<string, ComponentType<FreesailComponentProps>>;
   /** Map of function names to their implementations */
   functions?: Record<string, FunctionImplementation>;
-  /** Freesail SDK version this catalog was built against. Sent to the gateway for compatibility checks. */
-  freesailVersion?: string;
 }
 
 /**

@@ -6,7 +6,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "freesail": "./dist/cli.cjs"
+    "freesail": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@freesail/core": "^0.4.3",
+    "@freesail/gateway": "^0.4.3",
     "@freesail/react": "^0.4.3"
   },
   "peerDependencies": {

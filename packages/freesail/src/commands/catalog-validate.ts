@@ -1,5 +1,5 @@
 /**
- * @fileoverview freesail catalog validate
+ * @fileoverview freesail validate catalog
  *
  * Validates a Freesail catalog package for structural integrity and
  * mandatory protocol requirements.
@@ -12,7 +12,7 @@
  *      catalog's runtime function map (index.ts)
  *
  * Run as a prebuild step via the generated package.json:
- *   "prebuild": "freesail catalog validate"
+ *   "prebuild": "freesail validate catalog"
  *
  * Note: This command performs static analysis on the TypeScript source.
  * For a full runtime check (dynamic import of compiled output), use:

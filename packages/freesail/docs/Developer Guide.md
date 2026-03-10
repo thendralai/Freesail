@@ -33,31 +33,61 @@ The Gateway is the central bridge between agents and frontends. It runs as a sta
 ### Starting the Gateway
 
 ```bash
-# Decoupled mode (recommended) — agents connect via HTTP
-npx tsx packages/@freesail/gateway/src/cli.ts \
-  --mcp-mode http \
-  --mcp-port 3000 \
-  --http-port 3001
+# HTTP mode (default) — agents connect via HTTP on port 3000
+freesail run gateway --mcp-port 3000 --http-port 3001
 
 # Stdio mode — agent spawns gateway as child process
-npx tsx packages/@freesail/gateway/src/cli.ts \
-  --http-port 3001
+freesail run gateway --mcp-mode stdio --http-port 3001
 ```
 
 ### CLI Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--mcp-mode <mode>` | `stdio` | MCP transport: `stdio` (child process) or `http` (standalone) |
+| `--mcp-mode <mode>` | `http` | MCP transport: `http` (standalone) or `stdio` (child process) |
 | `--mcp-port <port>` | `3000` | Port for MCP Streamable HTTP server (http mode only) |
 | `--mcp-host <host>` | `127.0.0.1` | Bind address for MCP server (http mode only) |
 | `--http-port <port>` | `3001` | Port for A2UI HTTP/SSE server |
 | `--webhook-url <url>` | — | Forward UI actions to this URL via HTTP POST |
 | `--log-file <file>` | — | Write logs to file (in addition to console) |
+| `--log-level <level>` | `info` | Minimum log level: `fatal` \| `error` \| `warn` \| `info` \| `debug` |
+| `--log-filter <f>` | — | Per-subsystem level override, e.g. `express:debug`. Repeatable. |
 
 ### Network Isolation
 
 By default, the MCP server binds to `127.0.0.1` — only local processes can connect. The A2UI server binds to `0.0.0.0`, making it accessible from browsers. This provides network-level security without requiring authentication.
+
+### Logging
+
+Logs are written to the console by default. Use `--log-file` to mirror them to a file (plain text, no ANSI colour codes, auto-creates directories):
+
+```bash
+freesail run gateway --log-file logs/gateway.log
+```
+
+Control verbosity with `--log-level`:
+
+```bash
+freesail run gateway --log-level warn          # only warnings and errors
+freesail run gateway --log-level debug         # maximum verbosity
+```
+
+Fine-tune individual subsystems with `--log-filter <subsystem>=<level>` (repeatable). The three subsystems are `express`, `mcp`, and `session`:
+
+```bash
+# Suppress routine HTTP events but keep full MCP debug output
+freesail run gateway --log-level warn --log-filter mcp:debug
+
+# Verbose session events to a file only, keep console at warn
+# (combine with --log-file; console gets warn, file gets debug)
+freesail run gateway --log-level warn --log-filter session:debug --log-file gateway.log
+```
+
+| Subsystem | Covers |
+|-----------|--------|
+| `express` | SSE connections, incoming actions, catalog registration |
+| `mcp` | Agent MCP tool calls, session handshake |
+| `session` | Surface creates/updates, data-model writes, stale-session cleanup |
 
 ### How the Gateway Processes Requests
 
@@ -287,7 +317,7 @@ The easiest way to run everything is with the provided script:
 
 ```bash
 export GOOGLE_API_KEY=your-api-key
-cd examples && bash run-all.sh
+cd example && bash run-all.sh
 ```
 
 This starts three independent processes:
