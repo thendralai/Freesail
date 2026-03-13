@@ -344,6 +344,14 @@ function validateCatalog(config: CatalogConfig): boolean {
   // 4. Mandatory functions check (always runs, independent of JSON declarations)
   isOk = checkMandatoryFunctions(config.srcPath, isOk);
 
+  // 5. Warn if mandatory functions are missing from the catalog JSON
+  for (const fn of MANDATORY_FUNCTIONS) {
+    if (!jsonFunctions.includes(fn)) {
+      console.warn(`   ⚠  Mandatory function "${fn}" is missing from the catalog.`);
+      console.warn(`      This function is required for efficient functioning of Freesail components. Do not remove.`);
+    }
+  }
+
   if (isOk) {
     console.log(
       `   ✅ Validated ${jsonComponents.length} component(s) and ${jsonFunctions.length} function(s).`

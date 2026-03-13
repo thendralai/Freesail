@@ -17,6 +17,28 @@ import { createInterface } from 'readline';
 import { prepareCatalog } from './catalog-prepare.js';
 
 // ---------------------------------------------------------------------------
+// Catalog domain generation
+// ---------------------------------------------------------------------------
+
+const BOAT_TYPES = ['dinghy', 'cruiser', 'racer', 'catamaran', 'trimaran', 'sloop', 'cutter', 'ketch', 'yawl'];
+
+function generateCatalogDomain(): string {
+  const boat = BOAT_TYPES[Math.floor(Math.random() * BOAT_TYPES.length)]!;
+  const hex = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+  return `${boat}-${hex}`;
+}
+
+/**
+ * Derive a .local domain from a package name.
+ * @scope/name  → scope.local
+ * name (no scope) → falls back to the provided fallback domain
+ */
+function domainFromPackageName(packageName: string, fallback: string): string {
+  const match = packageName.match(/^@([^/]+)\//); 
+  return match ? `${match[1]}.local` : fallback;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -154,12 +176,7 @@ function generatePackageJson(
       build: 'tsc',
       dev: 'tsc --watch',
       clean: 'rm -rf dist *.tsbuildinfo',
-      prebuild: 'freesail validate catalog',
-    },
-    freesail: {
-      catalogId: `https://freesail.local/catalogs/${prefix}_catalog_v1.json`,
-      title,
-      description,
+      prebuild: 'freesail prepare catalog && freesail validate catalog',
     },
     peerDependencies: {
       '@freesail/react': '*',
@@ -224,10 +241,16 @@ export async function run(): Promise<void> {
       process.exit(1);
     }
 
+    const domain = generateCatalogDomain();
+
     const title = await ask(rl, 'Catalog title', `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Catalog`);
     const description = await ask(rl, 'Catalog description', `A custom Freesail catalog for ${prefix}`);
-    const packageName = await ask(rl, 'npm package name', `@freesail-community/${prefix}_catalog`);
+    const packageName = await ask(rl, 'npm package name', `@${domain}/${prefix}_catalog`);
     const outputDir = await ask(rl, 'Output directory', `./${prefix}_catalog`);
+
+    // Derive catalogId from the package org scope (e.g. @sloop-3f2a1c → sloop-3f2a1c.local)
+    const catalogDomain = domainFromPackageName(packageName, domain);
+    const catalogId = `https://${catalogDomain}/catalogs/${prefix}_catalog_v1.json`;
 
     rl.close();
 
@@ -281,6 +304,9 @@ export async function run(): Promise<void> {
 
     fs.writeFileSync(path.join(srcPath, 'functions.json'), JSON.stringify({ functions: {} }, null, 2) + '\n');
     console.log('   📄 src/functions.json');
+
+    fs.writeFileSync(path.join(srcPath, 'catalog.exclude.json'), JSON.stringify({ components: [], functions: [] }, null, 2) + '\n');
+    console.log('   📄 src/catalog.exclude.json');
 
     // Generate TypeScript files
     fs.writeFileSync(path.join(srcPath, 'components.tsx'), generateComponentsTsx(prefix));

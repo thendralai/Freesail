@@ -1,0 +1,38 @@
+{
+  "components": [
+    "Text",
+    "Icon",
+    "Row",
+    "Column",
+    "Card",
+    "Modal",
+    "Button",
+    "TextField",
+    "ChoicePicker",
+    "DateTimeInput",
+    "Spacer"
+  ],
+  "functions": [
+    "required",
+    "regex",
+    "length",
+    "numeric",
+    "email",
+    "formatNumber",
+    "formatCurrency",
+    "formatDate",
+    "pluralize",
+    "now",
+    "openUrl",
+    "not",
+    "and",
+    "or",
+    "isEmpty",
+    "eq",
+    "neq",
+    "gt",
+    "gte",
+    "lt",
+    "lte"
+  ]
+}

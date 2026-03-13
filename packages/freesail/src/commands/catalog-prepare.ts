@@ -42,7 +42,6 @@ interface CatalogMeta {
   catalogId: string;
   title: string;
   description: string;
-  includeCommon: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +140,21 @@ function rewriteRefs(obj: unknown, refPrefix: string): unknown {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Catalog ID derivation from package name
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive a .local domain from a scoped package name.
+ * @scope/name → scope.local
+ * Falls back to freesail.local if unscoped.
+ */
+function domainFromPackageName(packageName: string): string {
+  const match = packageName.match(/^@([^/]+)\//);
+  return match ? `${match[1]}.local` : 'freesail.local';
+}
+
+// ---------------------------------------------------------------------------
 // Metadata from package.json
 // ---------------------------------------------------------------------------
 
@@ -149,7 +163,6 @@ function readCatalogMeta(packagePath: string, prefix: string): CatalogMeta {
     catalogId: `https://freesail.local/catalogs/${prefix}_catalog_v1.json`,
     title: `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Catalog`,
     description: `A Freesail catalog for ${prefix}`,
-    includeCommon: true,
   };
 
   // Walk up to find the nearest package.json
@@ -172,27 +185,32 @@ function readCatalogMeta(packagePath: string, prefix: string): CatalogMeta {
     return fallback;
   }
 
+  // Derive catalogId from package name org scope
+  const pkgName = (pkg['name'] as string) ?? '';
+  const domain = domainFromPackageName(pkgName);
+  const derivedCatalogId = `https://${domain}/catalogs/${prefix}_catalog_v1.json`;
+
   const freesail = pkg['freesail'] as Record<string, unknown> | undefined;
-  if (!freesail) return fallback;
+  if (!freesail) {
+    return { ...fallback, catalogId: derivedCatalogId };
+  }
 
   // Multi-catalog: freesail.catalogs.{prefix}
   const catalogs = freesail['catalogs'] as Record<string, Record<string, string>> | undefined;
   if (catalogs?.[prefix]) {
     const meta = catalogs[prefix]!;
     return {
-      catalogId: meta['catalogId'] ?? fallback.catalogId,
+      catalogId: meta['catalogId'] ?? derivedCatalogId,
       title: meta['title'] ?? fallback.title,
       description: meta['description'] ?? fallback.description,
-      includeCommon: meta['includeCommon'] !== 'false' && meta['includeCommon'] !== false as unknown as string,
     };
   }
 
-  // Single catalog: freesail.catalogId, freesail.title, freesail.description
+  // Single catalog: optional overrides from freesail block
   return {
-    catalogId: (freesail['catalogId'] as string) ?? fallback.catalogId,
+    catalogId: (freesail['catalogId'] as string) ?? derivedCatalogId,
     title: (freesail['title'] as string) ?? fallback.title,
     description: (freesail['description'] as string) ?? fallback.description,
-    includeCommon: freesail['includeCommon'] !== false,
   };
 }
 
@@ -217,22 +235,16 @@ function readJsonSafe(filePath: string): Record<string, unknown> | null {
 export function prepareCatalog(config: CatalogConfig): boolean {
   console.log(`📦 Preparing: ${config.name}`);
 
-  // 1. Read catalog metadata (needed early to check includeCommon)
+  // 1. Read catalog metadata
   const meta = readCatalogMeta(config.packagePath, config.prefix);
 
-  // 2. Read common schemas (if includeCommon is true)
+  // 2. Read common schemas
   let rewrittenComponents: Record<string, unknown> = {};
   let rewrittenFunctions: Record<string, unknown> = {};
   let rewrittenDefs: Record<string, unknown> = {};
 
-  if (meta.includeCommon) {
-    const common = findCommonDir(config.srcPath);
-    if (!common) {
-      console.error(`   ❌ No common/ directory found for ${config.name}`);
-      console.error(`      Expected at: ${path.join(config.srcPath, 'common')} or ${path.join(config.srcPath, '..', 'common')}`);
-      return false;
-    }
-
+  const common = findCommonDir(config.srcPath);
+  if (common) {
     const commonComponentsJson = readJsonSafe(path.join(common.dir, 'common_components.json'));
     const commonFunctionsJson = readJsonSafe(path.join(common.dir, 'common_functions.json'));
 
@@ -281,6 +293,43 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   const mergedComponents = { ...rewrittenComponents, ...customComponents };
   const mergedFunctions = { ...rewrittenFunctions, ...customFunctions };
   const mergedDefs = { ...rewrittenDefs, ...customDefs };
+
+  // 6. Apply exclusions from catalog.exclude.json (if present)
+  const excludeJson = readJsonSafe(path.join(config.srcPath, 'catalog.exclude.json'));
+  if (excludeJson) {
+    const excludeComponents = Array.isArray(excludeJson['components']) ? excludeJson['components'] as string[] : [];
+    const excludeFunctions = Array.isArray(excludeJson['functions']) ? excludeJson['functions'] as string[] : [];
+
+    let excludedCount = 0;
+    for (const name of excludeComponents) {
+      if (name in mergedComponents) {
+        delete mergedComponents[name];
+        excludedCount++;
+      } else {
+        console.warn(`   ⚠  Exclusion target not found in components: ${name}`);
+      }
+    }
+    for (const name of excludeFunctions) {
+      if (name in mergedFunctions) {
+        delete mergedFunctions[name];
+        excludedCount++;
+      } else {
+        console.warn(`   ⚠  Exclusion target not found in functions: ${name}`);
+      }
+    }
+    if (excludedCount > 0) {
+      console.log(`   🚫 Excluded ${excludedCount} item(s) via catalog.exclude.json`);
+    }
+  }
+
+  // 7. Warn if mandatory functions are missing
+  const MANDATORY_FUNCTIONS = ['formatString'];
+  for (const fn of MANDATORY_FUNCTIONS) {
+    if (!(fn in mergedFunctions)) {
+      console.warn(`   ⚠  Mandatory function "${fn}" is missing from the catalog.`);
+      console.warn(`      This function is required for efficient functioning of Freesail components. Do not remove.`);
+    }
+  }
 
   const catalog: Record<string, unknown> = {};
   if (schemaPath) catalog['$schema'] = schemaPath;

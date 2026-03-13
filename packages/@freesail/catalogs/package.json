@@ -35,8 +35,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "prebuild": "freesail validate catalog",
-    "verify": "tsx ../../../scripts/verify-catalogs.ts"
+    "prebuild": "freesail prepare catalog && freesail validate catalog"
   },
   "keywords": [
     "freesail",
@@ -72,8 +71,7 @@
       "chat": {
         "catalogId": "https://freesail.dev/catalogs/chat_catalog_v1.json",
         "title": "Freesail Chat Catalog",
-        "description": "Chat interface components for Freesail Agent-driven UI. Provides a complete chat experience as an A2UI surface.",
-        "includeCommon": false
+        "description": "Chat interface components for Freesail Agent-driven UI. Provides a complete chat experience as an A2UI surface."
       }
     }
   },
