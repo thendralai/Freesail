@@ -148,14 +148,15 @@ export function Card({ component, children }: FreesailComponentProps) {
 
 export function Text({ component }: FreesailComponentProps) {
   const rawText = component['text'] ?? '';
-  const text = typeof rawText === 'object' && rawText !== null
+  const text = (typeof rawText === 'object' && rawText !== null
     ? JSON.stringify(rawText)
-    : String(rawText);
+    : String(rawText)).replace(/\\n/g, '\n');
 
   const style: CSSProperties = {
     fontSize: (component['size'] as string) ?? '14px',
     fontWeight: (component['weight'] as CSSProperties['fontWeight']) ?? 'normal',
     color: getSemanticColor(component['color'] as string) ?? 'inherit',
+    whiteSpace: 'pre-line',
     margin: 0,
   };
 
@@ -191,27 +192,44 @@ export function Icon({ component }: FreesailComponentProps) {
   const size = (component['size'] as string) ?? '24px';
   const color = getSemanticColor(component['color'] as string) ?? 'currentColor';
 
-  const iconMap: Record<string, string> = {
-    mail: '✉️',
-    check: '✓',
-    close: '✕',
-    menu: '☰',
-    search: '🔍',
-    user: '👤',
-    settings: '⚙️',
-    home: '🏠',
-    star: '⭐',
-    heart: '❤️',
-    circle: '●',
-  } as const;
+  // Convert camelCase icon names to snake_case for Material Symbols font ligatures
+  const toSnakeCase = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+
+  // Map names that differ between our enum and Material Symbols ligature names
+  const aliasMap: Record<string, string> = {
+    favoriteOff: 'favorite_border',
+    starOff: 'star_border',
+    clock: 'schedule',
+    database: 'storage',
+    bug: 'bug_report',
+    shield: 'security',
+    draft: 'drafts',
+    email: 'mail',
+    videoCamera: 'videocam',
+    table: 'table_chart',
+    tag: 'label',
+    task: 'task_alt',
+  };
+
+  const ligature = aliasMap[name] ?? toSnakeCase(name);
 
   const style: CSSProperties = {
     fontSize: size,
     color,
     lineHeight: 1,
+    fontFamily: "'Material Symbols Outlined', sans-serif",
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: size,
+    height: size,
+    verticalAlign: 'middle',
+    WebkitFontSmoothing: 'antialiased',
   };
 
-  return <span style={style}>{iconMap[name as keyof typeof iconMap] ?? iconMap['circle']}</span>;
+  return <span style={style}>{ligature}</span>;
 }
 
 // =============================================================================

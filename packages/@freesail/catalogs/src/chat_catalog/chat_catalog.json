@@ -218,6 +218,60 @@
     }
   },
   "functions": {
+    "checkLength": {
+      "description": "Returns true if the string or array length satisfies the given constraints. Takes two arguments: the value and an object with optional 'min' and/or 'max' integer properties. Example: checkLength(value, {min: 8}) returns true if value has at least 8 characters. Always returns a boolean. To get the length as a number, use getLength instead.",
+      "returnType": "boolean",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The minimum allowed length."
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The maximum allowed length."
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "min"
+                ]
+              },
+              {
+                "required": [
+                  "max"
+                ]
+              }
+            ]
+          }
+        ],
+        "minItems": 2
+      }
+    },
+    "getLength": {
+      "description": "Returns the number of characters in a value. If the value is a string, returns its length. If the value is a number or date, converts it to a string first and returns the length of that string. If the value is an array, returns the number of elements. Returns 0 for null or undefined. Use this when you need the length as a number (e.g. for comparisons with gte). Use checkLength instead if you just need to validate min/max constraints.",
+      "returnType": "number",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
     "formatString": {
       "description": "Performs string interpolation of data model values and other functions in the catalog functions list and returns the resulting string. The value string can contain interpolated expressions in the `${expression}` format. Supported expression types include: JSON Pointer paths to the data model (e.g., `${/absolute/path}` or `${relative/path}`), and client-side function calls (e.g., `${now()}`). Function arguments must be literals (quoted strings, numbers, booleans) or nested expressions (e.g., `${formatDate(${/currentDate}, 'MM-dd')}`). To include a literal `${` sequence, escape it as `\\${`.",
       "returnType": "string",

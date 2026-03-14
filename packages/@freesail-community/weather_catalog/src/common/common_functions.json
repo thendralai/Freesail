@@ -34,8 +34,8 @@
         "minItems": 2
       }
     },
-    "length": {
-      "description": "Checks string length constraints.",
+    "checkLength": {
+      "description": "Returns true if the string or array length satisfies the given constraints. Takes two arguments: the value and an object with optional 'min' and/or 'max' integer properties. Example: checkLength(value, {min: 8}) returns true if value has at least 8 characters. Always returns a boolean. To get the length as a number, use getLength instead.",
       "returnType": "boolean",
       "parameters": {
         "type": "array",
@@ -74,8 +74,22 @@
         "minItems": 2
       }
     },
+    "getLength": {
+      "description": "Returns the number of characters in a value. If the value is a string, returns its length. If the value is a number or date, converts it to a string first and returns the length of that string. If the value is an array, returns the number of elements. Returns 0 for null or undefined. Use this when you need the length as a number (e.g. for comparisons with gte). Use checkLength instead if you just need to validate min/max constraints.",
+      "returnType": "number",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "$ref": "./common_types.json#/$defs/DynamicValue"
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
     "numeric": {
-      "description": "Checks numeric range constraints.",
+      "description": "Returns true if the numeric value satisfies the given constraints. Takes two arguments: the value and an object with optional 'min' and/or 'max' number properties. Example: numeric(value, {min: 0, max: 100}) returns true if value is between 0 and 100. Always returns a boolean.",
       "returnType": "boolean",
       "parameters": {
         "type": "array",

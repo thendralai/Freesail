@@ -45,12 +45,19 @@ export const regex: FunctionImplementation = (value: unknown, pattern: string) =
   }
 };
 
-export const length: FunctionImplementation = (value: unknown, constraints: { min?: number; max?: number }) => {
+export const checkLength: FunctionImplementation = (value: unknown, constraints: { min?: number; max?: number }) => {
   if (typeof value !== 'string' && !Array.isArray(value)) return false;
   const len = value.length;
   if (constraints.min !== undefined && len < constraints.min) return false;
   if (constraints.max !== undefined && len > constraints.max) return false;
   return true;
+};
+
+export const getLength: FunctionImplementation = (value: unknown) => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'string') return value.length;
+  if (Array.isArray(value)) return value.length;
+  return String(value).length;
 };
 
 export const numeric: FunctionImplementation = (value: unknown, constraints: { min?: number; max?: number }) => {
@@ -216,7 +223,8 @@ export const openUrl: FunctionImplementation = (url: unknown) => {
 export const commonFunctions: Record<string, FunctionImplementation> = {
   required,
   regex,
-  length,
+  checkLength,
+  getLength,
   numeric,
   email,
   formatString,
