@@ -206,9 +206,30 @@ export function CheckBox({ component, onDataChange }: FreesailComponentProps) {
 export function Image({ component }: FreesailComponentProps) {
   const src = String((component['src'] as string) ?? (component['url'] as string) ?? '');
   const alt = String((component['alt'] as string) ?? '');
+  const [error, setError] = useState(false);
 
   if (!isSafeUrl(src)) {
     return <div style={{ color: 'var(--freesail-text-muted, #64748b)', fontSize: '14px' }}>Invalid image URL</div>;
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '12px 16px',
+        borderRadius: (component['borderRadius'] as string) ?? '8px',
+        border: '1px solid var(--freesail-border, #e2e8f0)',
+        backgroundColor: 'var(--freesail-bg-muted, #f8fafc)',
+        color: 'var(--freesail-text-muted, #64748b)',
+        fontSize: '14px',
+        maxWidth: '100%',
+      }}>
+        <span style={{ fontSize: '20px' }}>🖼️</span>
+        <span>Image could not be loaded</span>
+      </div>
+    );
   }
 
   const style: CSSProperties = {
@@ -217,7 +238,7 @@ export function Image({ component }: FreesailComponentProps) {
     borderRadius: (component['borderRadius'] as string) ?? '0',
   };
 
-  return <img src={src} alt={alt} style={style} />;
+  return <img src={src} alt={alt} style={style} onError={() => setError(true)} />;
 }
 
 /**
