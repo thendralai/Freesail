@@ -13,13 +13,13 @@
  * runtime function map.
  */
 
+export { commonComponents } from './CommonComponents.js';
 export {
-  commonComponents,
   getSemanticColor,
   getSemanticBackground,
   mapJustify,
   toInputFormat,
   validateChecks,
-} from './CommonComponents.js';
+} from './common-utils.js';
 
 export { commonFunctions } from './CommonFunctions.js';

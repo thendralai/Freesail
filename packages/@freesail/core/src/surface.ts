@@ -82,8 +82,8 @@ export class SurfaceManager {
   > = new Map();
   /** Timers for auto-deleting surfaces that never receive updateComponents */
   private orphanTimers: Map<SurfaceId, ReturnType<typeof setTimeout>> = new Map();
-  /** How long (ms) to wait for updateComponents before deleting a new surface (default: 30s) */
-  orphanTimeout = 30_000;
+  /** How long (ms) to wait for updateComponents before deleting a new surface (default: 60s) */
+  orphanTimeout = 60_000;
 
   /**
    * Create a new surface.

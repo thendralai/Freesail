@@ -13,88 +13,13 @@ import React, { useState, useEffect, type CSSProperties } from 'react';
 import type { FreesailComponentProps } from '@freesail/react';
 import type { FunctionCall } from '@freesail/core';
 import { commonFunctions } from './CommonFunctions.js';
-
-// =============================================================================
-// Theme Utilities
-// =============================================================================
-
-export function getSemanticColor(color: string | undefined): string | undefined {
-  if (!color) return undefined;
-
-  const semanticMap: Record<string, string> = {
-    textMain: 'var(--freesail-text-main, #0f172a)',
-    textMuted: 'var(--freesail-text-muted, #64748b)',
-    primary: 'var(--freesail-primary, #2563eb)',
-    primaryHover: 'var(--freesail-primary-hover, #1d4ed8)',
-    primaryText: 'var(--freesail-primary-text, #ffffff)',
-    error: 'var(--freesail-error, #ef4444)',
-    success: 'var(--freesail-success, #22c55e)',
-    warning: 'var(--freesail-warning, #f59e0b)',
-    info: 'var(--freesail-info, #3b82f6)',
-  };
-
-  return semanticMap[color] || color;
-}
-
-export function getSemanticBackground(bg: string | undefined): string | undefined {
-  if (!bg) return undefined;
-
-  const semanticMap: Record<string, string> = {
-    bgRoot: 'var(--freesail-bg-root, #f8fafc)',
-    bgSurface: 'var(--freesail-bg-surface, #ffffff)',
-    bgMuted: 'var(--freesail-bg-muted, #f1f5f9)',
-    primary: 'var(--freesail-primary, #2563eb)',
-    error: 'var(--freesail-error, #ef4444)',
-    success: 'var(--freesail-success, #22c55e)',
-    warning: 'var(--freesail-warning, #f59e0b)',
-    info: 'var(--freesail-info, #3b82f6)',
-  };
-
-  return semanticMap[bg] || bg;
-}
-
-export function mapJustify(justify: string | undefined): CSSProperties['justifyContent'] {
-  switch (justify) {
-    case 'start': return 'flex-start';
-    case 'end': return 'flex-end';
-    case 'center': return 'center';
-    case 'spaceBetween': return 'space-between';
-    case 'spaceAround': return 'space-around';
-    default: return 'flex-start';
-  }
-}
-
-/**
- * Converts any ISO 8601 string (including UTC "Z" timestamps returned by now())
- * into the exact format required by a given HTML input type.
- */
-export function toInputFormat(value: string, inputType: string): string {
-  if (!value) return value;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const y  = date.getFullYear();
-  const mo = pad(date.getMonth() + 1);
-  const d  = pad(date.getDate());
-  const h  = pad(date.getHours());
-  const mi = pad(date.getMinutes());
-
-  if (inputType === 'date')           return `${y}-${mo}-${d}`;
-  if (inputType === 'time')           return `${h}:${mi}`;
-  if (inputType === 'datetime-local') return `${y}-${mo}-${d}T${h}:${mi}`;
-  return value;
-}
-
-export function validateChecks(checks: any[]): string | null {
-  if (!Array.isArray(checks)) return null;
-  for (const check of checks) {
-    if (check.condition === false) {
-      return (check.message as string) || 'Validation failed';
-    }
-  }
-  return null;
-}
+import {
+  getSemanticColor,
+  getSemanticBackground,
+  mapJustify,
+  toInputFormat,
+  validateChecks,
+} from './common-utils.js';
 
 // =============================================================================
 // Layout Components
@@ -136,6 +61,7 @@ export function Card({ component, children }: FreesailComponentProps) {
     boxShadow: 'var(--freesail-shadow-sm)',
     background: getSemanticBackground(component['background'] as string) ?? 'var(--freesail-bg-surface, #ffffff)',
     color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)',
+    alignSelf: 'stretch',
   };
 
   return <div style={style}>{children}</div>;

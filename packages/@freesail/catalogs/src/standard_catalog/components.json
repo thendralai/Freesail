@@ -718,6 +718,10 @@
               "description": "Direction of the trend arrow.",
               "enum": ["up", "down", "neutral"]
             },
+            "trendColor": {
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "description": "Color of the trend arrow."
+            },
             "trendValue": {
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "The trend change text shown next to the arrow (e.g. '+12%', '-3.2%')."

@@ -255,7 +255,7 @@ function renderComponent(
     // with display:contents if needed.
     const weight = componentDef['weight'] as number | undefined;
     if (weight != null) {
-      return <div key={keyOverride ?? componentId} data-freesail-weight style={{ flex: weight, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{rendered}</div>;
+      return <div key={keyOverride ?? componentId} data-freesail-weight style={{ flex: `${weight} 1 auto`, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', alignSelf: 'stretch' }}>{rendered}</div>;
     }
     return rendered;
   } catch (err) {
@@ -393,7 +393,7 @@ function isDataBindingObject(value: unknown): value is { path: string } {
 /**
  * Evaluate a function call.
  */
-export function evaluateFunction(
+function evaluateFunction(
   call: FunctionCall,
   dataModel: Record<string, unknown>,
   catalogId: string,

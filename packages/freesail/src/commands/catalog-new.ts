@@ -90,14 +90,14 @@ function generateComponentsTsx(prefix: string): string {
 import React, { useState, useEffect, type CSSProperties } from 'react';
 import type { FreesailComponentProps } from '@freesail/react';
 import type { FunctionCall } from '@freesail/core';
+import { commonComponents } from './common/CommonComponents.js';
 import {
-  commonComponents,
   getSemanticColor,
   getSemanticBackground,
   mapJustify,
   toInputFormat,
   validateChecks,
-} from './common/CommonComponents.js';
+} from './common/common-utils.js';
 import { commonFunctions } from './common/CommonFunctions.js';
 
 // Add custom components here, for example:

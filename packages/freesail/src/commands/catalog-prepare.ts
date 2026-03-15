@@ -222,9 +222,10 @@ function readJsonSafe(filePath: string): Record<string, unknown> | null {
   if (!fs.existsSync(filePath)) return null;
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  } catch {
-    console.error(`   ⚠  Could not parse: ${filePath}`);
-    return null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`   ❌ Failed to parse: ${filePath}\n      ${message}`);
+    throw new Error(`Invalid JSON in ${path.basename(filePath)}`);
   }
 }
 
@@ -377,7 +378,13 @@ export function run(): void {
 
   let allPassed = true;
   for (const config of catalogs) {
-    if (!prepareCatalog(config)) allPassed = false;
+    try {
+      if (!prepareCatalog(config)) allPassed = false;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`   💥 ${config.name}: ${message}`);
+      allPassed = false;
+    }
   }
 
   if (!allPassed) {

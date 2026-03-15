@@ -9,7 +9,8 @@
 import React, { useState, useEffect, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
-import { commonComponents, getSemanticColor, validateChecks } from '../common/CommonComponents.js';
+import { commonComponents } from '../common/CommonComponents.js';
+import { getSemanticColor, validateChecks } from '../common/common-utils.js';
 
 // =============================================================================
 // Shared Chart Helpers
@@ -1015,16 +1016,16 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 
   const defaultTrendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : 'var(--freesail-text-muted, #64748b)';
   const trendColor = (component['trendColor'] as string) ?? defaultTrendColor;
-  const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
-
+  
   const cardStyle: CSSProperties = {
-    flex: '1 1 0',
+    flex: '1 1 auto',
     minWidth: '140px',
     padding: '16px 20px',
     borderRadius: '12px',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     backgroundColor: 'var(--freesail-bg-card, #ffffff)',
     borderLeft: `4px solid ${accentColor}`,
+    alignSelf: 'stretch',
   };
 
   return (
@@ -1051,7 +1052,11 @@ export function StatCard({ component, children }: FreesailComponentProps) {
         color: trendColor,
         visibility: (trend || trendValue) ? 'visible' : 'hidden',
       }}>
-        <span style={{ fontSize: '16px', lineHeight: 1 }}>{trendArrow}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill={trendColor} style={{ flexShrink: 0 }}>
+          {trend === 'up' && <path d="M5 17.59L12 4l7 13.59H5z" />}
+          {trend === 'down' && <path d="M5 6.41L12 20l7-13.59H5z" />}
+          {trend !== 'up' && trend !== 'down' && <path d="M4 11h13.17l-4.59-4.59L14 5l7 7-7 7-1.41-1.41L17.17 13H4v-2z" />}
+        </svg>
         {trendValue && <span>{trendValue}</span>}
         {/* Reserve space when no trend data */}
         {!trendValue && <span>&nbsp;</span>}
