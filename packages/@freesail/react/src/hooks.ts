@@ -22,25 +22,25 @@ export function useSurface(surfaceId: SurfaceId): Surface | undefined {
     setSurface(getSurface(surfaceId));
 
     // Subscribe to surface changes
-    const unsubCreate = surfaceManager.on('surfaceCreated', (created) => {
+    const unsubCreate = surfaceManager.on('surfaceCreated', (created: Surface) => {
       if (created.id === surfaceId) {
         setSurface(created);
       }
     });
 
-    const unsubDelete = surfaceManager.on('surfaceDeleted', (deletedId) => {
+    const unsubDelete = surfaceManager.on('surfaceDeleted', (deletedId: SurfaceId) => {
       if (deletedId === surfaceId) {
         setSurface(undefined);
       }
     });
 
-    const unsubComponents = surfaceManager.on('componentsUpdated', (updatedId) => {
+    const unsubComponents = surfaceManager.on('componentsUpdated', (updatedId: SurfaceId) => {
       if (updatedId === surfaceId) {
         setSurface({ ...getSurface(surfaceId)! });
       }
     });
 
-    const unsubData = surfaceManager.on('dataModelUpdated', (updatedId) => {
+    const unsubData = surfaceManager.on('dataModelUpdated', (updatedId: SurfaceId) => {
       if (updatedId === surfaceId) {
         setSurface({ ...getSurface(surfaceId)! });
       }
@@ -77,7 +77,7 @@ export function useSurfaceData<T = unknown>(
       setData(getDataAtPath(surface.dataModel, path) as T);
     }
 
-    const unsub = surfaceManager.on('dataModelUpdated', (updatedId, updatedPath) => {
+    const unsub = surfaceManager.on('dataModelUpdated', (updatedId: SurfaceId, updatedPath: JsonPointer) => {
       if (updatedId === surfaceId) {
         // Check if the update affects our path
         if (!path || updatedPath.startsWith(path) || path.startsWith(updatedPath)) {
@@ -192,7 +192,7 @@ export function useSessionId(): string | null {
     
     setSessionId(transport.sessionId);
     
-    const unsub = transport.on('sessionStart', (sid) => {
+    const unsub = transport.on('sessionStart', (sid: string) => {
       setSessionId(sid);
     });
     

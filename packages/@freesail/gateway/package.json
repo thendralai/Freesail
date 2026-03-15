@@ -1,6 +1,6 @@
 {
   "name": "@freesail/gateway",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "description": "Freesail Gateway - bridges AI Agents with frontend clients",
   "type": "module",
   "main": "./dist/index.js",
@@ -33,8 +33,8 @@
     "generative-ui"
   ],
   "dependencies": {
-    "@freesail/core": "^0.4.3",
-    "@freesail/logger": "^0.4.3",
+    "@freesail/core": "^0.4.5",
+    "@freesail/logger": "^0.4.5",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",

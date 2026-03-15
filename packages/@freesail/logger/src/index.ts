@@ -7,7 +7,7 @@ export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug';
 export interface LogRecord {
   category: string[];
   level: LogLevel;
-  message: string[];
+  message: any[];
   timestamp: number;
   properties: Record<string, any>;
 }
@@ -171,7 +171,7 @@ export function getTextFormatter(options: { colors?: boolean } = { colors: true 
   return (record: LogRecord) => {
     const timestamp = new Date(record.timestamp).toISOString();
     let msg = record.message.map(m => 
-      typeof m === 'string' ? m : JSON.stringify(m)
+      typeof m === 'string' ? m : (m instanceof Error ? m.stack || String(m) : JSON.stringify(m))
     ).join(' ');
     
     if (Object.keys(record.properties).length > 0) {

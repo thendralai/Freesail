@@ -91,6 +91,7 @@ export function FreesailThemeProvider({ theme = 'light', children }: ThemeProvid
   // Inject CSS variables into the body or a wrapper
   const styleString = `
     :root {
+      color-scheme: ${currentTheme.mode};
       --freesail-bg-root: ${currentTheme.tokens.bgRoot};
       --freesail-bg-surface: ${currentTheme.tokens.bgSurface};
       --freesail-bg-card: ${currentTheme.tokens.bgCard};

@@ -1,6 +1,6 @@
 {
   "name": "freesail-dev",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "private": true,
   "description": "A2UI based Agent-driven UI SDK",
   "workspaces": [
@@ -8,8 +8,7 @@
     "packages/freesail",
     "packages/@freesail-community/*",
     "example/agent",
-    "example/react-app",
-    "Example-Multi-agent/react-app"
+    "example/react-app"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",

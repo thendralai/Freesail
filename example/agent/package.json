@@ -1,6 +1,6 @@
 {
   "name": "freesail-agent-example",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "private": true,
   "description": "Example LangChain agent for Freesail — supports Gemini and OpenAI",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@freesail/logger",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "description": "Standard logging library for Freesail packages",
   "type": "module",
   "main": "./dist/index.js",
