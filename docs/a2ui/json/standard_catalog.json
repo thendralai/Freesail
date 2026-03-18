@@ -448,36 +448,47 @@
       ],
       "unevaluatedProperties": false
     },
-    "Tabs": {
+    "TabGroup": {
       "type": "object",
       "allOf": [
         { "$ref": "common_types.json#/$defs/ComponentCommon" },
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
+          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components.",
           "properties": {
-            "component": { "const": "Tabs" },
-            "tabs": {
+            "component": { "const": "TabGroup" },
+            "children": {
               "type": "array",
-              "description": "An array of objects, where each object defines a tab with a title and a child component.",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "description": "The tab title.",
-                    "$ref": "common_types.json#/$defs/DynamicString"
-                  },
-                  "child": {
-                    "$ref": "common_types.json#/$defs/ComponentId",
-                    "description": "The ID of the child component. Do NOT define the component inline."
-                  }
-                },
-                "required": ["title", "child"],
-                "additionalProperties": false
-              }
+              "items": { "$ref": "common_types.json#/$defs/ComponentId" },
+              "description": "Array of Tab component IDs. Do NOT define components inline."
             }
           },
-          "required": ["component", "tabs"]
+          "required": ["component", "children"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Tab": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "common_types.json#/$defs/ComponentCommon" },
+        { "$ref": "#/$defs/CatalogComponentCommon" },
+        {
+          "type": "object",
+          "description": "A single tab within a TabGroup. Has a title and a child component.",
+          "properties": {
+            "component": { "const": "Tab" },
+            "title": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "The tab title displayed in the tab bar."
+            },
+            "child": {
+              "$ref": "common_types.json#/$defs/ComponentId",
+              "description": "The ID of the child component. Do NOT define the component inline."
+            }
+          },
+          "required": ["component", "title", "child"]
         }
       ],
       "unevaluatedProperties": false
@@ -489,18 +500,20 @@
         { "$ref": "#/$defs/CatalogComponentCommon" },
         {
           "type": "object",
+          "description": "A modal dialog that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render — it will not display if orphaned. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the showComponent/hideComponent functions or the visible property (default false). Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false).",
           "properties": {
             "component": { "const": "Modal" },
-            "trigger": {
-              "$ref": "common_types.json#/$defs/ComponentId",
-              "description": "The ID of the component that opens the modal when interacted with (e.g., a button). Do NOT define the component inline."
-            },
-            "content": {
+            "child": {
               "$ref": "common_types.json#/$defs/ComponentId",
               "description": "The ID of the component to be displayed inside the modal. Do NOT define the component inline."
+            },
+            "visible": {
+              "type": "boolean",
+              "description": "Whether the modal is currently visible. Use showComponent()/hideComponent() to control visibility.",
+              "default": false
             }
           },
-          "required": ["component", "trigger", "content"]
+          "required": ["component", "child"]
         }
       ],
       "unevaluatedProperties": false

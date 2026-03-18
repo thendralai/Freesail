@@ -171,7 +171,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "Tabs": {
+    "TabGroup": {
       "type": "object",
       "allOf": [
         {
@@ -182,37 +182,56 @@
         },
         {
           "type": "object",
-          "description": "A tabbed container that shows one child at a time. Key properties: tabs (required, array of objects with title and child).",
+          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components.",
           "properties": {
             "component": {
-              "const": "Tabs"
+              "const": "TabGroup"
             },
-            "tabs": {
+            "children": {
               "type": "array",
-              "description": "An array of objects, where each object defines a tab with a title and a child component.",
               "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "description": "The tab title.",
-                    "$ref": "../common/common_types.json#/$defs/DynamicString"
-                  },
-                  "child": {
-                    "$ref": "../common/common_types.json#/$defs/ComponentId",
-                    "description": "The ID of the child component. Do NOT define the component inline."
-                  }
-                },
-                "required": [
-                  "title",
-                  "child"
-                ],
-                "additionalProperties": false
-              }
+                "$ref": "../common/common_types.json#/$defs/ComponentId"
+              },
+              "description": "Array of Tab component IDs. Do NOT define components inline."
             }
           },
           "required": [
             "component",
-            "tabs"
+            "children"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Tab": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        },
+        {
+          "type": "object",
+          "description": "A single tab within a TabGroup. Has a title and a child component.",
+          "properties": {
+            "component": {
+              "const": "Tab"
+            },
+            "title": {
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "description": "The tab title displayed in the tab bar."
+            },
+            "child": {
+              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "description": "The ID of the child component. Do NOT define the component inline."
+            }
+          },
+          "required": [
+            "component",
+            "title",
+            "child"
           ]
         }
       ],

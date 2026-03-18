@@ -478,6 +478,38 @@
         "minItems": 2,
         "maxItems": 2
       }
+    },
+    "showComponent": {
+      "description": "Shows a component by its ID. Use this to make Modals or any other component visible.",
+      "returnType": "void",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "name": "componentId",
+            "type": "string",
+            "description": "The ID of the component to show."
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
+    "hideComponent": {
+      "description": "Hides a component by its ID. Use this to hide Modals or any other component.",
+      "returnType": "void",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "name": "componentId",
+            "type": "string",
+            "description": "The ID of the component to hide."
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
     }
   }
 }

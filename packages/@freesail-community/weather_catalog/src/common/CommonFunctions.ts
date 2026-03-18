@@ -220,6 +220,32 @@ export const openUrl: FunctionImplementation = (url: unknown) => {
   }
 };
 
+/**
+ * Shows a component by writing visible=true to the client-side data model.
+ * Returns a side-effect descriptor; the renderer interprets it and calls onDataChange.
+ */
+export const showComponent: FunctionImplementation = (componentId: unknown) => {
+  if (typeof componentId !== 'string') return undefined;
+  return {
+    __sideEffect: 'dataModelUpdate',
+    path: `/__componentState/${componentId}/visible`,
+    value: true,
+  };
+};
+
+/**
+ * Hides a component by writing visible=false to the client-side data model.
+ * Returns a side-effect descriptor; the renderer interprets it and calls onDataChange.
+ */
+export const hideComponent: FunctionImplementation = (componentId: unknown) => {
+  if (typeof componentId !== 'string') return undefined;
+  return {
+    __sideEffect: 'dataModelUpdate',
+    path: `/__componentState/${componentId}/visible`,
+    value: false,
+  };
+};
+
 export const commonFunctions: Record<string, FunctionImplementation> = {
   required,
   regex,
@@ -244,4 +270,6 @@ export const commonFunctions: Record<string, FunctionImplementation> = {
   gte,
   lt,
   lte,
+  showComponent,
+  hideComponent,
 };

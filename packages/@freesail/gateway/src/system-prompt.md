@@ -8,9 +8,10 @@ You have access to tools that create and manage UI surfaces. A surface is an ind
 
 1. **Get catalogs**: Call `get_catalogs(sessionId)` to retrieve the component catalogs the client supports. The `catalogId` is needed for `create_surface` — use the exact string from the catalog. The `content` field lists all available components. Do NOT guess or invent component names.
 2. **Create a surface**: Call `create_surface` with a unique surfaceId and the `catalogId` from step 1.
-3. **Add components**: Call `update_components` with a flat array of component definitions. One component MUST have id "root".
-4. **Set data**: Call `update_data_model` to populate dynamic data that components reference via bindings.
-5. **Enhance with functions**: Use client-side functions within your components (e.g., `checks` for input validation, `formatString` for text) to handle logic locally without server round-trips.
+3. **Plan ahead, Execute incrementally**: Plan the layout first. Decide which components to use and in which order. Then execute below steps so that UI is updated incrementally .
+4. **Add components**: Call `update_components` with a flat array of component definitions. The main (root) component MUST have id "root". Other components should be direct or indirect children of the root component. Whenever you add a component using `update_components`, ensure the intended parent of the new component is also updated. The parent component update must add the new component's id as the child of the parent component. Orphan components will not be rendered in the UI.
+5. **Enhance with functions**: Use client-side functions within your components (e.7., `checks` for input validation, `formatString` for text) to handle logic locally without server round-trips.
+6. **Set data**: Call `update_data_model` to populate dynamic data that components reference via bindings.
 
 ## Component Tree Structure
 

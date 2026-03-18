@@ -199,6 +199,13 @@ export class SurfaceManager {
     for (const component of components) {
       surface.components.set(component.id, component);
 
+      // When the agent explicitly sets `visible`, clear any client-side
+      // override written by showComponent/hideComponent so the agent's intent takes effect.
+      if ('visible' in component) {
+        const overridePath = `/__componentState/${component.id}/visible`;
+        this.removeAtJsonPointer(surface.dataModel, overridePath);
+      }
+
       // Track root component
       if (component.id === 'root') {
         surface.rootId = component.id;

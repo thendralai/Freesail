@@ -233,7 +233,16 @@ export function FreesailProvider({
       if (surfaceManager.shouldSendDataModel(surfaceId)) {
         const model = surfaceManager.getDataModel(surfaceId);
         if (model && Object.keys(model).length > 0) {
-          dataModel = { surfaceId, dataModel: model };
+          // Filter out __-prefixed paths (client-only internal state)
+          const filtered: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(model)) {
+            if (!key.startsWith('__')) {
+              filtered[key] = value;
+            }
+          }
+          if (Object.keys(filtered).length > 0) {
+            dataModel = { surfaceId, dataModel: filtered };
+          }
         }
       }
 

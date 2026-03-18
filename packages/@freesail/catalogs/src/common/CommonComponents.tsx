@@ -179,8 +179,9 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
     | FunctionCall
     | undefined;
 
+  const isFunctionCallAction = action && 'call' in action && !('event' in action);
   const eventAction = action && 'event' in action ? action : undefined;
-  const actionName = eventAction?.event?.name ?? (component['action'] as string) ?? 'button_click';
+  const actionName = eventAction?.event?.name ?? (!isFunctionCallAction ? (component['action'] as string) : undefined) ?? 'button_click';
   const actionContext = eventAction?.event?.context ?? {};
 
   const baseStyle: CSSProperties = {
@@ -261,37 +262,16 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   const handleClick = () => {
     if (isDisabled) return;
 
+    // Execute local function call if present
     if (action && 'functionCall' in action && action.functionCall && onFunctionCall) {
         onFunctionCall(action.functionCall);
-        return;
-    }
-
-    if (action && 'call' in action && onFunctionCall) {
+    } else if (action && 'call' in action && onFunctionCall) {
         onFunctionCall(action);
-        return;
     }
 
-    if (onAction) {
+    // Dispatch server action — skip if action is purely a client-side function call
+    if (onAction && !isFunctionCallAction) {
         onAction(actionName, actionContext);
-
-        if (onFunctionCall) {
-            const funcs = commonFunctions as Record<string, any>;
-            let targetFunction = funcs[actionName] ? actionName : null;
-
-            if (!targetFunction && actionName.includes('_')) {
-                 const camelName = actionName.replace(/_([a-z])/g, (_match: string, p1: string) => p1.toUpperCase());
-                 if (funcs[camelName]) {
-                     targetFunction = camelName;
-                 }
-            }
-
-            if (targetFunction) {
-                onFunctionCall({
-                    call: targetFunction,
-                    args: actionContext as Record<string, any>
-                });
-            }
-        }
     }
   };
 
@@ -588,29 +568,35 @@ export function Spacer({ component }: FreesailComponentProps) {
   return <div style={{ height, width }} />;
 }
 
-export function Modal({ component, children }: FreesailComponentProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const triggerVariant = (component['triggerVariant'] as string) ?? 'click';
+export function Modal({ component, children, onAction, onFunctionCall }: FreesailComponentProps) {
   const modalRef = React.useRef<HTMLDivElement>(null);
 
-  const [trigger, content] = React.Children.toArray(children);
+  const handleClose = () => {
+    // Hide the modal via hideComponent (writes to data model, triggers re-render)
+    if (onFunctionCall) {
+      onFunctionCall({ call: 'hideComponent', args: { componentId: component.id } });
+    }
+    // Notify the agent that the modal was closed
+    if (onAction) {
+      onAction('modal_closed', { componentId: component.id });
+    }
+  };
 
   // Close on Escape key
   useEffect(() => {
-    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') handleClose();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, []);
 
-  // Focus the modal content when opened
+  // Focus the modal content when mounted
   useEffect(() => {
-    if (isOpen && modalRef.current) {
+    if (modalRef.current) {
       modalRef.current.focus();
     }
-  }, [isOpen]);
+  }, []);
 
   const modalOverlayStyle: CSSProperties = {
     position: 'fixed',
@@ -647,26 +633,16 @@ export function Modal({ component, children }: FreesailComponentProps) {
     fontSize: '20px',
   };
 
+  // Modal is always rendered when visible (visibility is controlled by renderComponent)
   return (
-    <>
-      <div
-        onClick={() => setIsOpen(true)}
-        style={{ cursor: triggerVariant === 'click' ? 'pointer' : 'default' }}
-      >
-        {trigger}
+    <div style={modalOverlayStyle} onClick={handleClose} role="dialog" aria-modal="true">
+      <div ref={modalRef} style={modalContentStyle} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
+        <button style={closeButtonStyle} onClick={handleClose} aria-label="Close">
+          &times;
+        </button>
+        {children}
       </div>
-
-      {isOpen && (
-        <div style={modalOverlayStyle} onClick={() => setIsOpen(false)} role="dialog" aria-modal="true">
-          <div ref={modalRef} style={modalContentStyle} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
-            <button style={closeButtonStyle} onClick={() => setIsOpen(false)} aria-label="Close">
-              &times;
-            </button>
-            {content}
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }
 

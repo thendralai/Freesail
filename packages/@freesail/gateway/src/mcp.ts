@@ -349,6 +349,14 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
         };
       }
 
+      // Reject writes to __-prefixed paths (reserved for client-side internal state)
+      if (path && path.replace(/^\/+/, '').startsWith('__')) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Data model paths starting with '__' are reserved for client-side use. Agents cannot write to '${path}'.` }) }],
+          isError: true,
+        };
+      }
+
       // Reject if the surface hasn't been created for this session yet
       const surfaceError = sessionManager.validateSurfaceForSession(sessionId, surfaceId);
       if (surfaceError) {

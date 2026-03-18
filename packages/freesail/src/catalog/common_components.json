@@ -290,7 +290,7 @@
         },
         {
           "type": "object",
-          "description": "A modal dialog that overlays the screen. Key properties: trigger (required, ID of the button/element that opens the modal), content (required, ID of the component shown inside the modal).",
+          "description": "A modal dialog that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render — it will not display if orphaned. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the showComponent/hideComponent functions or the visible property (default false). Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false).",
           "properties": {
             "component": {
               "const": "Modal"

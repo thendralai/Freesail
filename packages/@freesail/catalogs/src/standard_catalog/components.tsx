@@ -345,12 +345,27 @@ export function List({ component, children }: FreesailComponentProps) {
 }
 
 /**
- * Tabs - tabbed container.
+ * Tab - a single tab within a TabGroup. Has a title and a child.
  */
-export function Tabs({ component, children }: FreesailComponentProps) {
-  const tabsProp = component['tabs'];
-  const tabs: Array<{ title: string; child: string }> = Array.isArray(tabsProp) ? tabsProp : [];
+export function Tab({ component, children }: FreesailComponentProps) {
+  // Tab just renders its child content — TabGroup handles visibility
+  return <>{children}</>;
+}
+
+/**
+ * TabGroup - tabbed container that shows one Tab child at a time.
+ */
+export function TabGroup({ component, children }: FreesailComponentProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const childArray = React.Children.toArray(children);
+
+  // Extract tab titles from child Tab component props
+  const tabTitles: string[] = childArray.map((child) => {
+    if (React.isValidElement(child) && child.props?.component?.title) {
+      return String(child.props.component.title);
+    }
+    return 'Tab';
+  });
 
   const tabBarStyle: CSSProperties = {
     display: 'flex',
@@ -369,7 +384,7 @@ export function Tabs({ component, children }: FreesailComponentProps) {
   return (
     <div>
       <div style={tabBarStyle} role="tablist">
-        {tabs.map((tab, index) => (
+        {tabTitles.map((title, index) => (
           <div
             key={index}
             role="tab"
@@ -382,18 +397,18 @@ export function Tabs({ component, children }: FreesailComponentProps) {
                 e.preventDefault();
                 setActiveTab(index);
               } else if (e.key === 'ArrowRight') {
-                setActiveTab((index + 1) % tabs.length);
+                setActiveTab((index + 1) % tabTitles.length);
               } else if (e.key === 'ArrowLeft') {
-                setActiveTab((index - 1 + tabs.length) % tabs.length);
+                setActiveTab((index - 1 + tabTitles.length) % tabTitles.length);
               }
             }}
           >
-            {tab.title}
+            {title}
           </div>
         ))}
       </div>
       <div style={{ flex: 1, minHeight: 0 }} role="tabpanel">
-        {React.Children.toArray(children)[activeTab]}
+        {childArray[activeTab]}
       </div>
     </div>
   );
@@ -1078,7 +1093,8 @@ export const standardCatalogComponents: Record<string, React.ComponentType<Frees
   Image,
   Divider,
   List,
-  Tabs,
+  Tab,
+  TabGroup,
   Video,
   AudioPlayer,
   Slider,

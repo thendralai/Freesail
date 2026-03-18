@@ -198,42 +198,15 @@ function renderComponent(
       }
     }
   }
-  // 3. Handle named slots for specific components (Tabs, Modal)
-  else if (componentDef.component === 'Tabs' && Array.isArray((componentDef as any).tabs)) {
-    // Render each tab's child component
-    children = (componentDef as any).tabs.map((tab: any, index: number) =>
-      renderComponent(
-        tab.child as ComponentId,
-        components,
-        catalogId,
-        dataModel,
-        dispatch,
-        onDataChange,
-        scopeData,
-        `${componentId}_tab_${index}`,
-        scopeBasePath
-      )
-    );
-  } else if (componentDef.component === 'Modal') {
-    // Render trigger and content slots
-    const triggerId = (componentDef as any).trigger as ComponentId | undefined;
-    const contentId = (componentDef as any).content as ComponentId | undefined;
-
-    const trigger = triggerId
-      ? renderComponent(triggerId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_trigger`, scopeBasePath)
-      : null;
-    const content = contentId
-      ? renderComponent(contentId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, `${componentId}_content`, scopeBasePath)
-      : null;
-
-    children = [trigger, content];
-  }
 
   // Resolve data bindings in component properties
   const resolvedProps = resolveDataBindings(componentDef, dataModel, catalogId, scopeData, scopeBasePath);
 
   // Visibility check: if `visible` resolves to exactly false, skip rendering.
-  if (resolvedProps['visible'] === false) {
+  // Data-model override (from showComponent/hideComponent) takes precedence over component prop.
+  const visibilityOverride = getDataAtPath(dataModel, `/__componentState/${componentId}/visible`);
+  const effectiveVisible = visibilityOverride !== undefined ? visibilityOverride : resolvedProps['visible'];
+  if (effectiveVisible === false) {
     return null;
   }
 
@@ -250,7 +223,14 @@ function renderComponent(
     },
     onDataChange,
     onFunctionCall: (call) => {
-       evaluateFunction(call, dataModel, catalogId, scopeData);
+       const result = evaluateFunction(call, dataModel, catalogId, scopeData);
+       // Handle side-effect returns (e.g. showComponent/hideComponent writes to data model)
+       if (result && typeof result === 'object' && '__sideEffect' in (result as Record<string, unknown>)) {
+         const sideEffect = result as { __sideEffect: string; path: string; value: unknown };
+         if (sideEffect.__sideEffect === 'dataModelUpdate') {
+           onDataChange(sideEffect.path, sideEffect.value);
+         }
+       }
     },
   };
 
@@ -301,7 +281,13 @@ function resolveDataBindings(
     }
 
     if (isFunctionCall(effectiveValue)) {
-      resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
+      // Don't eagerly evaluate function calls inside `action` — they are
+      // deferred and executed by the component on user interaction (e.g. Button click).
+      if (key === 'action') {
+        resolved[key] = effectiveValue;
+      } else {
+        resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
+      }
     } else if (isDataBindingObject(effectiveValue)) {
       // Preserve the raw binding so components can find the path for two-way binding.
       // If inside a scoped template, convert relative paths to absolute paths

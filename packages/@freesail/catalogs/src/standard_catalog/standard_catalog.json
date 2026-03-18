@@ -176,7 +176,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "Tabs": {
+    "TabGroup": {
       "type": "object",
       "allOf": [
         {
@@ -187,37 +187,56 @@
         },
         {
           "type": "object",
-          "description": "A tabbed container that shows one child at a time. Key properties: tabs (required, array of objects with title and child).",
+          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components.",
           "properties": {
             "component": {
-              "const": "Tabs"
+              "const": "TabGroup"
             },
-            "tabs": {
+            "children": {
               "type": "array",
-              "description": "An array of objects, where each object defines a tab with a title and a child component.",
               "items": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "description": "The tab title.",
-                    "$ref": "../common/common_types.json#/$defs/DynamicString"
-                  },
-                  "child": {
-                    "$ref": "../common/common_types.json#/$defs/ComponentId",
-                    "description": "The ID of the child component. Do NOT define the component inline."
-                  }
-                },
-                "required": [
-                  "title",
-                  "child"
-                ],
-                "additionalProperties": false
-              }
+                "$ref": "../common/common_types.json#/$defs/ComponentId"
+              },
+              "description": "Array of Tab component IDs. Do NOT define components inline."
             }
           },
           "required": [
             "component",
-            "tabs"
+            "children"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Tab": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        },
+        {
+          "type": "object",
+          "description": "A single tab within a TabGroup. Has a title and a child component.",
+          "properties": {
+            "component": {
+              "const": "Tab"
+            },
+            "title": {
+              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "description": "The tab title displayed in the tab bar."
+            },
+            "child": {
+              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "description": "The ID of the child component. Do NOT define the component inline."
+            }
+          },
+          "required": [
+            "component",
+            "title",
+            "child"
           ]
         }
       ],
@@ -1111,24 +1130,24 @@
         },
         {
           "type": "object",
-          "description": "A modal dialog that overlays the screen. Key properties: trigger (required, ID of the button/element that opens the modal), content (required, ID of the component shown inside the modal).",
+          "description": "A modal dialog that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render — it will not display if orphaned. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the showComponent/hideComponent functions or the visible property (default false). Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false).",
           "properties": {
             "component": {
               "const": "Modal"
             },
-            "trigger": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
-              "description": "The ID of the component that opens the modal when interacted with (e.g., a button). Do NOT define the component inline."
-            },
-            "content": {
+            "child": {
               "$ref": "../common/common_types.json#/$defs/ComponentId",
               "description": "The ID of the component to be displayed inside the modal. Do NOT define the component inline."
+            },
+            "visible": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the modal is currently visible. Use showComponent()/hideComponent() to control visibility."
             }
           },
           "required": [
             "component",
-            "trigger",
-            "content"
+            "child"
           ]
         }
       ],
@@ -1938,6 +1957,38 @@
         ],
         "minItems": 2,
         "maxItems": 2
+      }
+    },
+    "showComponent": {
+      "description": "Shows a component by its ID. Use this to make Modals or any other component visible.",
+      "returnType": "void",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "name": "componentId",
+            "type": "string",
+            "description": "The ID of the component to show."
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      }
+    },
+    "hideComponent": {
+      "description": "Hides a component by its ID. Use this to hide Modals or any other component.",
+      "returnType": "void",
+      "parameters": {
+        "type": "array",
+        "items": [
+          {
+            "name": "componentId",
+            "type": "string",
+            "description": "The ID of the component to hide."
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
       }
     }
   },
