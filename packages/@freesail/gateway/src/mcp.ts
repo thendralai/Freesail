@@ -97,7 +97,13 @@ export interface MCPServerOptions {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const systemPromptText = readFileSync(join(__dirname, 'system-prompt.md'), 'utf-8');
+let systemPromptText: string;
+try {
+  systemPromptText = readFileSync(join(__dirname, 'system-prompt.md'), 'utf-8');
+} catch (err) {
+  logger.error('[MCP] Failed to load system-prompt.md:', err);
+  systemPromptText = '';
+}
 
 /**
  * Creates the MCP server with Freesail tools.
@@ -302,11 +308,14 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
         }
 
         if (errors.length > 0) {
+          logger.warn(`[MCP] update_components validation failed for surface '${surfaceId}':`, errors);
           return {
             content: [{ type: 'text', text: `Validation Failed:\n${errors.join('\n')}` }],
             isError: true,
           };
         }
+      } else {
+        logger.warn(`[MCP] update_components: no catalog found for surface '${surfaceId}', skipping component validation`);
       }
 
       const message: DownstreamMessage = {

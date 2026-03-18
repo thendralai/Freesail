@@ -92,8 +92,18 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ connected: true, sessionId })}\n\n`);
 
-    // Handle client disconnect
+    // Keep-alive ping every 30 seconds
+    const pingInterval = setInterval(() => {
+      try {
+        res.write(': ping\n\n');
+      } catch {
+        clearInterval(pingInterval);
+      }
+    }, 30000);
+
+    // Handle client disconnect — single handler clears ping and removes session
     req.on('close', () => {
+      clearInterval(pingInterval);
       logger.info(`[Express] Client disconnected: ${sessionId}`);
 
       const agentId = sessionManager.getAgentForSession(sessionId);
@@ -114,19 +124,6 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       }
 
       sessionManager.removeSession(sessionId);
-    });
-
-    // Keep-alive ping every 30 seconds
-    const pingInterval = setInterval(() => {
-      try {
-        res.write(': ping\n\n');
-      } catch {
-        clearInterval(pingInterval);
-      }
-    }, 30000);
-
-    req.on('close', () => {
-      clearInterval(pingInterval);
     });
   });
 
@@ -166,7 +163,13 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       if ('action' in message && message.action.name === '__get_data_model_response') {
         const surfaceId = message.action.surfaceId;
         const dataModel = (message.action.context?.['current_data_model'] ?? {}) as Record<string, unknown>;
-        const resolvedSid = sessionId ?? sessionManager.getSessionBySurface(surfaceId)?.id;
+        const surfaceSession = sessionManager.getSessionBySurface(surfaceId);
+        let resolvedSid = sessionId;
+        if (!resolvedSid) {
+          resolvedSid = surfaceSession?.id;
+        } else if (surfaceSession && surfaceSession.id !== resolvedSid) {
+          logger.warn(`[Express] __get_data_model_response session mismatch: header=${resolvedSid}, surface maps to ${surfaceSession.id}`);
+        }
         if (resolvedSid) {
           sessionManager.resolveDataModelRequest(resolvedSid, surfaceId, dataModel);
         }
@@ -189,14 +192,20 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
       // Forward to webhook (agent) if configured
       if (webhookUrl) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: resolvedSessionId,
-            message,
-          }),
+          body: JSON.stringify({ sessionId: resolvedSessionId, message }),
+          signal: controller.signal,
+        }).then((response) => {
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            logger.error(`[Express] Webhook forward failed with status ${response.status}`);
+          }
         }).catch((err) => {
+          clearTimeout(timeoutId);
           logger.error('[Express] Webhook forward failed:', err);
         });
       }
@@ -220,6 +229,11 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
     if (!sessionId || !surfaceId) {
       res.status(400).json({ error: 'Missing sessionId or surfaceId' });
+      return;
+    }
+
+    if (!/^(__[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_]*)$/.test(surfaceId)) {
+      res.status(400).json({ error: 'Invalid surfaceId format: must be alphanumeric with optional underscores, or start with __' });
       return;
     }
 

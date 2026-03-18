@@ -401,6 +401,8 @@ export class SessionManager {
     return result;
   }
 
+  private static readonly MAX_OFFLINE_ACTIONS_PER_SESSION = 100;
+
   /**
    * Enqueue an action for an agent whose session has disconnected.
    */
@@ -410,12 +412,16 @@ export class SessionManager {
       queues = [];
       this.offlineAgentActions.set(agentId, queues);
     }
-    
+
     // Check if we already have an entry for this session
     let sessionQueue = queues.find(q => q.sessionId === sessionId);
     if (!sessionQueue) {
       sessionQueue = { sessionId, actions: [] };
       queues.push(sessionQueue);
+    }
+    if (sessionQueue.actions.length >= SessionManager.MAX_OFFLINE_ACTIONS_PER_SESSION) {
+      logger.warn(`[SessionManager] Offline queue full for agent ${agentId} session ${sessionId}, dropping oldest action`);
+      sessionQueue.actions.shift();
     }
     sessionQueue.actions.push(message);
   }
@@ -754,7 +760,6 @@ export class SessionManager {
     }
 
     this.sessions.clear();
-    this.sessions.clear();
     this.surfaceToSession.clear();
     this.surfaceToCatalog.clear();
     this.actionQueue.clear();
@@ -765,6 +770,9 @@ export class SessionManager {
       clearTimeout(pending.timer);
     }
     this.pendingDataModelRequests.clear();
+    this.catalogListeners.length = 0;
+    this.actionListeners.length = 0;
+    this.sessionEventListeners.clear();
   }
 
   // ==========================================================================
