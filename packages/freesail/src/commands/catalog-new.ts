@@ -26,7 +26,7 @@ const BOAT_TYPES = ['dinghy', 'cruiser', 'racer', 'catamaran', 'trimaran', 'sloo
 function generateCatalogDomain(): string {
   const boat = BOAT_TYPES[Math.floor(Math.random() * BOAT_TYPES.length)]!;
   const hex = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
-  return `${boat}-${hex}`;
+  return `${boat}${hex}`;
 }
 
 /**

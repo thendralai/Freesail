@@ -54,6 +54,7 @@ add their names to `src/catalog.exclude.json`:
 | --- | --- |
 | `npx freesail prepare catalog` | Merge schemas and generate `{{prefix}}_catalog.json` |
 | `npx freesail validate catalog` | Validate implementations match the catalog schema |
+| `npx freesail update catalog` | Update common components, functions, and schemas to latest |
 | `npm run build` | Compile TypeScript (runs prepare + validate automatically) |
 | `npm run dev` | Watch mode for development |
 | `npm run clean` | Remove build artifacts |

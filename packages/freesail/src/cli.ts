@@ -8,6 +8,7 @@
  *   freesail prepare catalog   — generate catalog.json from decomposed schema files
  *   freesail run gateway       — start the Freesail gateway server
  *   freesail new catalog       — scaffold a new catalog package
+ *   freesail update catalog    — update common files in an existing catalog
  */
 
 const [, , verb, noun] = process.argv;
@@ -44,6 +45,14 @@ if (verb === 'validate') {
     console.error('Usage: freesail new catalog');
     process.exit(1);
   }
+} else if (verb === 'update') {
+  if (noun === 'catalog') {
+    import('./commands/catalog-update.js').then((m) => m.run());
+  } else {
+    console.error(`Unknown target for update: ${noun ?? '(none)'}`);
+    console.error('Usage: freesail update catalog');
+    process.exit(1);
+  }
 } else {
   console.error(`Unknown command: ${verb ?? '(none)'}`);
   console.error('Usage:');
@@ -51,5 +60,6 @@ if (verb === 'validate') {
   console.error('  freesail prepare catalog');
   console.error('  freesail run gateway');
   console.error('  freesail new catalog');
+  console.error('  freesail update catalog');
   process.exit(1);
 }
