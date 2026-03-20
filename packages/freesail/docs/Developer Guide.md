@@ -302,7 +302,7 @@ When a user interacts with a component, the SDK sends an **Action** back through
     "sourceComponentId": "submit-btn",
     "context": { "formData": "..." }
   },
-  "_clientDataModel": {
+  "dataModel": {
     "surfaceId": "workspace",
     "dataModel": { "items": [], "total": 99.99 }
   }

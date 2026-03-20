@@ -53,7 +53,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-A2UI-Capabilities, X-A2UI-DataModel, X-A2UI-Session');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-A2UI-Capabilities, X-A2UI-Session');
     if (req.method === 'OPTIONS') {
       res.status(204).end();
       return;
@@ -144,17 +144,8 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         return;
       }
 
-      // Attach client data model from header (sendDataModel feature).
-      // This allows the full data model to travel with the action through
-      // the queue so the agent receives it via get_pending_actions.
-      const dataModelHeader = req.headers['x-a2ui-datamodel'] as string | undefined;
-      if (dataModelHeader && 'action' in message) {
-        try {
-          (message as unknown as Record<string, unknown>)['_clientDataModel'] = JSON.parse(decodeURIComponent(dataModelHeader));
-        } catch {
-          // Silently ignore malformed header
-        }
-      }
+      // dataModel is sent in the body (not header) to avoid log exposure.
+      // It is already present on the parsed body object; no extra attachment needed.
 
       logger.info(`[Express] Received upstream message: ${JSON.stringify(message)}`);
 

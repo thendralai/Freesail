@@ -90,7 +90,9 @@ export class SurfaceManager {
   /** Last known orphan component IDs per surface — used to detect newly orphaned components */
   private lastOrphanSets: Map<SurfaceId, Set<ComponentId>> = new Map();
   /** How long (ms) to wait for updateComponents before deleting a new surface (default: 60s) */
-  orphanTimeout = 60_000;
+  private readonly orphanSurfaceTimeout = 60_000;
+  /** How often (ms) to check for orphan components (default: 30s) */
+  private readonly orphanComponentCheckInterval = 30_000;
 
   /**
    * Create a new surface.
@@ -128,17 +130,17 @@ export class SurfaceManager {
     // Start orphan timer — if updateComponents isn't called within the
     // timeout, emit a surfaceOrphan event so the client can remind the
     // agent to clean up. Client-managed surfaces (__) are exempt.
-    if (!surfaceId.startsWith('__') && this.orphanTimeout > 0) {
+    if (!surfaceId.startsWith('__') && this.orphanSurfaceTimeout > 0) {
       const existingOrphanTimer = this.orphanTimers.get(surfaceId);
       if (existingOrphanTimer) clearTimeout(existingOrphanTimer);
       const timer = setTimeout(() => {
         this.orphanTimers.delete(surfaceId);
         const s = this.surfaces.get(surfaceId);
         if (s && s.components.size === 0) {
-          console.warn(`[Freesail] Surface '${String(surfaceId)}' has no components after ${this.orphanTimeout}ms — notifying agent`);
+          console.warn(`[Freesail] Surface '${String(surfaceId)}' has no components after ${this.orphanSurfaceTimeout}ms — notifying agent`);
           this.emit('surfaceOrphan', surfaceId);
         }
-      }, this.orphanTimeout);
+      }, this.orphanSurfaceTimeout);
       this.orphanTimers.set(surfaceId, timer);
     }
 
@@ -254,7 +256,7 @@ export class SurfaceManager {
         if (newOrphans.length > 0) {
           this.emit('orphanComponents', surfaceId, newOrphans);
         }
-      }, 15_000);
+      }, this.orphanComponentCheckInterval);
       this.orphanComponentTimers.set(surfaceId, timer);
     }
 

@@ -309,7 +309,7 @@ export class FreesailAgentRuntime {
           sourceComponentId: string;
           context: Record<string, unknown>;
         };
-        _clientDataModel?: {
+        dataModel?: {
           surfaceId: string;
           dataModel: Record<string, unknown>;
         };
@@ -337,7 +337,7 @@ export class FreesailAgentRuntime {
           surfaceId: rawAction.surfaceId,
           sourceComponentId: rawAction.sourceComponentId,
           context: rawAction.context,
-          clientDataModel: actionMsg._clientDataModel?.dataModel,
+          clientDataModel: actionMsg.dataModel?.dataModel,
         };
 
         // Fire-and-forget, but tracked so disconnect can drain in-flight calls

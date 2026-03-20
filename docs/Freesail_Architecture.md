@@ -61,22 +61,28 @@ These messages allow the User to drive the Agent. Conforms to client\_to\_server
 
 #### **Data Model Submission (v0.9 sendDataModel)**
 
-When a surface is created with `sendDataModel: true`, the client includes the full data model state with action messages:
+When a surface is created with `sendDataModel: true`, the client includes the full data model state with action messages.
+
+> **Security deviation from A2UI spec:** The A2UI v0.9 spec originally placed the data model in the `X-A2UI-DataModel` HTTP request header. Freesail deviates from this by embedding it in the request **body** instead. HTTP headers are routinely captured by server logs, load balancers, CDNs, and proxies — exposing user-entered values (PII, form data) to infrastructure that may have weaker access controls. The body is not logged by default and is protected by TLS in the same way as headers. The `X-A2UI-DataModel` header has been removed from the CORS `Access-Control-Allow-Headers` list accordingly.
+
+The data model is sent as `dataModel` alongside the action in the POST body:
 
 ```json
 {
   "version": "v0.9",
-  "type": "action",
   "action": {
     "name": "submit_form",
     "surfaceId": "checkout",
     "sourceComponentId": "submit-btn",
-    "timestamp": 1704067200000,
+    "timestamp": "2024-01-01T00:00:00.000Z",
     "context": {}
   },
   "dataModel": {
-    "items": [...],
-    "total": 99.99
+    "surfaceId": "checkout",
+    "dataModel": {
+      "items": [],
+      "total": 99.99
+    }
   }
 }
 ```

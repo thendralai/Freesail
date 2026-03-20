@@ -498,16 +498,16 @@ export class A2UITransport {
         headers['X-A2UI-Capabilities'] = JSON.stringify(this.options.capabilities);
       }
 
-      // Add data model if provided (sendDataModel feature)
+      // Include data model in the body (not header) to avoid logging exposure
+      const bodyPayload: Record<string, unknown> = { ...message };
       if (dataModel) {
-        // Encode to ensure header is ISO-8859-1 compliant (handles emojis/utf-8)
-        headers['X-A2UI-DataModel'] = encodeURIComponent(JSON.stringify(dataModel));
+        bodyPayload['dataModel'] = dataModel;
       }
 
       const response = await fetch(this.options.postUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(message),
+        body: JSON.stringify(bodyPayload),
         signal: controller.signal,
       });
 
