@@ -18,6 +18,8 @@ npm install @freesail/agentruntime
 | **`FreesailAgentRuntime`** | The runtime itself. You create one per process, give it the factory, and call `.start()`.                     |
 | **`SharedCache`**          | A process-level cache for MCP-fetched data (system prompt, tools). Concurrent-safe via promise deduplication. |
 
+The runtime uses **MCP resource subscriptions** for all session and action delivery — no polling. It subscribes to `mcp://freesail.dev/sessions` on startup to detect session connects/disconnects, then subscribes to `mcp://freesail.dev/sessions/{sessionId}` for each active session to receive per-action push notifications.
+
 ---
 
 ## Quick start
@@ -60,7 +62,7 @@ import { FreesailAgentRuntime } from "@freesail/agentruntime";
 
 const mcpClient = new Client(
   { name: "my-agent", version: "1.0.0" },
-  { capabilities: {} },
+  { capabilities: { resources: { subscribe: true } } }, // required for push notifications
 );
 await mcpClient.connect(
   new StreamableHTTPClientTransport(new URL("http://localhost:3000/mcp")),
@@ -68,11 +70,13 @@ await mcpClient.connect(
 
 const runtime = new FreesailAgentRuntime({
   mcpClient,
-  agentId: "my-agent", // optional — auto-generated UUID if omitted
   agentFactory: (sessionId) => new MyAgent(sessionId),
 });
 
-runtime.start();
+await runtime.start();
+
+// On shutdown:
+// await runtime.stop();
 ```
 
 ---
@@ -116,33 +120,38 @@ interface ActionEvent {
 ```typescript
 interface AgentRuntimeConfig {
   mcpClient: Client;
-  agentId?: string; // optional — a random UUID is generated if omitted
   agentFactory: AgentFactory; // (sessionId: string) => FreesailAgent
 }
 ```
-
-> **`agentId`** identifies the runtime instance when calling `claim_session` and `release_session` on the gateway. If omitted, a random UUID is generated at startup. Set it explicitly in multi-agent deployments so sessions are identifiable in `list_sessions` output.
 
 ---
 
 ## Session lifecycle guarantees
 
 ```
-__session_connected  → claim_session(agentId, sessionId)
-                     → onSessionConnected()
-                         ↓
-onAction() calls ... (fire-and-forget, tracked per session)
-                         ↓
-__session_disconnected → drain all in-flight onAction promises
-                       → onSessionDisconnected()
-                       → release_session(agentId, sessionId)
-                       → agent instance GC'd
+sessions resource updated (session appears)
+  → claim_session(agentId, sessionId)
+  → subscribe to mcp://freesail.dev/sessions/{sessionId}
+  → onSessionConnected()
+        ↓
+per-session resource updated (action arrives)
+  → readResource drains action queue
+  → onAction() (fire-and-forget, tracked per session)
+        ↓
+sessions resource updated (session disappears)
+  → drain all in-flight onAction promises
+  → onSessionDisconnected()
+  → release_session(agentId, sessionId)
+  → unsubscribe from mcp://freesail.dev/sessions/{sessionId}
+  → agent instance GC'd
 ```
 
+- **Push model**: session connects/disconnects and per-session actions are all delivered via MCP `ResourceUpdated` notifications — no polling.
 - **Session ownership**: the runtime calls `claim_session` when a session connects and `release_session` when it disconnects. This lets the gateway track which agent owns each session.
 - **Ordering**: lifecycle events for the same session are serialised via a per-session promise chain. Events across different sessions run concurrently.
 - **Drain on disconnect**: `onSessionDisconnected` is never called while an `onAction` LLM call is still running for that session. The runtime waits using `Promise.allSettled`.
-- **Missed connect**: if a `__session_connected` event is missed (e.g. the agent process restarted), the runtime will create a new agent instance on the first action it sees for that session. `onSessionConnected` will not be called in this case.
+- **Clean shutdown**: call `await runtime.stop()` before closing the MCP client to unsubscribe from all active resource subscriptions.
+- **Missed connect**: if the agent process restarts while sessions are active, `start()` reads the sessions list and picks up existing sessions. `onSessionConnected` is called for each recovered session.
 
 ---
 
@@ -275,7 +284,7 @@ import {
 
 const mcpClient = new Client(
   { name: "my-agent", version: "1.0.0" },
-  { capabilities: {} },
+  { capabilities: { resources: { subscribe: true } } },
 );
 await mcpClient.connect(
   new StreamableHTTPClientTransport(new URL("http://localhost:3000/mcp")),
@@ -318,9 +327,10 @@ class MySessionAgent implements FreesailAgent {
 
 const runtime = new FreesailAgentRuntime({
   mcpClient,
-  agentId: "my-agent",
   agentFactory: (sessionId) => new MySessionAgent(sessionId),
 });
 
-runtime.start();
+await runtime.start();
+
+// On shutdown: await runtime.stop();
 ```

@@ -6,7 +6,7 @@
 #
 # The gateway, agent, and UI all run as independent processes:
 #   - Gateway: MCP Streamable HTTP (port 3000, localhost only) + A2UI HTTP/SSE (port 3001, all interfaces)
-#   - Agent:   Connects to gateway MCP, exposes health endpoint (port 3002)
+#   - Agent:   Connects to gateway MCP
 #   - UI:      Vite dev server (port 5173, all interfaces)
 
 set -e
@@ -106,7 +106,6 @@ echo ""
 # Port configuration
 GATEWAY_HTTP_PORT="${GATEWAY_PORT:-3001}"
 GATEWAY_MCP_PORT="${MCP_PORT:-3000}"
-AGENT_PORT_NUM="${AGENT_PORT:-3002}"
 
 # Build gateway args — log settings come from .env (LOG_LEVEL, LOG_FILE, LOG_FILTER)
 GATEWAY_ARGS=(--http-port "$GATEWAY_HTTP_PORT" --mcp-port "$GATEWAY_MCP_PORT")
@@ -152,7 +151,6 @@ echo -e "${GREEN}All services running:${NC}"
 echo -e "  Gateway  (localhost):  http://localhost:${GATEWAY_HTTP_PORT}"
 echo -e "  Gateway  (network):    http://${LAN_IP}:${GATEWAY_HTTP_PORT}"
 echo -e "  MCP                    http://127.0.0.1:${GATEWAY_MCP_PORT}  (agent only, localhost)"
-echo -e "  Agent health:          http://localhost:${AGENT_PORT_NUM}"
 echo -e "  UI       (localhost):  http://localhost:${UI_PORT:-5173}"
 echo -e "  UI       (network):    http://${LAN_IP}:${UI_PORT:-5173}"
 echo ""

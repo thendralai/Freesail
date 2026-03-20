@@ -7,6 +7,7 @@
 
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -21,7 +22,6 @@ import {
   type A2UIComponent,
   type DownstreamMessage,
 } from '@freesail/core';
-import type { Catalog } from './converter.js';
 import { generateCatalogPrompt, validateComponent } from './converter.js';
 import type { SessionManager } from './session.js';
 
@@ -97,6 +97,10 @@ export interface MCPServerOptions {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')) as { version: string };
+const GATEWAY_VERSION = pkg.version;
+
 let systemPromptText: string;
 try {
   systemPromptText = readFileSync(join(__dirname, 'system-prompt.md'), 'utf-8');
@@ -117,17 +121,19 @@ function getAgentId(extra: { sessionId?: string }): string {
 
 /**
  * Creates the MCP server with Freesail tools.
+ * Returns the McpServer instance and a `clearSubscriptions` function that must be
+ * called when an agent transport closes so stale event listeners are removed.
  */
-export function createMCPServer(options: MCPServerOptions): McpServer {
+export function createMCPServer(options: MCPServerOptions): { server: McpServer; clearSubscriptions: () => void } {
   const {
     name = 'freesail-gateway',
-    version = '0.1.0',
+    version = GATEWAY_VERSION,
     sessionManager,
   } = options;
 
   const server = new McpServer(
     { name, version },
-    { capabilities: { tools: {}, resources: {}, prompts: {} } }
+    { capabilities: { tools: {}, resources: { subscribe: true }, prompts: {} } }
   );
 
   // ========================================================================
@@ -154,38 +160,136 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
     }
   );
 
-  // Listen for upstream actions and notify MCP clients.
-  // Sends resources/list_changed so resource-polling agents can wake up and check
-  // mcp://freesail.dev/actions/{sessionId}.
-  sessionManager.onAction((_sessionId, _message) => {
-    try {
-      server.sendResourceListChanged();
-    } catch {
-      // Server may not be connected yet
-    }
-  });
+  // ========================================================================
+  // Resources + Subscription Support
+  // ========================================================================
 
-  // Register action queue resource template — MCP clients can read pending actions
+  const SESSIONS_URI = 'mcp://freesail.dev/sessions';
+
+  // Active resource subscriptions: uri → cleanup function.
+  // clearSubscriptions() must be called when an agent transport closes so
+  // stale sessionManager listeners are removed before the next agent connects.
+  const subscriptionCleanups = new Map<string, () => void>();
+
+  function sendResourceUpdated(uri: string): void {
+    try {
+      server.server.sendResourceUpdated({ uri });
+    } catch {
+      // Agent may have disconnected
+    }
+  }
+
+  function clearSubscriptions(): void {
+    for (const cleanup of subscriptionCleanups.values()) {
+      cleanup();
+    }
+    subscriptionCleanups.clear();
+  }
+
+  // Static resource: current browser session list.
+  // Agents subscribe to learn when sessions connect or disconnect.
   server.registerResource(
-    'Pending UI Actions',
-    new ResourceTemplate('mcp://freesail.dev/actions/{sessionId}', { list: undefined }),
+    'Browser Sessions',
+    SESSIONS_URI,
     {
-      description: 'Pending upstream actions from the UI for a given session. Reading drains the queue.',
+      description:
+        'Active browser sessions connected to this gateway. ' +
+        'Reading returns the current session list. ' +
+        'Subscribe to receive a notification whenever a session connects or disconnects.',
+      mimeType: 'application/json',
+    },
+    async (uri) => {
+      const summaries = sessionManager.getSessionSummaries();
+      return {
+        contents: [{
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(summaries),
+        }],
+      };
+    }
+  );
+
+  // Resource template: per-session action queue.
+  // Agents subscribe to a specific session URI to receive per-action notifications.
+  // Reading the resource drains the queue.
+  server.registerResource(
+    'Browser Session Actions',
+    new ResourceTemplate('mcp://freesail.dev/sessions/{sessionId}', { list: undefined }),
+    {
+      description:
+        'Pending upstream actions for a specific browser session. ' +
+        'Reading drains the action queue. ' +
+        'Subscribe to receive a notification whenever a new action arrives or the session disconnects.',
       mimeType: 'application/json',
     },
     async (uri, { sessionId }) => {
       const actions = sessionManager.dequeueActions(sessionId as string);
       return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: 'application/json',
-            text: JSON.stringify(actions),
-          },
-        ],
+        contents: [{
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(actions),
+        }],
       };
     }
   );
+
+  // Handle resources/subscribe — wire up sessionManager listeners for the subscribed URI
+  server.server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    if (uri === SESSIONS_URI) {
+      if (!subscriptionCleanups.has(uri)) {
+        const unsubCreated = sessionManager.onSessionEvent('sessionCreated', () => {
+          sendResourceUpdated(SESSIONS_URI);
+        });
+        const unsubRemoved = sessionManager.onSessionEvent('sessionRemoved', () => {
+          sendResourceUpdated(SESSIONS_URI);
+        });
+        subscriptionCleanups.set(uri, () => { unsubCreated(); unsubRemoved(); });
+      }
+      return {};
+    }
+
+    const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(uri);
+    if (match) {
+      const sessionId = decodeURIComponent(match[1]!);
+      if (!subscriptionCleanups.has(uri)) {
+        const unsubAction = sessionManager.onAction((sid, _message) => {
+          if (sid === sessionId) {
+            sendResourceUpdated(uri);
+          }
+        });
+        const unsubRemoved = sessionManager.onSessionEvent('sessionRemoved', (removedId) => {
+          if (removedId === sessionId) {
+            // Send one final notification so the subscriber can observe the disconnect
+            sendResourceUpdated(uri);
+            const cleanup = subscriptionCleanups.get(uri);
+            if (cleanup) {
+              cleanup();
+              subscriptionCleanups.delete(uri);
+            }
+          }
+        });
+        subscriptionCleanups.set(uri, () => { unsubAction(); unsubRemoved(); });
+      }
+      return {};
+    }
+
+    return {};
+  });
+
+  // Handle resources/unsubscribe — remove sessionManager listeners for the URI
+  server.server.setRequestHandler(UnsubscribeRequestSchema, async (request) => {
+    const { uri } = request.params;
+    const cleanup = subscriptionCleanups.get(uri);
+    if (cleanup) {
+      cleanup();
+      subscriptionCleanups.delete(uri);
+    }
+    return {};
+  });
 
   // ========================================================================
   // Tools
@@ -491,13 +595,16 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
   );
 
 
-  // Tool to read pending actions for a session
+  // Tool to read pending actions for a session.
+  // Equivalent to reading mcp://freesail.dev/sessions/{sessionId} — use that URI
+  // with resources/subscribe to get push notifications instead of polling.
   server.registerTool(
     'get_pending_actions',
     {
       description:
         'Retrieve and drain all pending upstream actions (button clicks, form submissions, etc.) ' +
-        'from a specific client session. Returns an array of action messages.',
+        'from a specific client session. Returns an array of action messages. ' +
+        'For push-based delivery, subscribe to mcp://freesail.dev/sessions/{sessionId} instead.',
       inputSchema: {
         sessionId: z.string().describe('The session ID to get actions for'),
       },
@@ -678,17 +785,22 @@ export function createMCPServer(options: MCPServerOptions): McpServer {
     }
   );
 
-  return server;
+  return { server, clearSubscriptions };
+}
+
+function logMcpEvent(event: 'connected' | 'disconnected', proto: 'http' | 'stdio', sessionId: string, ip: string): void {
+  logger.info(`[MCP] session ${event}  proto=${proto}  session=${sessionId}  ip=${ip}`);
 }
 
 /**
  * Run the MCP server with stdio transport.
  */
 export async function runMCPServer(options: MCPServerOptions): Promise<void> {
-  const server = createMCPServer(options);
+  const { server } = createMCPServer(options);
   const transport = new StdioServerTransport();
+  transport.onclose = () => logMcpEvent('disconnected', 'stdio', 'local-agent', '127.0.0.1');
   await server.connect(transport);
-  logger.info('[MCP] Server running on stdio');
+  logMcpEvent('connected', 'stdio', 'local-agent', '127.0.0.1');
 }
 
 /**
@@ -723,13 +835,13 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
   const port = options.port ?? 3000;
   const host = options.host ?? '127.0.0.1';
 
-  const server = createMCPServer(options);
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: '5mb' }));
 
-  // Track transports by session ID for cleanup
-  const transports: Record<string, InstanceType<typeof StreamableHTTPServerTransport>> = {};
+  // Track per-session resources: transport, subscription cleanup, and client IP
+  type SessionEntry = { transport: InstanceType<typeof StreamableHTTPServerTransport>; clearSubscriptions: () => void; ip: string };
+  const sessions: Record<string, SessionEntry> = {};
 
   // Single /mcp endpoint handles GET (SSE), POST (messages), and DELETE (session termination)
   app.all('/mcp', async (req, res) => {
@@ -737,8 +849,11 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
     if (req.method === 'POST' && !sessionId) {
-      // New session — create transport and connect to MCP server
-      logger.info('[MCP-HTTP] New session request');
+      // New session — create a dedicated McpServer + transport per agent connection.
+      // The SDK does not allow connecting one McpServer to multiple transports simultaneously.
+      const ip = req.socket.remoteAddress ?? req.ip ?? 'unknown';
+
+      const { server, clearSubscriptions } = createMCPServer(options);
 
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
@@ -747,8 +862,8 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
       transport.onclose = () => {
         const sid = transport.sessionId;
         if (sid) {
-          logger.info(`[MCP-HTTP] Agent transport closed: ${sid}`);
-          delete transports[sid];
+          logMcpEvent('disconnected', 'http', sid, sessions[sid]?.ip ?? ip);
+          delete sessions[sid];
 
           // Close all browser sessions owned by this agent
           const claimedSessions = options.sessionManager.getSessionsForAgent(sid);
@@ -759,6 +874,12 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
 
           // Discard pending disconnect notifications — agent is gone and cannot collect them
           options.sessionManager.clearDisconnectNotifications(sid);
+
+          // Remove resource subscriptions scoped to this agent's server instance
+          clearSubscriptions();
+
+          // Explicitly close the McpServer to release SDK-internal state
+          server.close().catch(() => {});
         }
       };
 
@@ -770,15 +891,15 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
 
       const sid = transport.sessionId;
       if (sid) {
-        transports[sid] = transport;
-        logger.info(`[MCP-HTTP] Session established: ${sid}`);
+        sessions[sid] = { transport, clearSubscriptions, ip };
+        logMcpEvent('connected', 'http', sid, ip);
       }
       return;
     }
 
     // Existing session — route to the right transport
-    if (sessionId && transports[sessionId]) {
-      await transports[sessionId].handleRequest(req, res, req.body);
+    if (sessionId && sessions[sessionId]) {
+      await sessions[sessionId].transport.handleRequest(req, res, req.body);
       return;
     }
 

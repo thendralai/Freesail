@@ -11,8 +11,6 @@
  * via the factory pattern, achieving full per-session state isolation.
  */
 
-import express from 'express';
-import cors from 'cors';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
@@ -29,7 +27,6 @@ await configure({
 const logger = new NativeLogger('freesail-agent');
 
 // Configuration
-const PORT = parseInt(process.env['AGENT_PORT'] ?? '3002', 10);
 const MCP_PORT = parseInt(process.env['MCP_PORT'] ?? '3000', 10);
 const GATEWAY_PORT = parseInt(process.env['GATEWAY_PORT'] ?? '3001', 10);
 const AGENT_ID = 'freesail-example-agent';
@@ -152,25 +149,10 @@ const runtime = new FreesailAgentRuntime({
 
 runtime.start();
 
-// ============================================================================
-// Express Server (health endpoint)
-// ============================================================================
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.listen(PORT, () => {
-  logger.info(`Agent server running on http://localhost:${PORT}`);
-  logger.info(`Chat flows through A2UI __chat surface`);
-  logger.info(`Gateway MCP: http://localhost:${MCP_PORT}/mcp (SSE)`);
-  logger.info(`Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
-  logger.info(`Agent ID: ${AGENT_ID}`);
-});
+logger.info(`Chat flows through A2UI __chat surface`);
+logger.info(`Gateway MCP: http://localhost:${MCP_PORT}/mcp (SSE)`);
+logger.info(`Gateway HTTP: http://localhost:${GATEWAY_PORT}`);
+logger.info(`Agent ID: ${AGENT_ID}`);
 
 process.on('SIGINT', async () => {
   logger.info('Shutting down...');

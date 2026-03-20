@@ -403,8 +403,6 @@ export class SessionManager {
     return result;
   }
 
-  private static readonly MAX_OFFLINE_ACTIONS_PER_SESSION = 100;
-
   /**
    * Store a disconnect notification for a browser session that has gone offline.
    * Held under the claiming agent's ID until the agent drains them.
@@ -421,10 +419,6 @@ export class SessionManager {
     if (!sessionQueue) {
       sessionQueue = { sessionId, actions: [] };
       queues.push(sessionQueue);
-    }
-    if (sessionQueue.actions.length >= SessionManager.MAX_OFFLINE_ACTIONS_PER_SESSION) {
-      logger.warn(`[SessionManager] Disconnect notification queue full for agent ${agentId} session ${sessionId}, dropping oldest`);
-      sessionQueue.actions.shift();
     }
     sessionQueue.actions.push(message);
   }
@@ -521,6 +515,29 @@ export class SessionManager {
       const agentId = this.sessionToAgent.get(id);
       if (agentId) {
         this.releaseSession(agentId, id);
+      }
+
+      // Remove catalogs that were registered by this session and are no longer
+      // referenced by any remaining session.
+      const remainingCatalogIds = new Set<string>();
+      for (const [sid, s] of this.sessions) {
+        if (sid !== id) {
+          for (const cid of s.catalogIds) remainingCatalogIds.add(cid);
+        }
+      }
+      for (const catalogId of session.catalogIds) {
+        if (!remainingCatalogIds.has(catalogId)) {
+          this.catalogStore.delete(catalogId);
+        }
+      }
+
+      // Cancel any pending data model requests for this session
+      for (const key of this.pendingDataModelRequests.keys()) {
+        if (key.startsWith(`${id}:`)) {
+          const pending = this.pendingDataModelRequests.get(key)!;
+          clearTimeout(pending.timer);
+          this.pendingDataModelRequests.delete(key);
+        }
       }
 
       session.response.end();

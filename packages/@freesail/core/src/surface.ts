@@ -87,6 +87,8 @@ export class SurfaceManager {
   private orphanTimers: Map<SurfaceId, ReturnType<typeof setTimeout>> = new Map();
   /** Periodic timers for detecting orphan (unreachable) components */
   private orphanComponentTimers: Map<SurfaceId, ReturnType<typeof setInterval>> = new Map();
+  /** Last known orphan component IDs per surface — used to detect newly orphaned components */
+  private lastOrphanSets: Map<SurfaceId, Set<ComponentId>> = new Map();
   /** How long (ms) to wait for updateComponents before deleting a new surface (default: 60s) */
   orphanTimeout = 60_000;
 
@@ -166,6 +168,7 @@ export class SurfaceManager {
       clearInterval(orphanComponentTimer);
       this.orphanComponentTimers.delete(surfaceId);
     }
+    this.lastOrphanSets.delete(surfaceId);
 
     this.surfaces.delete(surfaceId);
     this.emit('surfaceDeleted', surfaceId);
@@ -241,9 +244,15 @@ export class SurfaceManager {
     // Start periodic orphan-component check if not already running
     if (!this.orphanComponentTimers.has(surfaceId)) {
       const timer = setInterval(() => {
-        const orphans = this.getOrphanComponents(surfaceId);
-        if (orphans.length > 0) {
-          this.emit('orphanComponents', surfaceId, orphans);
+        const currentOrphans = new Set(this.getOrphanComponents(surfaceId));
+        const lastOrphans = this.lastOrphanSets.get(surfaceId) ?? new Set<ComponentId>();
+
+        // Only emit for components that newly became orphans since the last check
+        const newOrphans = [...currentOrphans].filter(id => !lastOrphans.has(id)) as ComponentId[];
+        this.lastOrphanSets.set(surfaceId, currentOrphans);
+
+        if (newOrphans.length > 0) {
+          this.emit('orphanComponents', surfaceId, newOrphans);
         }
       }, 15_000);
       this.orphanComponentTimers.set(surfaceId, timer);
@@ -353,6 +362,7 @@ export class SurfaceManager {
     this.orphanTimers.clear();
     for (const timer of this.orphanComponentTimers.values()) clearInterval(timer);
     this.orphanComponentTimers.clear();
+    this.lastOrphanSets.clear();
   }
 
   /**
