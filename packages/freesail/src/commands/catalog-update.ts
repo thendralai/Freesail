@@ -187,6 +187,14 @@ function confirm(question: string): Promise<boolean> {
 // Update a single catalog
 // ---------------------------------------------------------------------------
 
+function resolveSchemasPath(srcPath: string): string | null {
+  const direct = path.join(srcPath, 'schemas');
+  if (fs.existsSync(direct)) return direct;
+  const sibling = path.join(path.dirname(srcPath), 'schemas');
+  if (fs.existsSync(sibling)) return sibling;
+  return null;
+}
+
 function resolveCommonPath(srcPath: string): string | null {
   // Primary: common/ inside srcPath
   const direct = path.join(srcPath, 'common');
@@ -214,7 +222,7 @@ function updateCommonFiles(commonPath: string, catalogDir: string): number {
 
 function updateCatalog(config: CatalogConfig, catalogDir: string, updatedCommonPaths: Set<string>): boolean {
   const commonPath = resolveCommonPath(config.srcPath);
-  const schemasPath = path.join(config.srcPath, 'schemas');
+  const schemasPath = resolveSchemasPath(config.srcPath);
 
   if (!commonPath) {
     console.error(`   ❌ Common directory not found (checked ${config.srcPath}/common and sibling)`);
@@ -231,7 +239,7 @@ function updateCatalog(config: CatalogConfig, catalogDir: string, updatedCommonP
   }
 
   // Copy schema files
-  if (fs.existsSync(schemasPath)) {
+  if (schemasPath) {
     for (const file of SCHEMA_FILES) {
       const source = path.join(catalogDir, file);
       if (!fs.existsSync(source)) {

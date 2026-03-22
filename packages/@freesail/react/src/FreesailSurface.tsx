@@ -206,8 +206,8 @@ function renderComponent(
   // Visibility check: if `visible` resolves to exactly false, skip rendering.
   // Data-model override (from show/hide) takes precedence over component prop.
   const visibilityOverride = getDataAtPath(dataModel, `/__componentState/${componentId}/visible`);
-  const effectiveVisible = visibilityOverride !== undefined ? visibilityOverride : resolvedProps['visible'];
-  if (effectiveVisible === false) {
+  const effectiveVisible = visibilityOverride != null ? visibilityOverride : resolvedProps['visible'];
+  if (effectiveVisible === false || effectiveVisible === 'false') {
     return null;
   }
 
