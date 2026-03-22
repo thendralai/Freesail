@@ -31,6 +31,13 @@ const CWD = process.env['npm_lifecycle_event']
   ? process.cwd()
   : (process.env['INIT_CWD'] || process.cwd());
 
+function parseDirArg(): string | undefined {
+  const args = process.argv.slice(4);
+  const idx = args.findIndex((a) => a === '--dir' || a === '-d');
+  if (idx !== -1 && args[idx + 1]) return args[idx + 1];
+  return undefined;
+}
+
 // Files copied into src/common/
 const COMMON_FILES = [
   'CommonComponents.tsx',
@@ -67,14 +74,24 @@ function getCatalogConfig(dir: string, nameOverride?: string): CatalogConfig | n
   return null;
 }
 
-function discoverCatalogs(): CatalogConfig[] {
-  const config = getCatalogConfig(CWD);
+function discoverCatalogs(baseDir: string): CatalogConfig[] {
+  const config = getCatalogConfig(baseDir);
   if (config) return [config];
 
-  const fromSrc = getCatalogConfig(CWD, path.basename(CWD));
+  const fromSrc = getCatalogConfig(baseDir, path.basename(baseDir));
   if (fromSrc) return [fromSrc];
 
-  const srcPath = path.join(CWD, 'src');
+  // Scan direct subdirectories of baseDir
+  const directCatalogs: CatalogConfig[] = [];
+  for (const entry of fs.readdirSync(baseDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const sub = getCatalogConfig(path.join(baseDir, entry.name));
+    if (sub) directCatalogs.push(sub);
+  }
+  if (directCatalogs.length > 0) return directCatalogs;
+
+  // Scan baseDir/src subdirectories
+  const srcPath = path.join(baseDir, 'src');
   if (fs.existsSync(srcPath)) {
     const catalogs: CatalogConfig[] = [];
     for (const entry of fs.readdirSync(srcPath, { withFileTypes: true })) {
@@ -170,16 +187,17 @@ function confirm(question: string): Promise<boolean> {
 // Update a single catalog
 // ---------------------------------------------------------------------------
 
-function updateCatalog(config: CatalogConfig, catalogDir: string): boolean {
-  const commonPath = path.join(config.srcPath, 'common');
-  const schemasPath = path.join(config.srcPath, 'schemas');
+function resolveCommonPath(srcPath: string): string | null {
+  // Primary: common/ inside srcPath
+  const direct = path.join(srcPath, 'common');
+  if (fs.existsSync(direct)) return direct;
+  // Fallback: shared common/ in parent directory (monorepo / shared-src layout)
+  const sibling = path.join(path.dirname(srcPath), 'common');
+  if (fs.existsSync(sibling)) return sibling;
+  return null;
+}
 
-  if (!fs.existsSync(commonPath)) {
-    console.error(`   ❌ Common directory not found: ${commonPath}`);
-    return false;
-  }
-
-  // Copy common files
+function updateCommonFiles(commonPath: string, catalogDir: string): number {
   let updatedCount = 0;
   for (const file of COMMON_FILES) {
     const source = path.join(catalogDir, file);
@@ -187,10 +205,29 @@ function updateCatalog(config: CatalogConfig, catalogDir: string): boolean {
       console.warn(`   ⚠  Bundled file not found (skipping): ${file}`);
       continue;
     }
-    const dest = path.join(commonPath, file);
-    fs.writeFileSync(dest, fs.readFileSync(source, 'utf-8'));
-    console.log(`   📄 src/common/${file}`);
+    fs.writeFileSync(path.join(commonPath, file), fs.readFileSync(source, 'utf-8'));
+    console.log(`   📄 common/${file}`);
     updatedCount++;
+  }
+  return updatedCount;
+}
+
+function updateCatalog(config: CatalogConfig, catalogDir: string, updatedCommonPaths: Set<string>): boolean {
+  const commonPath = resolveCommonPath(config.srcPath);
+  const schemasPath = path.join(config.srcPath, 'schemas');
+
+  if (!commonPath) {
+    console.error(`   ❌ Common directory not found (checked ${config.srcPath}/common and sibling)`);
+    return false;
+  }
+
+  // Copy common files (skip if this common path was already updated by a sibling catalog)
+  let updatedCount = 0;
+  if (!updatedCommonPaths.has(commonPath)) {
+    updatedCommonPaths.add(commonPath);
+    updatedCount += updateCommonFiles(commonPath, catalogDir);
+  } else {
+    console.log(`   ℹ  Common files already updated for: ${commonPath}`);
   }
 
   // Copy schema files
@@ -228,12 +265,17 @@ function updateCatalog(config: CatalogConfig, catalogDir: string): boolean {
 export async function run(): Promise<void> {
   console.log('--- Freesail Update Catalog ---\n');
 
-  const catalogs = discoverCatalogs();
+  const dirArg = parseDirArg();
+  const baseDir = dirArg ? path.resolve(process.cwd(), dirArg) : CWD;
+  if (dirArg) console.log(`Using directory: ${baseDir}\n`);
+
+  const catalogs = discoverCatalogs(baseDir);
 
   if (catalogs.length === 0) {
     console.error(
       '❌ No catalogs found. Run this command from a catalog package directory\n' +
-      '   (folder must be named {prefix}_catalog or contain src/{prefix}_catalog/).',
+      '   (folder must be named {prefix}_catalog or contain src/{prefix}_catalog/),\n' +
+      '   or specify a directory with --dir/-d <path>.',
     );
     process.exit(1);
   }
@@ -273,10 +315,11 @@ export async function run(): Promise<void> {
   console.log('');
 
   let allPassed = true;
+  const updatedCommonPaths = new Set<string>();
   for (const config of catalogs) {
     console.log(`🔄 Updating: ${config.name}`);
     try {
-      if (!updateCatalog(config, catalogDir)) allPassed = false;
+      if (!updateCatalog(config, catalogDir, updatedCommonPaths)) allPassed = false;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`   💥 ${config.name}: ${message}`);

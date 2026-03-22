@@ -1,854 +1,15 @@
 {
-  "$schema": "../schemas/catalog-schema.json",
-  "$id": "https://freesail.dev/catalogs/standard_catalog_v1.json",
-  "title": "Freesail Standard Catalog",
-  "description": "Unified catalog of standard A2UI components and functions.",
-  "catalogId": "https://freesail.dev/catalogs/standard_catalog_v1.json",
+  "$schema": "./schemas/catalog-schema.json",
+  "$id": "https://trimarane55d17.local/catalogs/test_catalog_v1.json",
+  "title": "Test Catalog",
+  "description": "A Freesail catalog for test",
+  "catalogId": "https://trimarane55d17.local/catalogs/test_catalog_v1.json",
   "components": {
-    "Image": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Displays an image. Key properties: url (required), fit (contain/cover/fill/none/scale-down), variant (icon/avatar/smallFeature/mediumFeature/largeFeature/header).",
-          "properties": {
-            "component": {
-              "const": "Image"
-            },
-            "url": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The URL of the image to display."
-            },
-            "fit": {
-              "type": "string",
-              "description": "Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.",
-              "enum": [
-                "contain",
-                "cover",
-                "fill",
-                "none",
-                "scale-down"
-              ]
-            },
-            "variant": {
-              "type": "string",
-              "description": "A hint for the image size and style.",
-              "enum": [
-                "icon",
-                "avatar",
-                "smallFeature",
-                "mediumFeature",
-                "largeFeature",
-                "header"
-              ]
-            }
-          },
-          "required": [
-            "component",
-            "url"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Video": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs).",
-          "properties": {
-            "component": {
-              "const": "Video"
-            },
-            "url": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The URL of the video to display."
-            },
-            "embed": {
-              "type": "boolean",
-              "description": "When true, the video is rendered inside an iframe. This MUST be set to true for third-party sources such as YouTube (youtube.com, youtu.be) and Vimeo (vimeo.com). When false or omitted, a native video player is used, which only works with direct video file URLs (e.g. .mp4, .webm).",
-              "default": false
-            }
-          },
-          "required": [
-            "component",
-            "url"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "AudioPlayer": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "An audio player that supports direct audio file URLs and embedded third-party players (e.g. Spotify, SoundCloud).",
-          "properties": {
-            "component": {
-              "const": "AudioPlayer"
-            },
-            "url": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The URL of the audio to be played."
-            },
-            "description": {
-              "description": "A description of the audio, such as a title or summary.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
-            },
-            "embed": {
-              "type": "boolean",
-              "description": "When true, the audio is rendered inside an iframe embed player. This MUST be set to true for third-party sources such as Spotify (open.spotify.com) and SoundCloud (soundcloud.com). When false or omitted, a native audio player is used, which only works with direct audio file URLs (e.g. .mp3, .wav).",
-              "default": false
-            }
-          },
-          "required": [
-            "component",
-            "url"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "List": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "A scrollable list that lays out children vertically or horizontally, with optional alignment control.",
-          "properties": {
-            "component": {
-              "const": "List"
-            },
-            "children": {
-              "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list.",
-              "$ref": "../common/common_types.json#/$defs/ChildList"
-            },
-            "direction": {
-              "type": "string",
-              "description": "The direction in which the list items are laid out.",
-              "enum": [
-                "vertical",
-                "horizontal"
-              ]
-            },
-            "align": {
-              "type": "string",
-              "description": "Defines the alignment of children along the cross axis.",
-              "enum": [
-                "start",
-                "center",
-                "end",
-                "stretch"
-              ]
-            }
-          },
-          "required": [
-            "component",
-            "children"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "TabGroup": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components.",
-          "properties": {
-            "component": {
-              "const": "TabGroup"
-            },
-            "children": {
-              "type": "array",
-              "items": {
-                "$ref": "../common/common_types.json#/$defs/ComponentId"
-              },
-              "description": "Array of Tab component IDs. Do NOT define components inline."
-            }
-          },
-          "required": [
-            "component",
-            "children"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Tab": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "A single tab within a TabGroup. Has a title and a child component.",
-          "properties": {
-            "component": {
-              "const": "Tab"
-            },
-            "title": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The tab title displayed in the tab bar."
-            },
-            "child": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
-              "description": "The ID of the child component. Do NOT define the component inline."
-            }
-          },
-          "required": [
-            "component",
-            "title",
-            "child"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Divider": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal).",
-          "properties": {
-            "component": {
-              "const": "Divider"
-            },
-            "axis": {
-              "type": "string",
-              "description": "The orientation of the divider.",
-              "enum": [
-                "horizontal",
-                "vertical"
-              ],
-              "default": "horizontal"
-            }
-          },
-          "required": [
-            "component"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Dropdown": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
-        },
-        {
-          "type": "object",
-          "description": "A dropdown (select) component for choosing a single option from a list.",
-          "properties": {
-            "component": {
-              "const": "Dropdown"
-            },
-            "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The label for the dropdown."
-            },
-            "hideLabel": {
-              "type": "boolean",
-              "description": "When true, hides the label above the dropdown. Use this when the Dropdown is inside a GridLayout — the column headers already act as labels.",
-              "default": false
-            },
-            "placeholder": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Placeholder text shown when no option is selected."
-            },
-            "options": {
-              "description": "The list of available options to choose from. Can be a literal array or a data binding to a list in the data model.",
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "description": "The text to display for this option.",
-                        "$ref": "../common/common_types.json#/$defs/DynamicString"
-                      },
-                      "value": {
-                        "type": "string",
-                        "description": "The stable value associated with this option."
-                      }
-                    },
-                    "required": [
-                      "label",
-                      "value"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
-                }
-              ]
-            },
-            "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The currently selected value. This should be bound to a string in the data model."
-            }
-          },
-          "required": [
-            "component",
-            "options",
-            "value"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "CheckBox": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
-        },
-        {
-          "type": "object",
-          "description": "A checkbox toggle for boolean values. Key properties: label (required), value (required, data binding for the checked state).",
-          "properties": {
-            "component": {
-              "const": "CheckBox"
-            },
-            "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The text to display next to the checkbox."
-            },
-            "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
-              "description": "The current state of the checkbox (true for checked, false for unchecked)."
-            }
-          },
-          "required": [
-            "component",
-            "label",
-            "value"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Slider": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
-        },
-        {
-          "type": "object",
-          "description": "A slider for selecting a numeric value within a range. Key properties: value (required), min (required), max (required), label.",
-          "properties": {
-            "component": {
-              "const": "Slider"
-            },
-            "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The label for the slider."
-            },
-            "min": {
-              "type": "number",
-              "description": "The minimum value of the slider."
-            },
-            "max": {
-              "type": "number",
-              "description": "The maximum value of the slider."
-            },
-            "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "The current value of the slider."
-            }
-          },
-          "required": [
-            "component",
-            "value",
-            "min",
-            "max"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Markdown": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders rich Markdown content. Use this for multi-paragraph text, formatted content, or when HTML-like structure is needed. Key properties: text (required, the markdown string to render).",
-          "properties": {
-            "component": {
-              "const": "Markdown"
-            },
-            "text": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The markdown content to display."
-            }
-          },
-          "required": [
-            "component",
-            "text"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "GridLayout": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path), rowPadding (controls the padding of each cell; default '10px 16px'; use to add vertical spacing between rows, e.g. '14px 16px'). IMPORTANT: Row padding is controlled by rowPadding on the GridLayout, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a GridLayout, always set hideLabel: true on each one — the column headers already serve as labels, and showing them again inside each cell makes rows unnecessarily tall.",
-          "properties": {
-            "component": {
-              "const": "GridLayout"
-            },
-            "headers": {
-              "type": "array",
-              "items": {
-                "$ref": "../common/common_types.json#/$defs/DynamicString"
-              },
-              "description": "The column header labels displayed in the header row."
-            },
-            "children": {
-              "description": "Defines the row content. Use a template object { componentId, path } to generate rows from a data list. The componentId should reference a Row component containing Text components for each column.",
-              "$ref": "../common/common_types.json#/$defs/ChildList"
-            },
-            "rowPadding": {
-              "description": "CSS padding applied to every cell in each data row. Use this to control row height and vertical spacing. Defaults to '10px 16px'. Example: '16px' for taller rows with more breathing room.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "default": "10px 16px"
-            }
-          },
-          "required": [
-            "component",
-            "children"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "BarChart": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders a bar chart from an array of data points. Each data point has a label and value. The chart auto-scales to fit. Use orientation 'horizontal' for long labels or many categories.",
-          "properties": {
-            "component": {
-              "const": "BarChart"
-            },
-            "title": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Optional chart title displayed above the chart."
-            },
-            "data": {
-              "description": "Array of data points. Each item has a 'label' (string) and 'value' (number), and optionally a 'color' (CSS color string) to override the default bar color for that item.",
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "number"
-                      },
-                      "color": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "label",
-                      "value"
-                    ]
-                  },
-                  "minItems": 1
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
-                }
-              ]
-            },
-            "orientation": {
-              "type": "string",
-              "description": "Bar direction. 'vertical' = bars grow upward, 'horizontal' = bars grow rightward.",
-              "enum": [
-                "vertical",
-                "horizontal"
-              ],
-              "default": "vertical"
-            },
-            "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Default bar color (CSS). Individual data items can override with their own 'color'."
-            },
-            "showValues": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
-              "description": "Whether to display the numeric value on each bar.",
-              "default": true
-            },
-            "height": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Chart height in pixels.",
-              "default": 300
-            }
-          },
-          "required": [
-            "component",
-            "data"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "LineChart": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders a line chart from an array of data points. Supports optional area fill and data point dots. Good for showing trends over time.",
-          "properties": {
-            "component": {
-              "const": "LineChart"
-            },
-            "title": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Optional chart title displayed above the chart."
-            },
-            "data": {
-              "description": "Array of data points. Each item has a 'label' (string) and 'value' (number).",
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "label",
-                      "value"
-                    ]
-                  },
-                  "minItems": 2
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
-                }
-              ]
-            },
-            "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Line color (CSS).",
-              "default": "#2563eb"
-            },
-            "showDots": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
-              "description": "Whether to show data point circles on the line.",
-              "default": true
-            },
-            "showArea": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
-              "description": "Whether to fill the area under the line with a translucent gradient.",
-              "default": false
-            },
-            "height": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Chart height in pixels.",
-              "default": 300
-            }
-          },
-          "required": [
-            "component",
-            "data"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "PieChart": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders a pie or donut chart from an array of segments. Each segment has a label and value. Colors are auto-assigned if not provided.",
-          "properties": {
-            "component": {
-              "const": "PieChart"
-            },
-            "title": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Optional chart title displayed above the chart."
-            },
-            "data": {
-              "description": "Array of segments. Each item has a 'label' (string) and 'value' (number), and optionally a 'color' (CSS color string).",
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "label": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "number"
-                      },
-                      "color": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "label",
-                      "value"
-                    ]
-                  },
-                  "minItems": 1
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
-                }
-              ]
-            },
-            "donut": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
-              "description": "If true, renders as a donut chart with a hollow center.",
-              "default": false
-            },
-            "size": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Chart diameter in pixels.",
-              "default": 250
-            }
-          },
-          "required": [
-            "component",
-            "data"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Sparkline": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders a compact inline sparkline chart from an array of numbers. Use inside StatCard or alongside text to show a quick trend.",
-          "properties": {
-            "component": {
-              "const": "Sparkline"
-            },
-            "values": {
-              "description": "Array of numeric values representing the trend data.",
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  },
-                  "minItems": 2
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
-                }
-              ]
-            },
-            "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Line color (CSS).",
-              "default": "#2563eb"
-            },
-            "width": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Sparkline width in pixels.",
-              "default": 120
-            },
-            "height": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Sparkline height in pixels.",
-              "default": 32
-            }
-          },
-          "required": [
-            "component",
-            "values"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "StatCard": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders a KPI / summary statistic card with a large value, label, and optional trend indicator. Use multiple StatCards in a Row to create a dashboard header.",
-          "properties": {
-            "component": {
-              "const": "StatCard"
-            },
-            "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The metric label (e.g. 'Total Revenue', 'Active Users')."
-            },
-            "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The formatted display value (e.g. '$12,340', '1.2k', '98%'). Use formatNumber or formatCurrency to produce this."
-            },
-            "trend": {
-              "type": "string",
-              "description": "Direction of the trend arrow.",
-              "enum": [
-                "up",
-                "down",
-                "neutral"
-              ]
-            },
-            "trendColor": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Color of the trend arrow."
-            },
-            "trendValue": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "The trend change text shown next to the arrow (e.g. '+12%', '-3.2%')."
-            },
-            "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
-              "description": "Accent color for the card's left border and icon."
-            },
-            "children": {
-              "$ref": "../common/common_types.json#/$defs/ChildList",
-              "description": "Optional children rendered below the stat value (e.g. a Sparkline)."
-            }
-          },
-          "required": [
-            "component",
-            "label",
-            "value"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
     "Text": {
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -861,7 +22,7 @@
               "const": "Text"
             },
             "text": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation."
             },
             "variant": {
@@ -878,15 +39,15 @@
               ]
             },
             "size": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "CSS font-size for the text (e.g. '12px', '1.2rem', '2em'). Overrides the size implied by variant."
             },
             "weight": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "CSS font-weight (e.g. 'normal', 'bold', '500', '700'). Overrides the weight implied by variant."
             },
             "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "CSS color for the text (e.g. '#ef4444', 'red', 'var(--freesail-primary)'). Defaults to inherited color."
             }
           },
@@ -902,7 +63,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -935,11 +96,11 @@
               ]
             },
             "size": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "CSS size for the icon (e.g. '12px', '1.2rem', '2em')."
             },
             "color": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "CSS color for the icon (e.g. '#ef4444', 'red', 'var(--freesail-primary)'). Defaults to inherited color."
             }
           },
@@ -955,7 +116,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -969,16 +130,16 @@
             },
             "children": {
               "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.",
-              "$ref": "../common/common_types.json#/$defs/ChildList"
+              "$ref": "./common/common_types.json#/$defs/ChildList"
             },
             "gap": {
               "description": "The spacing between children.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "default": "8px"
             },
             "padding": {
               "description": "Padding around the content.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
+              "$ref": "./common/common_types.json#/$defs/DynamicString"
             },
             "justify": {
               "type": "string",
@@ -1016,7 +177,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -1030,16 +191,16 @@
             },
             "children": {
               "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.",
-              "$ref": "../common/common_types.json#/$defs/ChildList"
+              "$ref": "./common/common_types.json#/$defs/ChildList"
             },
             "gap": {
               "description": "The spacing between children.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "default": "8px"
             },
             "padding": {
               "description": "Padding around the content.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
+              "$ref": "./common/common_types.json#/$defs/DynamicString"
             },
             "justify": {
               "type": "string",
@@ -1077,7 +238,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -1091,23 +252,23 @@
             },
             "padding": {
               "description": "Padding inside the card.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "default": "16px"
             },
             "width": {
               "description": "The width of the card.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
+              "$ref": "./common/common_types.json#/$defs/DynamicString"
             },
             "height": {
               "description": "The height of the card.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
+              "$ref": "./common/common_types.json#/$defs/DynamicString"
             },
             "background": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "A CSS color value for the card's background fill. Accepts any valid CSS color, e.g. hex ('#22c55e'), named ('red'), rgb/rgba, hsl. Defaults to the theme surface color."
             },
             "child": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "$ref": "./common/common_types.json#/$defs/ComponentId",
               "description": "The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID. Do NOT define the child component inline."
             }
           },
@@ -1123,7 +284,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -1136,11 +297,11 @@
               "const": "Modal"
             },
             "trigger": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "$ref": "./common/common_types.json#/$defs/ComponentId",
               "description": "The ID of the component that opens the modal when interacted with (e.g., a button). Do NOT define the component inline."
             },
             "content": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "$ref": "./common/common_types.json#/$defs/ComponentId",
               "description": "The ID of the component to be displayed inside the modal. Do NOT define the component inline."
             }
           },
@@ -1157,13 +318,13 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
+          "$ref": "./common/common_types.json#/$defs/Checkable"
         },
         {
           "type": "object",
@@ -1173,11 +334,11 @@
               "const": "Button"
             },
             "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The text label for the button. Used if 'child' is not provided."
             },
             "child": {
-              "$ref": "../common/common_types.json#/$defs/ComponentId",
+              "$ref": "./common/common_types.json#/$defs/ComponentId",
               "description": "The ID of the child component. Use a 'Text' component for a labeled button. Only use an 'Icon' if the requirements explicitly ask for an icon-only button. Do NOT define the child component inline."
             },
             "variant": {
@@ -1194,7 +355,7 @@
               "default": "primary"
             },
             "action": {
-              "$ref": "../common/common_types.json#/$defs/Action"
+              "$ref": "./common/common_types.json#/$defs/Action"
             }
           },
           "required": [
@@ -1209,13 +370,13 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
+          "$ref": "./common/common_types.json#/$defs/Checkable"
         },
         {
           "type": "object",
@@ -1225,11 +386,11 @@
               "const": "TextField"
             },
             "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The text label for the input field."
             },
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The value of the text field."
             },
             "variant": {
@@ -1248,11 +409,11 @@
               "default": false
             },
             "min": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "Minimum allowed value. Only used when variant is 'number'."
             },
             "max": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "Maximum allowed value. Only used when variant is 'number'."
             }
           },
@@ -1268,13 +429,13 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
+          "$ref": "./common/common_types.json#/$defs/Checkable"
         },
         {
           "type": "object",
@@ -1284,7 +445,7 @@
               "const": "ChoicePicker"
             },
             "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The label for the group of options."
             },
             "variant": {
@@ -1305,7 +466,7 @@
                     "properties": {
                       "label": {
                         "description": "The text to display for this option.",
-                        "$ref": "../common/common_types.json#/$defs/DynamicString"
+                        "$ref": "./common/common_types.json#/$defs/DynamicString"
                       },
                       "value": {
                         "type": "string",
@@ -1320,12 +481,12 @@
                   }
                 },
                 {
-                  "$ref": "../common/common_types.json#/$defs/DataBinding"
+                  "$ref": "./common/common_types.json#/$defs/DataBinding"
                 }
               ]
             },
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicStringList",
+              "$ref": "./common/common_types.json#/$defs/DynamicStringList",
               "description": "The list of currently selected values. This should be bound to a string array in the data model."
             }
           },
@@ -1342,13 +503,13 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
-          "$ref": "../common/common_types.json#/$defs/Checkable"
+          "$ref": "./common/common_types.json#/$defs/Checkable"
         },
         {
           "type": "object",
@@ -1358,7 +519,7 @@
               "const": "DateTimeInput"
             },
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The selected date and/or time value in ISO 8601 format. If not yet set, initialize with an empty string."
             },
             "enableDate": {
@@ -1372,7 +533,7 @@
             "min": {
               "allOf": [
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                  "$ref": "./common/common_types.json#/$defs/DynamicString"
                 },
                 {
                   "if": {
@@ -1398,7 +559,7 @@
             "max": {
               "allOf": [
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                  "$ref": "./common/common_types.json#/$defs/DynamicString"
                 },
                 {
                   "if": {
@@ -1422,7 +583,7 @@
               "description": "The maximum allowed date/time in ISO 8601 format."
             },
             "label": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The text label for the input field."
             }
           },
@@ -1438,7 +599,7 @@
       "type": "object",
       "allOf": [
         {
-          "$ref": "../common/common_types.json#/$defs/ComponentCommon"
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
         },
         {
           "$ref": "#/$defs/CatalogComponentCommon"
@@ -1453,10 +614,10 @@
             "width": {
               "oneOf": [
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                  "$ref": "./common/common_types.json#/$defs/DynamicString"
                 },
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicNumber"
+                  "$ref": "./common/common_types.json#/$defs/DynamicNumber"
                 }
               ],
               "description": "The width of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
@@ -1465,10 +626,10 @@
             "height": {
               "oneOf": [
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                  "$ref": "./common/common_types.json#/$defs/DynamicString"
                 },
                 {
-                  "$ref": "../common/common_types.json#/$defs/DynamicNumber"
+                  "$ref": "./common/common_types.json#/$defs/DynamicNumber"
                 }
               ],
               "description": "The height of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
@@ -1495,7 +656,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -1523,7 +684,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "pattern": {
               "type": "string",
@@ -1556,7 +717,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "constraints": {
               "type": "object",
@@ -1612,7 +773,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -1640,7 +801,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "constraints": {
               "type": "object",
@@ -1694,7 +855,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -1730,7 +891,7 @@
             "value"
           ],
           "additionalProperties": {
-            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+            "$ref": "./common/common_types.json#/$defs/DynamicValue"
           }
         },
         "returnType": {
@@ -1754,15 +915,15 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "The number to format."
             },
             "fractionDigits": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "Optional. The number of decimal places to show. Defaults to 0 or 2 depending on locale."
             },
             "useGrouping": {
-              "$ref": "../common/common_types.json#/$defs/DynamicBoolean",
+              "$ref": "./common/common_types.json#/$defs/DynamicBoolean",
               "description": "Optional. If true, uses locale-specific grouping separators (e.g. '1,000'). If false, returns raw digits (e.g. '1000'). Defaults to true."
             }
           },
@@ -1791,11 +952,11 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "The monetary amount."
             },
             "currency": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "The ISO 4217 currency code (e.g., 'USD', 'EUR')."
             }
           },
@@ -1825,11 +986,11 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue",
+              "$ref": "./common/common_types.json#/$defs/DynamicValue",
               "description": "The date to format."
             },
             "pattern": {
-              "$ref": "../common/common_types.json#/$defs/DynamicString",
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
               "description": "A Unicode TR35 date pattern string.\n\nToken Reference:\n- Year: 'yy' (26), 'yyyy' (2026)\n- Month: 'M' (1), 'MM' (01), 'MMM' (Jan), 'MMMM' (January)\n- Day: 'd' (1), 'dd' (01), 'E' (Tue), 'EEEE' (Tuesday)\n- Hour (12h): 'h' (1-12), 'hh' (01-12) - requires 'a' for AM/PM\n- Hour (24h): 'H' (0-23), 'HH' (00-23) - Military Time\n- Minute: 'mm' (00-59)\n- Second: 'ss' (00-59)\n- Period: 'a' (AM/PM)\n\nExamples:\n- 'MMM dd, yyyy' -> 'Jan 16, 2026'\n- 'HH:mm' -> '14:30' (Military)\n- 'h:mm a' -> '2:30 PM'\n- 'EEEE, d MMMM' -> 'Friday, 16 January'"
             }
           },
@@ -1859,7 +1020,7 @@
           "type": "object",
           "properties": {
             "count": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
+              "$ref": "./common/common_types.json#/$defs/DynamicNumber",
               "description": "The numeric value used to determine the plural category."
             },
             "forms": {
@@ -1867,27 +1028,27 @@
               "description": "A map of CLDR plural categories to their corresponding strings.",
               "properties": {
                 "zero": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "String for the 'zero' category (e.g., 0 items)."
                 },
                 "one": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "String for the 'one' category (e.g., 1 item)."
                 },
                 "two": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "String for the 'two' category (used in Arabic, Welsh, etc.)."
                 },
                 "few": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "String for the 'few' category (e.g., small groups in Slavic languages)."
                 },
                 "many": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "String for the 'many' category (e.g., large groups in various languages)."
                 },
                 "other": {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString",
+                  "$ref": "./common/common_types.json#/$defs/DynamicString",
                   "description": "The default/fallback string (used for general plural cases)."
                 }
               },
@@ -1968,7 +1129,7 @@
         "args": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+            "$ref": "./common/common_types.json#/$defs/DynamicValue"
           }
         },
         "returnType": {
@@ -1991,7 +1152,7 @@
         "args": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "../common/common_types.json#/$defs/DynamicValue"
+            "$ref": "./common/common_types.json#/$defs/DynamicValue"
           }
         },
         "returnType": {
@@ -2015,7 +1176,7 @@
           "type": "object",
           "properties": {
             "value": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2043,10 +1204,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2075,10 +1236,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2107,10 +1268,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2139,10 +1300,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2171,10 +1332,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2203,10 +1364,10 @@
           "type": "object",
           "properties": {
             "a": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             },
             "b": {
-              "$ref": "../common/common_types.json#/$defs/DynamicValue"
+              "$ref": "./common/common_types.json#/$defs/DynamicValue"
             }
           },
           "required": [
@@ -2284,15 +1445,6 @@
     }
   },
   "$defs": {
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "weight": {
-          "type": "number",
-          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
-        }
-      }
-    },
     "ComponentId": {
       "type": "string",
       "description": "The unique identifier for a component, used for both definitions and references within the same surface."
@@ -2648,59 +1800,17 @@
         }
       ]
     },
+    "CatalogComponentCommon": {
+      "type": "object",
+      "properties": {
+        "weight": {
+          "type": "number",
+          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
+        }
+      }
+    },
     "anyComponent": {
       "oneOf": [
-        {
-          "$ref": "#/components/Image"
-        },
-        {
-          "$ref": "#/components/Video"
-        },
-        {
-          "$ref": "#/components/AudioPlayer"
-        },
-        {
-          "$ref": "#/components/List"
-        },
-        {
-          "$ref": "#/components/TabGroup"
-        },
-        {
-          "$ref": "#/components/Tab"
-        },
-        {
-          "$ref": "#/components/Divider"
-        },
-        {
-          "$ref": "#/components/Dropdown"
-        },
-        {
-          "$ref": "#/components/CheckBox"
-        },
-        {
-          "$ref": "#/components/Slider"
-        },
-        {
-          "$ref": "#/components/Markdown"
-        },
-        {
-          "$ref": "#/components/GridLayout"
-        },
-        {
-          "$ref": "#/components/BarChart"
-        },
-        {
-          "$ref": "#/components/LineChart"
-        },
-        {
-          "$ref": "#/components/PieChart"
-        },
-        {
-          "$ref": "#/components/Sparkline"
-        },
-        {
-          "$ref": "#/components/StatCard"
-        },
         {
           "$ref": "#/components/Text"
         },

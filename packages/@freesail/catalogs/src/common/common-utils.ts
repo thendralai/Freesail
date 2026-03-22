@@ -43,14 +43,6 @@ export function getSemanticBackground(bg: string | undefined): string | undefine
   return semanticMap[bg] || bg;
 }
 
-/**
- * Given a raw background value (semantic token, hex color, gradient, etc.),
- * returns a suitable text color for contrast.
- *
- * - Semantic bg tokens (bgRoot, bgSurface, bgMuted) → theme-adaptive CSS variable
- * - Hex colors → luminance-based hardcoded dark (#0f172a) or light (#ffffff)
- * - Everything else (gradients, CSS vars, etc.) → `fallback` (default: white)
- */
 export function getContrastTextColor(
   rawBackground: string | undefined,
   fallback: string = '#ffffff',

@@ -11,7 +11,41 @@
  *   freesail update catalog    — update common files in an existing catalog
  */
 
-const [, , verb, noun] = process.argv;
+const args = process.argv.slice(2);
+const [verb, noun] = args;
+
+function printHelp(): void {
+  console.log('Freesail CLI');
+  console.log('');
+  console.log('Usage:');
+  console.log('  freesail <command> <target> [options]');
+  console.log('');
+  console.log('Commands:');
+  console.log('  new catalog       Scaffold a new catalog package');
+  console.log('  update catalog    Update common files in an existing catalog');
+  console.log('  prepare catalog   Generate catalog.json from decomposed schema files');
+  console.log('  validate catalog  Validate an existing catalog package');
+  console.log('  run gateway       Start the Freesail gateway server');
+  console.log('');
+  console.log('Options (new catalog, update catalog):');
+  console.log('  --dir, -d <path>          Target directory');
+  console.log('');
+  console.log('Options (run gateway):');
+  console.log('  --http-port <port>        Port for the HTTP/SSE server (default: 3001)');
+  console.log('  --http-host <host>        Host to bind the HTTP server to (default: 0.0.0.0)');
+  console.log('  --mcp-mode <mode>         MCP transport: stdio or http (default: http)');
+  console.log('  --mcp-port <port>         Port for MCP HTTP server (default: 3000)');
+  console.log('  --mcp-host <host>         Host to bind MCP HTTP server to (default: 127.0.0.1)');
+  console.log('  --log-file <file>         Write logs to file (in addition to console)');
+  console.log('');
+  console.log('General:');
+  console.log('  --help, -h                Show this help message');
+}
+
+if (verb === '--help' || verb === '-h' || args.includes('--help') || args.includes('-h')) {
+  printHelp();
+  process.exit(0);
+}
 
 if (verb === 'validate') {
   if (noun === 'catalog') {
@@ -54,12 +88,7 @@ if (verb === 'validate') {
     process.exit(1);
   }
 } else {
-  console.error(`Unknown command: ${verb ?? '(none)'}`);
-  console.error('Usage:');
-  console.error('  freesail validate catalog');
-  console.error('  freesail prepare catalog');
-  console.error('  freesail run gateway');
-  console.error('  freesail new catalog');
-  console.error('  freesail update catalog');
+  console.error(`Unknown command: ${verb ?? '(none)'}\n`);
+  printHelp();
   process.exit(1);
 }

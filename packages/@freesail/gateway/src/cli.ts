@@ -26,8 +26,8 @@ interface CLIConfig {
   mcpPort: number;
   /** MCP HTTP host to bind to (if mode is 'http') */
   mcpHost: string;
-  /** Webhook URL for forwarding upstream messages */
-  webhookUrl?: string;
+  /** Webhook URL for forwarding upstream messages. Undocumented for now */
+  //webhookUrl?: string;
   /** Path to log file */
   logFile?: string;
   /** Minimum log level to emit (default: info) */
@@ -124,7 +124,6 @@ Options:
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: http)
   --mcp-port <port>      Port for MCP Streamable HTTP server (default: 3000)
   --mcp-host <host>      Host to bind MCP HTTP server to (default: 127.0.0.1)
-  --webhook-url <url>    URL to forward upstream UI actions to (e.g. http://localhost:3002/action)
   --log-file <file>      Path to log file (default: logs to console/stderr only)
   --log-level <level>    Minimum log level: fatal|error|warn|info|debug (default: info)
   --log-filter <f>       Per-subsystem level override, e.g. express:debug or mcp:warn

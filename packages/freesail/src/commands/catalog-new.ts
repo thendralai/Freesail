@@ -242,9 +242,18 @@ function generateReadme(prefix: string, title: string, description: string): str
 // Main
 // ---------------------------------------------------------------------------
 
+function parseDirArg(): string | undefined {
+  const args = process.argv.slice(4);
+  const idx = args.findIndex((a) => a === '--dir' || a === '-d');
+  if (idx !== -1 && args[idx + 1]) return args[idx + 1];
+  return undefined;
+}
+
 export async function run(): Promise<void> {
   console.log('--- Freesail New Catalog ---\n');
   console.log('This will scaffold a new catalog. Common components and functions will be copied into your catalog.\n');
+
+  const dirArg = parseDirArg();
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
@@ -266,7 +275,8 @@ export async function run(): Promise<void> {
     const title = await ask(rl, 'Catalog title', `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Catalog`);
     const description = await ask(rl, 'Catalog description', `A custom Freesail catalog for ${prefix}`);
     const packageName = await ask(rl, 'npm package name', `@${domain}/${prefix}_catalog`);
-    const outputDir = await ask(rl, 'Output directory', `./${prefix}_catalog`);
+    const outputDir = dirArg ?? await ask(rl, 'Output directory', `./${prefix}_catalog`);
+    if (dirArg) console.log(`Output directory: ${outputDir}`);
 
     // Derive catalogId from the package org scope (e.g. @sloop-3f2a1c → sloop-3f2a1c.local)
     const catalogDomain = domainFromPackageName(packageName, domain);
