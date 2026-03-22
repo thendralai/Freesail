@@ -398,7 +398,7 @@ function renderTypeEntry(name: string, schema: CatalogProperty, defs: Record<str
   const desc = (schema as any).description as string | undefined;
   const typeStr = formatPropertyTypeShallow(schema, defs);
   const descPart = desc ? ` ("${desc}")` : '';
-  return `  ${name}${descPart}: ${typeStr}`;
+  return `  ${name}${descPart}: ${typeStr}\n`;
 }
 
 // ---------------------------------------------------------------------------

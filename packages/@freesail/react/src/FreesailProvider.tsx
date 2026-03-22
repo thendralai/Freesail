@@ -169,7 +169,7 @@ export function FreesailProvider({
         surfaceId,
         'surface_cleanup_reminder',
         '__system' as ComponentId,
-        { surfaceId, message: 'Delete this surface if it is no longer needed. Ignore if you plan to use it.' }
+        { surfaceId, message: `Surface ${String(surfaceId)} has no components. Delete it if no longer needed. Ignore this message if you plan to use the surface.` }
       );
     });
 
