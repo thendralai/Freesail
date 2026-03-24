@@ -307,16 +307,7 @@ export async function run(): Promise<void> {
 
     // Create directories
     const commonPath = path.join(srcPath, 'common');
-    const schemasPath = path.join(srcPath, 'schemas');
     fs.mkdirSync(commonPath, { recursive: true });
-    fs.mkdirSync(schemasPath, { recursive: true });
-
-    // Copy catalog schema file
-    const schemaSource = path.join(catalogDir, 'catalog-schema.json');
-    if (fs.existsSync(schemaSource)) {
-      fs.writeFileSync(path.join(schemasPath, 'catalog-schema.json'), fs.readFileSync(schemaSource, 'utf-8'));
-      console.log('   📄 src/schemas/catalog-schema.json');
-    }
 
     // Copy common source files into src/common/
     const filesToCopy = ['CommonComponents.tsx', 'CommonFunctions.ts', 'common_types.json', 'common_components.json', 'common_functions.json'];

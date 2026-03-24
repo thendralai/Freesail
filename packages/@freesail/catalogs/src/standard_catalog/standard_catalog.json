@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/catalog-schema.json",
+  "$schema": "https://freesail.dev/schemas/catalog-schema-v1.json",
   "$id": "https://freesail.dev/catalogs/standard_catalog_v1.json",
   "title": "Freesail Standard Catalog",
   "description": "Unified catalog of standard A2UI components and functions.",

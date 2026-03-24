@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/catalog-schema.json",
+  "$schema": "https://freesail.dev/schemas/catalog-schema-v1.json",
   "$id": "https://freesail.dev/catalogs/chat_catalog_v1.json",
   "title": "Freesail Chat Catalog",
   "description": "Chat interface components for Freesail Agent-driven UI. Provides a complete chat experience as an A2UI surface.",

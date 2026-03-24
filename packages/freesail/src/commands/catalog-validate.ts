@@ -293,7 +293,14 @@ function validateCatalog(config: CatalogConfig): boolean {
     return false;
   }
 
-  // 1.5 Strict JSON Schema validation against catalog-schema.json
+  // 1.5 Check $schema field
+  const CATALOG_SCHEMA_URL = 'https://freesail.dev/schemas/catalog-schema-v1.json';
+  if (schema['$schema'] !== CATALOG_SCHEMA_URL) {
+    console.error(`   ❌ $schema must be "${CATALOG_SCHEMA_URL}" but found: ${JSON.stringify(schema['$schema'])}`);
+    isOk = false;
+  }
+
+  // 1.6 Strict JSON Schema validation against catalog-schema.json
   try {
     const schemaPath = path.join(__dirname, 'catalog', 'catalog-schema.json');
     if (fs.existsSync(schemaPath)) {

@@ -273,26 +273,8 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   const customFunctions = rewriteRefs((customFunctionsJson?.['functions'] ?? {})) as Record<string, unknown>;
   const customDefs = rewriteRefs((customComponentsJson?.['$defs'] ?? {})) as Record<string, unknown>;
 
-  // 4. Determine $schema path (try to find catalog-schema.json under src/schemas/)
-  let schemaPath: string | undefined;
-  for (const candidate of [
-    path.join(config.srcPath, '..', 'schemas', 'catalog-schema.json'),
-    path.join(config.srcPath, 'schemas', 'catalog-schema.json'),
-  ]) {
-    if (fs.existsSync(candidate)) {
-      const rel = path.relative(config.srcPath, candidate).replace(/\\/g, '/');
-      schemaPath = rel.startsWith('.') ? rel : `./${rel}`;
-      break;
-    }
-  }
-  // Fallback: resolve via the bundled catalog directory in the freesail CLI
-  if (!schemaPath) {
-    const candidate = path.join(__dirname, 'catalog', 'catalog-schema.json');
-    if (fs.existsSync(candidate)) {
-      const rel = path.relative(config.srcPath, candidate).replace(/\\/g, '/');
-      schemaPath = rel.startsWith('.') ? rel : `./${rel}`;
-    }
-  }
+  // 4. Set $schema to canonical URL
+  const CATALOG_SCHEMA_URL = 'https://freesail.dev/schemas/catalog-schema-v1.json';
 
   // 5. Merge everything (catalog's own entries first, then common; custom overrides on collision)
   const mergedComponents: Record<string, unknown> = { ...customComponents };
@@ -358,7 +340,7 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   }
 
   const catalog: Record<string, unknown> = {};
-  if (schemaPath) catalog['$schema'] = schemaPath;
+  catalog['$schema'] = CATALOG_SCHEMA_URL;
   catalog['$id'] = meta.catalogId;
   catalog['title'] = meta.title;
   catalog['description'] = meta.description;

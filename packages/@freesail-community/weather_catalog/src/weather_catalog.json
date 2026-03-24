@@ -1,5 +1,5 @@
 {
-  "$schema": "./schemas/catalog-schema.json",
+  "$schema": "https://freesail.dev/schemas/catalog-schema-v1.json",
   "$id": "https://freesail.dev/catalogs/weather_catalog_v1.json",
   "title": "Weather Catalog",
   "description": "Weather-specific UI components for displaying forecasts, conditions, and alerts",

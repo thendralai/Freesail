@@ -49,11 +49,6 @@ const COMMON_FILES = [
   'index.ts',
 ];
 
-// Files copied into src/schemas/
-const SCHEMA_FILES = [
-  'catalog-schema.json',
-];
-
 // ---------------------------------------------------------------------------
 // Discovery (same pattern as catalog-prepare)
 // ---------------------------------------------------------------------------
@@ -187,13 +182,6 @@ function confirm(question: string): Promise<boolean> {
 // Update a single catalog
 // ---------------------------------------------------------------------------
 
-function resolveSchemasPath(srcPath: string): string | null {
-  const direct = path.join(srcPath, 'schemas');
-  if (fs.existsSync(direct)) return direct;
-  const sibling = path.join(path.dirname(srcPath), 'schemas');
-  if (fs.existsSync(sibling)) return sibling;
-  return null;
-}
 
 function resolveCommonPath(srcPath: string): string | null {
   // Primary: common/ inside srcPath
@@ -222,7 +210,6 @@ function updateCommonFiles(commonPath: string, catalogDir: string): number {
 
 function updateCatalog(config: CatalogConfig, catalogDir: string, updatedCommonPaths: Set<string>): boolean {
   const commonPath = resolveCommonPath(config.srcPath);
-  const schemasPath = resolveSchemasPath(config.srcPath);
 
   if (!commonPath) {
     console.error(`   ❌ Common directory not found (checked ${config.srcPath}/common and sibling)`);
@@ -236,23 +223,6 @@ function updateCatalog(config: CatalogConfig, catalogDir: string, updatedCommonP
     updatedCount += updateCommonFiles(commonPath, catalogDir);
   } else {
     console.log(`   ℹ  Common files already updated for: ${commonPath}`);
-  }
-
-  // Copy schema files
-  if (schemasPath) {
-    for (const file of SCHEMA_FILES) {
-      const source = path.join(catalogDir, file);
-      if (!fs.existsSync(source)) {
-        console.warn(`   ⚠  Bundled schema not found (skipping): ${file}`);
-        continue;
-      }
-      const dest = path.join(schemasPath, file);
-      fs.writeFileSync(dest, fs.readFileSync(source, 'utf-8'));
-      console.log(`   📄 src/schemas/${file}`);
-      updatedCount++;
-    }
-  } else {
-    console.warn(`   ⚠  Schemas directory not found, skipping schema update.`);
   }
 
   // Update README.md
@@ -302,10 +272,6 @@ export async function run(): Promise<void> {
   console.log('⚠  This will replace the following files with the latest versions:');
   console.log('   Common files (src/common/):');
   for (const f of COMMON_FILES) {
-    console.log(`     - ${f}`);
-  }
-  console.log('   Schema files (src/schemas/):');
-  for (const f of SCHEMA_FILES) {
     console.log(`     - ${f}`);
   }
   console.log('   Other files:');
