@@ -6,6 +6,7 @@
  */
 
 import express, { type Express, type Request, type Response } from 'express';
+import { createServer as createHttpServer } from 'http';
 import { randomUUID } from 'crypto';
 import type { UpstreamMessage } from '@freesail/core';
 import { SessionManager } from './session.js';
@@ -30,6 +31,8 @@ export interface ExpressServerOptions {
   webhookUrl?: string;
   /** CORS origin (default: '*') */
   corsOrigin?: string;
+  /** JSON body size limit (default: '5mb') */
+  bodyLimit?: string;
 }
 
 /**
@@ -42,12 +45,13 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     onCatalogsRegistered,
     webhookUrl,
     corsOrigin = '*',
+    bodyLimit = '5mb',
   } = options;
 
   const app = express();
 
   // Middleware
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: bodyLimit }));
 
   // CORS headers
   app.use((req, res, next) => {
@@ -369,10 +373,11 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 export function startExpressServer(
   app: Express,
   port: number = 3001,
-  host: string = '0.0.0.0'
+  host: string = '0.0.0.0',
 ): Promise<void> {
   return new Promise((resolve) => {
-    app.listen(port, host, () => {
+    const server = createHttpServer(app);
+    server.listen(port, host, () => {
       logger.info(`[Express] HTTP server listening on ${host}:${port}`);
       logger.info(`[Express] SSE endpoint: http://${host}:${port}/sse`);
       logger.info(`[Express] Message endpoint: http://${host}:${port}/message`);

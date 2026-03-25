@@ -40,10 +40,8 @@ import type { CatalogDefinition } from './types.js';
 export interface FreesailProviderProps {
   /** Child components */
   children: ReactNode;
-  /** SSE endpoint URL */
-  sseUrl: string;
-  /** HTTP POST endpoint URL */
-  postUrl: string;
+  /** Base gateway URL (e.g. 'http://localhost:3001'). SSE and POST endpoints are derived automatically. */
+  gateway: string;
   /** List of supported catalog IDs */
   catalogs?: CatalogId[];
   /**
@@ -53,7 +51,7 @@ export interface FreesailProviderProps {
    */
   catalogDefinitions?: CatalogDefinition[];
   /** Additional transport options */
-  transportOptions?: Partial<Omit<TransportOptions, 'sseUrl' | 'postUrl' | 'capabilities'>>;
+  transportOptions?: Partial<Omit<TransportOptions, 'gateway' | 'capabilities'>>;
   /** Auto-connect on mount (default: true) */
   autoConnect?: boolean;
   /** Callback when connection state changes */
@@ -70,8 +68,7 @@ export interface FreesailProviderProps {
  */
 export function FreesailProvider({
   children,
-  sseUrl,
-  postUrl,
+  gateway,
   catalogs = [],
   catalogDefinitions = [],
   transportOptions,
@@ -125,8 +122,7 @@ export function FreesailProvider({
   // Initialize transport
   useEffect(() => {
     const newTransport = createTransport({
-      sseUrl,
-      postUrl,
+      gateway,
       capabilities,
       ...transportOptions,
     });
@@ -239,7 +235,7 @@ export function FreesailProvider({
       newTransport.disconnect();
       surfaceManager.dispose();
     };
-  }, [sseUrl, postUrl]); // Only recreate if URLs change
+  }, [gateway]); // Only recreate if gateway URL changes
 
   // Send action callback (v0.9 format)
   const sendAction = useCallback(

@@ -11,8 +11,7 @@
  * import { ChatCatalog } from '@freesail/chat-catalog';
  *
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/api"
  *   catalogDefinitions={[ChatCatalog]}
  * >
  *   <FreesailSurface surfaceId="__chat" />
@@ -37,8 +36,7 @@ export const CHAT_CATALOG_ID = catalogSchema.catalogId;
  *
  * ```tsx
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/gateway"
  *   catalogDefinitions={[ChatCatalog]}
  * >
  *   <FreesailSurface surfaceId="__chat" />

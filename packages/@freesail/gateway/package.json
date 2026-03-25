@@ -15,7 +15,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "freesail.config.sample.json"
   ],
   "scripts": {
     "build": "tsc && cp src/system-prompt.md dist/system-prompt.md",

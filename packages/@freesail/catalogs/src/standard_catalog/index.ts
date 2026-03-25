@@ -11,8 +11,7 @@
  * import { StandardCatalog } from '@freesail/standard-catalog';
  *
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/gateway"
  *   catalogDefinitions={[StandardCatalog]}
  * >
  *   <App />
@@ -37,8 +36,7 @@ export const STANDARD_CATALOG_ID = catalogSchema.catalogId;
  *
  * ```tsx
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/api"
  *   catalogDefinitions={[StandardCatalog]}
  * >
  * ```

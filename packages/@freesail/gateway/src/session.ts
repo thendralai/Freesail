@@ -84,9 +84,11 @@ export interface SessionManagerOptions {
   sessionTimeout?: number;
   /** Cleanup interval in ms (default: 1 minute) */
   cleanupInterval?: number;
+  /** Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var) */
+  catalogLogDir?: string;
 }
 
-const DEFAULT_OPTIONS: Required<SessionManagerOptions> = {
+const DEFAULT_OPTIONS: Required<Omit<SessionManagerOptions, 'catalogLogDir'>> = {
   sessionTimeout: 30 * 60 * 1000,
   cleanupInterval: 60 * 1000,
 };
@@ -109,11 +111,14 @@ export class SessionManager {
    *  Held until the agent collects them via drainDisconnectNotifications. */
   private disconnectNotifications: Map<string, Array<{ sessionId: string, actions: UpstreamMessage[] }>> = new Map();
   private pendingDataModelRequests: Map<string, { resolve: (data: Record<string, unknown>) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
-  private options: Required<SessionManagerOptions>;
+  private options: Required<Omit<SessionManagerOptions, 'catalogLogDir'>>;
+  private catalogLogDir: string | undefined;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: SessionManagerOptions = {}) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
+    const { catalogLogDir, ...rest } = options;
+    this.options = { ...DEFAULT_OPTIONS, ...rest };
+    this.catalogLogDir = catalogLogDir;
     this.startCleanup();
   }
 
@@ -203,7 +208,7 @@ export class SessionManager {
       logger.info(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.id}) for session ${sessionId}`);
       prewarmCatalogDetailCache(catalog);
 
-      const logDir = process.env['CATALOG_LOG_DIR'];
+      const logDir = this.catalogLogDir ?? process.env['CATALOG_LOG_DIR'];
       if (logDir) {
         try {
           if (!existsSync(logDir) || !statSync(logDir).isDirectory()) {

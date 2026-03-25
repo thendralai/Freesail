@@ -22,7 +22,7 @@ const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
  *  2. VITE_GATEWAY_PORT — same host as the UI, different port (e.g. 3001 in dev).
  *  3. Default: same host, port 3001.
  */
-function getGatewayOrigin(): string {
+function getGatewayUrl(): string {
   const gatewayUrl = import.meta.env['VITE_GATEWAY_URL'] as string | undefined;
 
   if (gatewayUrl) {
@@ -97,8 +97,7 @@ function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <ReactUI.FreesailThemeProvider theme={activeTheme}>
         <ReactUI.FreesailProvider
-          sseUrl={`${getGatewayOrigin()}/sse`}
-          postUrl={`${getGatewayOrigin()}/message`}
+          gateway={getGatewayUrl()}
           catalogDefinitions={ALL_CATALOGS}
           onConnectionChange={(connected) => {
             console.log('Connection status:', connected);

@@ -10,6 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { readFileSync } from 'fs';
+import { createServer as createHttpServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createLogger } from '@freesail/logger';
@@ -886,6 +887,8 @@ export interface MCPHTTPServerOptions extends MCPServerOptions {
   port?: number;
   /** Host to bind to (default: '127.0.0.1' for localhost-only access) */
   host?: string;
+  /** JSON body size limit (default: '5mb') */
+  bodyLimit?: string;
 }
 
 /**
@@ -909,10 +912,11 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
 
   const port = options.port ?? 3000;
   const host = options.host ?? '127.0.0.1';
+  const { bodyLimit = '5mb' } = options;
 
   const app = express();
   app.use(cors());
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: bodyLimit }));
 
   // Track per-session resources: transport, subscription cleanup, and client IP
   type SessionEntry = { transport: InstanceType<typeof StreamableHTTPServerTransport>; clearSubscriptions: () => void; ip: string };
@@ -990,8 +994,9 @@ export async function runMCPServerHTTP(options: MCPHTTPServerOptions): Promise<v
 
   // Start the MCP HTTP server on its own port
   return new Promise((resolve) => {
-    app.listen(port, host, () => {
-      logger.info(`[MCP-HTTP] Server listening on http://${host}:${port}`);
+    const server = createHttpServer(app);
+    server.listen(port, host, () => {
+      logger.info(`[MCP-HTTP] HTTP server listening on ${host}:${port}`);
       logger.info(`[MCP-HTTP] Endpoint: http://${host}:${port}/mcp`);
       resolve();
     });

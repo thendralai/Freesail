@@ -44,14 +44,99 @@ freesail run gateway --mcp-mode stdio --http-port 3001
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `--config <file>` | `freesail.config.json` | Path to JSON config file |
 | `--mcp-mode <mode>` | `http` | MCP transport: `http` (standalone) or `stdio` (child process) |
 | `--mcp-port <port>` | `3000` | Port for MCP Streamable HTTP server (http mode only) |
 | `--mcp-host <host>` | `127.0.0.1` | Bind address for MCP server (http mode only) |
 | `--http-port <port>` | `3001` | Port for A2UI HTTP/SSE server |
-| `--webhook-url <url>` | — | Forward UI actions to this URL via HTTP POST |
+| `--http-host <host>` | `0.0.0.0` | Bind address for A2UI HTTP/SSE server |
 | `--log-file <file>` | — | Write logs to file (in addition to console) |
 | `--log-level <level>` | `info` | Minimum log level: `fatal` \| `error` \| `warn` \| `info` \| `debug` |
 | `--log-filter <f>` | — | Per-subsystem level override, e.g. `express:debug`. Repeatable. |
+
+### Config File
+
+All gateway settings can be provided via a JSON config file instead of (or alongside) CLI flags. **CLI flags take precedence over config file values.**
+
+By default the gateway looks for `freesail.config.json` in the current working directory. Override the path with `--config`:
+
+```bash
+freesail run gateway --config /etc/freesail/gateway.json
+```
+
+A sample config file is included in the package at `node_modules/@freesail/gateway/freesail.config.sample.json`. Copy and edit it as a starting point:
+
+```bash
+cp node_modules/@freesail/gateway/freesail.config.sample.json freesail.config.json
+```
+
+**Full config file reference:**
+
+```json
+{
+  "httpPort": 3001,
+  "httpHost": "0.0.0.0",
+  "mcpMode": "http",
+  "mcpPort": 3000,
+  "mcpHost": "127.0.0.1",
+  "webhookUrl": "http://localhost:3002/action",
+  "sessionTimeout": 1800000,
+  "catalogLogDir": "/var/log/freesail/catalogs",
+  "bodyLimit": "5mb",
+  "tls": {
+    "cert": "/path/to/cert.pem",
+    "key": "/path/to/key.pem",
+    "ca": "/path/to/ca.pem"
+  },
+  "log": {
+    "level": "info",
+    "file": "/var/log/freesail/gateway.log",
+    "filters": {
+      "express": "info",
+      "mcp": "warn",
+      "session": "info",
+      "session.agent-surface": "debug",
+      "session.client-surface": "warn"
+    }
+  }
+}
+```
+
+All fields are optional. Omit any you don't need and the defaults will apply.
+
+### HTTPS / TLS
+
+By default the gateway runs over plain HTTP. To enable HTTPS, set the `tls` block in the config file pointing to your certificate and private key:
+
+```json
+{
+  "tls": {
+    "cert": "/etc/ssl/certs/gateway.crt",
+    "key": "/etc/ssl/private/gateway.key"
+  }
+}
+```
+
+Both the A2UI server (port 3001) and the MCP HTTP server (port 3000) will use HTTPS when TLS is configured. The `ca` field is optional and only needed for custom certificate authorities.
+
+### Environment Variables
+
+The following environment variables are supported as an alternative to the config file for container/cloud deployments:
+
+| Variable | Description |
+|----------|-------------|
+| `CATALOG_LOG_DIR` | Directory to write catalog prompt logs to (overridden by `catalogLogDir` in config) |
+| `GATEWAY_PORT` | Used by the Vite dev proxy in the example app to point to the gateway |
+
+### Session Timeout
+
+By default, idle sessions are removed after **30 minutes**. Override via config file:
+
+```json
+{ "sessionTimeout": 3600000 }
+```
+
+Or keep the default and rely on the cleanup interval (1 minute) to remove stale sessions.
 
 ### Network Isolation
 
@@ -59,7 +144,7 @@ By default, the MCP server binds to `127.0.0.1` — only local processes can con
 
 ### Logging
 
-Logs are written to the console by default. Use `--log-file` to mirror them to a file (plain text, no ANSI colour codes, auto-creates directories):
+Logs are written to the console by default. Use `--log-file` (or `log.file` in config) to mirror them to a file:
 
 ```bash
 freesail run gateway --log-file logs/gateway.log
@@ -72,15 +157,14 @@ freesail run gateway --log-level warn          # only warnings and errors
 freesail run gateway --log-level debug         # maximum verbosity
 ```
 
-Fine-tune individual subsystems with `--log-filter <subsystem>=<level>` (repeatable). The three subsystems are `express`, `mcp`, and `session`:
+Fine-tune individual subsystems with `--log-filter <subsystem>:<level>` (repeatable):
 
 ```bash
 # Suppress routine HTTP events but keep full MCP debug output
 freesail run gateway --log-level warn --log-filter mcp:debug
 
-# Verbose session events to a file only, keep console at warn
-# (combine with --log-file; console gets warn, file gets debug)
-freesail run gateway --log-level warn --log-filter session:debug --log-file gateway.log
+# Verbose agent-surface events only
+freesail run gateway --log-filter session.agent-surface:debug
 ```
 
 | Subsystem | Covers |
@@ -88,6 +172,8 @@ freesail run gateway --log-level warn --log-filter session:debug --log-file gate
 | `express` | SSE connections, incoming actions, catalog registration |
 | `mcp` | Agent MCP tool calls, session handshake |
 | `session` | Surface creates/updates, data-model writes, stale-session cleanup |
+| `session.agent-surface` | Downstream messages sent to agents |
+| `session.client-surface` | Downstream messages sent to browser clients |
 
 ### How the Gateway Processes Requests
 

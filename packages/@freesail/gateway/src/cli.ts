@@ -7,6 +7,8 @@
  * their catalog definitions on connection.
  */
 
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { createSessionManager } from './session.js';
 import { createExpressServer, startExpressServer } from './express.js';
 import { createMCPServer, runMCPServer, runMCPServerHTTP } from './mcp.js';
@@ -16,6 +18,8 @@ import { configure, getConsoleSink, getFileSink, getTextFormatter, type LogLevel
  * CLI configuration.
  */
 interface CLIConfig {
+  /** Path to JSON config file (default: freesail.config.json in CWD) */
+  configFile?: string;
   /** MCP mode: 'stdio' or 'http' */
   mcpMode: 'stdio' | 'http';
   /** HTTP port for SSE server */
@@ -28,12 +32,53 @@ interface CLIConfig {
   mcpHost: string;
   /** Webhook URL for forwarding upstream messages. Undocumented for now */
   webhookUrl?: string;
+  /** Session timeout in ms */
+  sessionTimeout?: number;
+  /** Directory to write catalog prompt logs to */
+  catalogLogDir?: string;
+  /** JSON body size limit (default: '5mb') */
+  bodyLimit?: string;
   /** Path to log file */
   logFile?: string;
   /** Minimum log level to emit (default: info) */
   logLevel: LogLevel;
   /** Per-subsystem log level overrides: subsystem name → level */
   logFilters: Record<string, LogLevel>;
+}
+
+/**
+ * Shape of the optional JSON config file.
+ * All fields are optional; CLI flags take precedence over file values.
+ */
+interface FileConfig {
+  httpPort?: number;
+  httpHost?: string;
+  mcpPort?: number;
+  mcpHost?: string;
+  mcpMode?: 'stdio' | 'http';
+  webhookUrl?: string;
+  sessionTimeout?: number;
+  catalogLogDir?: string;
+  bodyLimit?: string;
+  log?: {
+    file?: string;
+    level?: LogLevel;
+    filters?: Record<string, LogLevel>;
+  };
+}
+
+/**
+ * Load and parse a JSON config file. Returns an empty object if the file does not exist.
+ */
+function loadConfigFile(configFile?: string): FileConfig {
+  const filePath = configFile ?? join(process.cwd(), 'freesail.config.json');
+  if (!existsSync(filePath)) return {};
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf-8')) as FileConfig;
+  } catch (err) {
+    console.error(`Failed to parse config file '${filePath}':`, err);
+    process.exit(1);
+  }
 }
 
 /**
@@ -54,6 +99,9 @@ function parseArgs(): CLIConfig {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     switch (arg) {
+      case '--config':
+        config.configFile = args[++i];
+        break;
       case '--http-port':
         config.httpPort = parseInt(args[++i] ?? '3001', 10);
         break;
@@ -119,6 +167,7 @@ Usage:
   freesail-gateway [options]
 
 Options:
+  --config <file>        Path to JSON config file (default: freesail.config.json in CWD)
   --http-port <port>     Port for the A2UI HTTP/SSE server (default: 3001)
   --http-host <host>     Host to bind the A2UI HTTP/SSE server to (default: 0.0.0.0)
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: http)
@@ -132,12 +181,21 @@ Options:
                          Dot-notation maps to nested categories (repeatable)
   --help                 Show this help message
 
+Config file (freesail.config.json) supports all of the above plus:
+  sessionTimeout         Session idle timeout in milliseconds (default: 1800000 = 30 min)
+  catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)
+  bodyLimit              JSON body size limit (default: "5mb")
+  log.file / log.level / log.filters  (same as CLI flags above)
+
+CLI flags take precedence over config file values.
+
 Catalogs are provided by clients on connection via the /register-catalogs endpoint.
 Upstream actions are queued per-session and exposed as MCP resources.
 If --webhook-url is set, actions are also forwarded via HTTP POST.
 
 Examples:
   freesail run gateway                                      # HTTP MCP on localhost:3000
+  freesail run gateway --config /etc/freesail/config.json  # custom config file
   freesail run gateway --mcp-mode stdio                     # stdio MCP mode
   freesail run gateway --mcp-port 4000                      # HTTP MCP on custom port
   freesail run gateway --http-port 8080
@@ -154,7 +212,27 @@ Examples:
  * Main entry point.
  */
 async function main(): Promise<void> {
-  const config = parseArgs();
+  // Parse CLI args first so we know if --config was supplied
+  const cliArgs = parseArgs();
+
+  // Load file config, then overlay CLI args on top (CLI wins)
+  const fileConfig = loadConfigFile(cliArgs.configFile);
+
+  const config: CLIConfig = {
+    configFile: cliArgs.configFile,
+    mcpMode: cliArgs.mcpMode !== 'http' ? cliArgs.mcpMode : (fileConfig.mcpMode ?? cliArgs.mcpMode),
+    httpPort: cliArgs.httpPort !== 3001 ? cliArgs.httpPort : (fileConfig.httpPort ?? cliArgs.httpPort),
+    httpHost: cliArgs.httpHost !== '0.0.0.0' ? cliArgs.httpHost : (fileConfig.httpHost ?? cliArgs.httpHost),
+    mcpPort: cliArgs.mcpPort !== 3000 ? cliArgs.mcpPort : (fileConfig.mcpPort ?? cliArgs.mcpPort),
+    mcpHost: cliArgs.mcpHost !== '127.0.0.1' ? cliArgs.mcpHost : (fileConfig.mcpHost ?? cliArgs.mcpHost),
+    webhookUrl: cliArgs.webhookUrl ?? fileConfig.webhookUrl,
+    sessionTimeout: cliArgs.sessionTimeout ?? fileConfig.sessionTimeout,
+    catalogLogDir: cliArgs.catalogLogDir ?? fileConfig.catalogLogDir,
+    bodyLimit: cliArgs.bodyLimit ?? fileConfig.bodyLimit,
+    logFile: cliArgs.logFile ?? fileConfig.log?.file,
+    logLevel: cliArgs.logLevel !== 'info' ? cliArgs.logLevel : (fileConfig.log?.level ?? cliArgs.logLevel),
+    logFilters: { ...(fileConfig.log?.filters ?? {}), ...cliArgs.logFilters },
+  };
 
   // Configure logging
   // If running in stdio mode, we MUST write logs to stderr to avoid corrupting the MCP protocol
@@ -196,7 +274,10 @@ async function main(): Promise<void> {
   logger.info('[Freesail] Waiting for client to provide catalogs...');
 
   // Create session manager
-  const sessionManager = createSessionManager();
+  const sessionManager = createSessionManager({
+    sessionTimeout: config.sessionTimeout,
+    catalogLogDir: config.catalogLogDir,
+  });
 
   // Start MCP server first to ensure action listeners are registered
   // before any clients connect to Express
@@ -210,6 +291,7 @@ async function main(): Promise<void> {
       sessionManager,
       port: config.mcpPort,
       host: config.mcpHost,
+      bodyLimit: config.bodyLimit,
     });
   }
 
@@ -217,6 +299,7 @@ async function main(): Promise<void> {
   const app = createExpressServer({
     sessionManager,
     webhookUrl: config.webhookUrl,
+    bodyLimit: config.bodyLimit,
     onUpstreamMessage: (sessionId, message) => {
       logger.info(`[Freesail] Upstream message (session=${sessionId}):`, JSON.stringify(message));
     },

@@ -1,0 +1,21 @@
+{
+  "httpPort": 3001,
+  "httpHost": "0.0.0.0",
+  "mcpMode": "http",
+  "mcpPort": 3000,
+  "mcpHost": "127.0.0.1",
+  "sessionTimeout": 1800000,
+  "catalogLogDir": "/var/log/freesail/catalogs",
+  "bodyLimit": "5mb",
+  "log": {
+    "level": "info",
+    "file": "/var/log/freesail/gateway.log",
+    "filters": {
+      "express": "info",
+      "mcp": "warn",
+      "session": "info",
+      "session.agent-surface": "debug",
+      "session.client-surface": "warn"
+    }
+  }
+}

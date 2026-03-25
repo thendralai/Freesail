@@ -15,8 +15,7 @@
  * import { WeatherCatalog } from '@freesail/weather-catalog';
  *
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/gateway"
  *   catalogDefinitions={[StandardCatalog, WeatherCatalog]}
  * >
  *   <App />
@@ -42,8 +41,7 @@ export const WEATHER_CATALOG_ID = catalogSchema.catalogId;
  *
  * ```tsx
  * <FreesailProvider
- *   sseUrl="/api/sse"
- *   postUrl="/api/message"
+ *   gateway="/api"
  *   catalogDefinitions={[WeatherCatalog]}
  * >
  * ```

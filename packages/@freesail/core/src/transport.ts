@@ -29,10 +29,8 @@ export type ConnectionState =
  * Transport configuration options.
  */
 export interface TransportOptions {
-  /** SSE endpoint URL for receiving downstream messages */
-  sseUrl: string;
-  /** HTTP endpoint URL for sending upstream messages */
-  postUrl: string;
+  /** Base gateway URL (e.g. 'http://localhost:3001'). SSE and POST endpoints are derived automatically. */
+  gateway: string;
   /** Client capabilities to announce on connection */
   capabilities?: A2UIClientCapabilities;
   /** Auto-reconnect on disconnect (default: true) */
@@ -63,7 +61,7 @@ export interface TransportEvents {
 
 type EventCallback<K extends keyof TransportEvents> = TransportEvents[K];
 
-const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'sseUrl' | 'postUrl' | 'capabilities'>> = {
+const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities'>> = {
   autoReconnect: true,
   reconnectDelay: 1000,
   maxReconnectDelay: 30000,
@@ -87,6 +85,9 @@ const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'sseUrl' | 'postUrl' | 'c
  */
 export class A2UITransport {
   private options: Required<Omit<TransportOptions, 'capabilities'>> & { capabilities?: A2UIClientCapabilities };
+
+  private get sseUrl(): string { return `${this.options.gateway}/sse`; }
+  private get postUrl(): string { return `${this.options.gateway}/message`; }
   private state: ConnectionState = 'disconnected';
   private eventSource: EventSource | null = null;
   private parser: A2UIParser;
@@ -140,7 +141,7 @@ export class A2UITransport {
     this.setState('connecting');
 
     try {
-      this.eventSource = new EventSource(this.options.sseUrl);
+      this.eventSource = new EventSource(this.sseUrl);
 
       this.eventSource.onopen = () => {
         this.setState('connected');
@@ -258,8 +259,7 @@ export class A2UITransport {
     }
 
     try {
-      // Derive base URL from postUrl
-      const baseUrl = new URL(this.options.postUrl).origin;
+      const baseUrl = this.options.gateway;
       const controller = new AbortController();
       const timeout = setTimeout(
         () => controller.abort(),
@@ -387,7 +387,7 @@ export class A2UITransport {
   private async registerSurfaceWithGateway(surfaceId: string): Promise<void> {
     if (!this._sessionId) return;
     try {
-      const baseUrl = new URL(this.options.postUrl).origin;
+      const baseUrl = this.options.gateway;
       await fetch(`${baseUrl}/register-surface`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -504,7 +504,7 @@ export class A2UITransport {
         bodyPayload['dataModel'] = dataModel;
       }
 
-      const response = await fetch(this.options.postUrl, {
+      const response = await fetch(this.postUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(bodyPayload),
