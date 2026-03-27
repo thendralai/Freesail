@@ -91,7 +91,7 @@ export async function run(): Promise<void> {
   const includeJsonPath = path.join(targetDir, 'src', 'includes', 'catalog.include.json');
   if (!fs.existsSync(includeJsonPath)) {
     console.error(`❌ Not a catalog directory: ${targetDir}`);
-    console.error('   Expected src/catalog.include.json to be present.');
+    console.error('   Expected src/includes/catalog.include.json to be present.');
     console.error('   Run from a catalog root or use --dir <path>.');
     process.exit(1);
   }

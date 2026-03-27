@@ -8,44 +8,48 @@ This guide explains how to create a custom Freesail catalog — a package that b
 npx freesail new catalog
 ```
 
-This scaffolds a complete catalog with all common components and functions pre-populated. You own every file and can modify them freely.
+This scaffolds a complete catalog package with a starter layout and a default import of the standard catalog's `Card` component. You own every file and can modify them freely.
 
 ## Generated Structure
 
 ```
-{name}_catalog/
+{name}-catalog/
   package.json
   tsconfig.json
   src/
-    {name}_catalog.json      # Generated — full resolved catalog (do not edit directly)
-    catalog.exclude.json      # List components/functions to exclude from the catalog
-    components.json           # Your custom component schemas
-    functions.json            # Your custom function schemas
-    components.tsx            # Your custom components + common imports
-    functions.ts              # Your custom functions + common imports
+    {name}-catalog.json      # Generated — full resolved catalog (do not edit directly)
     index.ts                  # Exports CatalogDefinition
-    common/
-      CommonComponents.tsx    # Common component implementations (yours to modify)
-      CommonFunctions.ts      # Common function implementations (yours to modify)
-      common_components.json  # Common component schemas
-      common_functions.json   # Common function schemas
-      common_types.json       # Shared A2UI type definitions
-    schemas/
-      catalog-schema.json     # JSON Schema for catalog validation
+    includes/
+      catalog.include.json   # Declare which packages to import from
+      generated-includes.ts  # Auto-generated bridge (do not edit)
+    components/
+      components.json        # Custom component schemas
+      components.tsx         # Custom component implementations
+    functions/
+      functions.json         # Custom function schemas
+      functions.ts           # Custom function implementations
 ```
-
-The common files under `src/common/` are copied from `@freesail/catalogs` at scaffold time. They form the baseline every agent relies on. You can modify them, but `formatString` must always exist.
 
 ### Catalog ID
 
 The `catalogId` in the generated catalog JSON is derived from the npm package name's org scope:
 
-- `@acme/weather_catalog` → `https://acme.local/catalogs/weather_catalog_v1.json`
-- `@sloop-3f2a1c/my_catalog` → `https://sloop-3f2a1c.local/catalogs/my_catalog_v1.json`
+- `@acme/weather-catalog` → `https://acme.local/catalogs/weather-catalog.json`
+- `@catamaran-4f8a2c/my-catalog` → `https://catamaran-4f8a2c.local/catalogs/my-catalog.json`
 
 During scaffolding, a random boat-type scope is generated as a default (e.g. `@catamaran-4f8a2c`). You can accept it or type your own org name. Replace the `.local` domain with a real one before publishing.
 
-No `freesail` block is needed in `package.json` — the `catalogId`, `title`, and `description` are all derived automatically. You can add a `freesail` block to override them if needed.
+To override the derived catalogId, add a `freesail` block to `package.json`:
+
+```json
+{
+  "freesail": {
+    "catalogId": "https://mycompany.com/catalogs/weather-catalog.json",
+    "title": "Weather Catalog",
+    "description": "Weather UI components"
+  }
+}
+```
 
 ### Build Pipeline
 
@@ -61,16 +65,47 @@ The generated `package.json` includes:
 }
 ```
 
-- **`freesail prepare catalog`** — merges common and custom schemas, applies exclusions, and writes `{name}_catalog.json`
+- **`freesail prepare catalog`** — reads `catalog.include.json`, merges imported and local schemas, and writes `{name}-catalog.json` and `generated-includes.ts`
 - **`freesail validate catalog`** — checks that every JSON-declared component/function has a matching implementation
 
 Both run automatically before each `npm run build`.
 
 ---
 
+## Importing from a Catalog Package
+
+The inclusion model lets you pull components and functions from any installed catalog package into your own catalog. This is the primary way to reuse the standard Freesail components.
+
+```bash
+npx freesail import catalog --package @freesail/standard-catalog
+```
+
+This command:
+1. Reads all components and functions from the installed package's catalog JSON
+2. Writes them into `src/includes/catalog.include.json`
+3. Re-runs `freesail prepare catalog`
+
+Edit `catalog.include.json` afterwards to remove anything you don't need:
+
+```json
+{
+  "includes": {
+    "@freesail/standard-catalog": {
+      "catalogPath": "dist/standard-catalog.json",
+      "components": ["Card", "Button", "TextInput"],
+      "functions": ["formatString"]
+    }
+  }
+}
+```
+
+You can import from multiple packages by running `freesail import catalog` once per package, or by editing `catalog.include.json` directly.
+
+---
+
 ## Step 1: Define Custom Schemas
 
-Add custom component schemas in `src/components.json`:
+Add custom component schemas in `src/components/components.json`:
 
 ```json
 {
@@ -78,8 +113,7 @@ Add custom component schemas in `src/components.json`:
     "StatusCard": {
       "type": "object",
       "allOf": [
-        { "$ref": "./common_types.json#/$defs/ComponentCommon" },
-        { "$ref": "#/$defs/CatalogComponentCommon" },
+        { "$ref": "#/$defs/ComponentCommon" },
         {
           "type": "object",
           "description": "A card displaying a status with a title, message, and severity level.",
@@ -101,7 +135,7 @@ Add custom component schemas in `src/components.json`:
 }
 ```
 
-Add custom function schemas in `src/functions.json`:
+Add custom function schemas in `src/functions/functions.json`:
 
 ```json
 {
@@ -127,36 +161,19 @@ After editing, run `npx freesail prepare catalog` to regenerate the resolved cat
 **Key rules:**
 - `components` keys are the component names agents will use (e.g. `"component": "StatusCard"`).
 - `description` fields are included in the agent's system prompt — write them clearly.
-- Use `allOf` with `ComponentCommon` and `CatalogComponentCommon` for consistent component structure.
-- Do not edit `{name}_catalog.json` directly — it is regenerated by `freesail prepare catalog`.
+- Use `allOf` with `$ref: "#/$defs/ComponentCommon"` for consistent component structure.
+- Do not edit `{name}-catalog.json` directly — it is regenerated by `freesail prepare catalog`.
 
 ---
 
-## Excluding Components and Functions
+## Step 2: Implement Components (`components/components.tsx`)
 
-To exclude common components or functions from the final catalog, list them in `src/catalog.exclude.json`:
-
-```json
-{
-  "components": ["Modal", "Spacer"],
-  "functions": ["pluralize", "openUrl"]
-}
-```
-
-Run `npx freesail prepare catalog` after editing. The prepare command will:
-- Remove the listed items from the merged catalog
-- Warn if an exclusion target doesn't exist (typo protection)
-- Warn if the mandatory `formatString` function is excluded
-
----
-
-## Step 2: Implement Components (`components.tsx`)
-
-The scaffolded file imports common components and spreads them into the export map. Add your custom components alongside:
+The scaffolded file imports included components from `generated-includes.ts` and spreads them into the export map. Add your custom components alongside:
 
 ```tsx
+import React, { type CSSProperties } from 'react';
 import type { FreesailComponentProps } from '@freesail/react';
-import { commonComponents } from './common/CommonComponents.js';
+import { includedComponents } from '../includes/generated-includes.js';
 
 export function StatusCard({ component, children }: FreesailComponentProps) {
   const title    = (component['title'] as string) ?? '';
@@ -170,12 +187,14 @@ export function StatusCard({ component, children }: FreesailComponentProps) {
     success: 'var(--freesail-success, #22c55e)',
   };
 
+  const style: CSSProperties = {
+    padding: '16px',
+    borderRadius: '8px',
+    border: `1px solid ${colors[severity] ?? colors['info']}`,
+  };
+
   return (
-    <div style={{
-      padding: '16px',
-      borderRadius: '8px',
-      border: `1px solid ${colors[severity] ?? colors.info}`,
-    }}>
+    <div style={style}>
       <strong>{title}</strong>
       {message && <p style={{ margin: '8px 0 0' }}>{message}</p>}
       {children}
@@ -184,7 +203,7 @@ export function StatusCard({ component, children }: FreesailComponentProps) {
 }
 
 export const myappCatalogComponents = {
-  ...commonComponents,
+  ...includedComponents,
   StatusCard,
 };
 ```
@@ -229,55 +248,29 @@ export function MyInput({ component, onDataChange }: FreesailComponentProps) {
 }
 ```
 
-### Validation (`checks`)
-
-The common `validateChecks` helper is available from `CommonComponents.tsx`:
-
-```tsx
-import { commonComponents, validateChecks } from './common/CommonComponents.js';
-
-export function MyInput({ component, onDataChange }: FreesailComponentProps) {
-  const checks = (component['checks'] as any[]) ?? [];
-  const validationError = validateChecks(checks);
-
-  return (
-    <div>
-      <input style={{ border: validationError ? '1px solid red' : undefined }} />
-      {validationError && (
-        <div style={{ color: 'var(--freesail-error, #ef4444)', fontSize: '12px' }}>
-          {validationError}
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
 ---
 
-## Step 3: Add Custom Functions (`functions.ts`)
+## Step 3: Add Custom Functions (`functions/functions.ts`)
 
-The scaffolded file re-exports common functions. Add custom functions alongside:
+The scaffolded file re-exports included functions. Add custom functions alongside:
 
 ```ts
 import type { FunctionImplementation } from '@freesail/react';
-import { commonFunctions } from './common/CommonFunctions.js';
+import { includedFunctions } from '../includes/generated-includes.js';
 
-const truncate: FunctionImplementation = {
-  execute: (args) => {
-    const value = String(args?.value ?? '');
-    const maxLength = Number(args?.maxLength ?? 100);
-    return value.length > maxLength ? value.slice(0, maxLength) + '…' : value;
-  },
+const truncate: FunctionImplementation = (args) => {
+  const value = String((args as Record<string, unknown>)?.['value'] ?? '');
+  const maxLength = Number((args as Record<string, unknown>)?.['maxLength'] ?? 100);
+  return value.length > maxLength ? value.slice(0, maxLength) + '…' : value;
 };
 
 export const myappCatalogFunctions = {
-  ...commonFunctions,
+  ...includedFunctions,
   truncate,
 };
 ```
 
-Remember to also declare the function in `src/functions.json` (see Step 1).
+Remember to also declare the function in `src/functions/functions.json` (see Step 1).
 
 ---
 
@@ -287,9 +280,9 @@ The scaffolded `index.ts` is ready to use:
 
 ```ts
 import type { CatalogDefinition } from '@freesail/react';
-import { myappCatalogComponents } from './components.js';
-import { myappCatalogFunctions } from './functions.js';
-import catalogSchema from './myapp_catalog.json';
+import { myappCatalogComponents } from './components/components.js';
+import { myappCatalogFunctions } from './functions/functions.js';
+import catalogSchema from './myapp-catalog.json';
 
 export const MyappCatalog: CatalogDefinition = {
   namespace: catalogSchema.catalogId,
@@ -299,7 +292,7 @@ export const MyappCatalog: CatalogDefinition = {
 };
 ```
 
-> **`formatString` is required.** The agent system prompt relies on it. Both `freesail prepare catalog` and `freesail validate catalog` will warn if it is missing from the catalog. It's included in `commonFunctions` by default.
+> **`formatString` is required.** The agent system prompt relies on it. Both `freesail prepare catalog` and `freesail validate catalog` will warn if it is missing. Import it from `@freesail/standard-catalog` via `catalog.include.json`, or implement it yourself.
 
 ---
 
@@ -308,8 +301,15 @@ export const MyappCatalog: CatalogDefinition = {
 The generated `package.json` runs both `freesail prepare catalog` and `freesail validate catalog` before every build. You can also run them manually:
 
 ```bash
-npx freesail prepare catalog   # Merge schemas and apply exclusions
-npx freesail validate catalog   # Check implementations match the schema
+npx freesail prepare catalog   # Merge schemas and regenerate catalog JSON
+npx freesail validate catalog  # Check implementations match the schema
+```
+
+Both commands accept `--dir <path>` to target a catalog in a different directory:
+
+```bash
+npx freesail prepare catalog --dir ./packages/my-catalog
+npx freesail validate catalog --dir ./packages/my-catalog
 ```
 
 Validation checks:
@@ -318,20 +318,6 @@ Validation checks:
 - `formatString` is present in the catalog (warns if missing).
 - Required schema fields (`catalogId`, `title`) are set.
 - Warns if `catalogId` uses a `.local` placeholder domain.
-
----
-
-## Modifying Common Files
-
-Since you own the common files in `src/common/`, you can:
-- **Add** properties to existing common components (edit `common_components.json` and `CommonComponents.tsx`)
-- **Exclude** components or functions you don't need (add them to `catalog.exclude.json`)
-- **Modify** function behavior (e.g. customize `formatDate` locale handling in `CommonFunctions.ts`)
-- **Override** theme utilities in `CommonComponents.tsx`
-
-The only hard constraint: **`formatString` must exist** in your function map.
-
-To get the latest common files (e.g. after a Freesail update), run `npx freesail new catalog` into a temporary directory and diff the common files against yours.
 
 ---
 

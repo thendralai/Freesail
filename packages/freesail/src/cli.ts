@@ -6,6 +6,7 @@
  * Usage:
  *   freesail validate catalog  — validate an existing catalog package
  *   freesail prepare catalog   — bundle catalog.json from catalog.include.json + local schemas
+ *   freesail import catalog    — add a package to catalog.include.json and re-prepare
  *   freesail run gateway       — start the Freesail gateway server
  *   freesail new catalog       — scaffold a new catalog package
  */
@@ -28,6 +29,12 @@ function printHelp(): void {
   console.log('');
   console.log('Options (new catalog):');
   console.log('  --dir, -d <path>          Target directory');
+  console.log('');
+  console.log('Options (prepare catalog):');
+  console.log('  --dir, -d <path>          Catalog root directory (default: current directory)');
+  console.log('');
+  console.log('Options (validate catalog):');
+  console.log('  --dir, -d <path>          Catalog root directory (default: current directory)');
   console.log('');
   console.log('Options (import catalog):');
   console.log('  --dir, -d <path>          Catalog root directory (default: current directory)');
