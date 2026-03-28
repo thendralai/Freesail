@@ -1,6 +1,6 @@
 {
   "name": "freesail-dev",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "private": true,
   "description": "A2UI based Agent-driven UI SDK",
   "scripts": {
@@ -8,8 +8,8 @@
     "sync": "node scripts/sync-versions.js",
     "build:core": "npm run build -w @freesail/logger && npm run build -w @freesail/core && npm run build -w @freesail/react",
     "build:cli": "npm run build:cli -w freesail",
-    "build:sdk": "npm run build -w freesail && npm run build -w @freesail/gateway && npm run build -w @freesail/agentruntime",
-    "build:catalogs": "npm run build -w @freesail/standard-catalog && npm run build -w @freesail/chat-catalog && npm run build -w @freesail-community/weathercatalog",
+    "build:sdk": "npm run build -w freesail && npm run build -w @freesail/gateway && npm run build -w @freesail/agent-runtime",
+    "build:catalogs": "npm run build -w @freesail/standard-catalog && npm run build -w @freesail/chat-catalog && npm run build -w @freesail-community/weather-catalog",
     "build": "npm run sync && npm run build:core && npm run build:cli && npm run build:catalogs && npm run build:sdk",
     "clean:publish": "rm -rf publish && mkdir publish",
     "pack:all": "npm run clean:publish && npm run pack:workspaces",

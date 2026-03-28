@@ -1,9 +1,8 @@
 /**
- * @fileoverview Common Theme & Validation Utilities
+ * @fileoverview Theme & Validation Utilities
  *
- * Non-component helpers shared across all Freesail catalogs.
- * Extracted from CommonComponents.tsx so that .tsx files export
- * only React components — required for Vite React Fast Refresh.
+ * Non-component helpers shared across Freesail catalogs.
+ * Exported publicly via the `@freesail/standard-catalog/utils` subpath.
  */
 
 import type { CSSProperties } from 'react';

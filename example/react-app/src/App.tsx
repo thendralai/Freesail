@@ -9,9 +9,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {ReactUI} from 'freesail';
 import { StandardCatalog } from '@freesail/standard-catalog';
 import { ChatCatalog } from '@freesail/chat-catalog';
-import { WeatherCatalog } from '@freesail-community/weathercatalog';
+import { WeatherCatalog } from '@freesail-community/weather-catalog';
 
-const CHAT_CATALOG_ID = 'https://freesail.dev/catalogs/chat_catalog_v1.json';
+const CHAT_CATALOG_ID = ChatCatalog.namespace;
 
 /**
  * Derive the gateway base URL.

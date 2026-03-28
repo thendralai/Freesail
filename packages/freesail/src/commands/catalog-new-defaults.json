@@ -15,29 +15,31 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
-      }
+      },
+      "./package.json": "./package.json"
     },
     "files": ["dist", "src/schemas", "LICENSE"],
     "scripts": {
       "prepare:catalog": "freesail prepare catalog",
       "build": "tsc",
+      "postbuild": "cp src/freesailconfig.json dist/ && cp src/*-catalog.json dist/",
       "dev": "tsc --watch",
       "clean": "rm -rf dist *.tsbuildinfo",
       "prebuild": "freesail prepare catalog && freesail validate catalog"
     },
     "peerDependencies": {
-      "@freesail/standard-catalog": "*",
-      "@freesail/react": "*",
+      "@freesail/standard-catalog": "0.4.6",
+      "@freesail/react": "0.4.6",
       "react": "^18.0.0 || ^19.0.0",
       "react-dom": "^18.0.0 || ^19.0.0"
     },
     "devDependencies": {
-      "@freesail/standard-catalog": "*",
-      "@freesail/react": "*",
+      "@freesail/standard-catalog": "0.4.6",
+      "@freesail/react": "0.4.6",
       "@types/react": "^18.0.0 || ^19.0.0",
       "react": "^18.0.0 || ^19.0.0",
       "react-dom": "^18.0.0 || ^19.0.0",
-      "freesail": "*"
+      "freesail": "0.4.6"
     },
     "license": "MIT"
   },

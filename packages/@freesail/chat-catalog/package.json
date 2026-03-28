@@ -1,6 +1,6 @@
 {
   "name": "@freesail/chat-catalog",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Freesail Chat UI Catalog",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,26 +20,27 @@
   "scripts": {
     "prepare:catalog": "freesail prepare catalog",
     "build": "tsc",
+    "postbuild": "cp src/freesailconfig.json dist/ && cp src/chat-catalog.json dist/",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "prebuild": "freesail prepare catalog && freesail validate catalog"
   },
   "keywords": [
+    "a2ui",
     "freesail",
     "catalog",
-    "chat",
-    "generative-ui",
-    "a2ui",
-    "react"
+    "agent-driven ui",
+    "generative ui",
+    "ai agent"
   ],
   "peerDependencies": {
-    "@freesail/standard-catalog": "*",
-    "@freesail/react": "*",
+    "@freesail/standard-catalog": "0.4.6",
+    "@freesail/react": "0.4.6",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@freesail/standard-catalog": "*",
-    "@freesail/react": "*",
+    "@freesail/standard-catalog": "0.4.6",
+    "@freesail/react": "0.4.6",
     "@types/react": "^18.2.0",
     "react": "^18.2.0"
   },
@@ -51,15 +52,6 @@
     "Shanmugam Sudalaimuthu"
   ],
   "license": "MIT",
-  "freesail": {
-    "catalogs": {
-      "chat": {
-        "catalogId": "https://freesail.dev/catalogs/chat_catalog_v1.json",
-        "title": "Freesail Chat Catalog",
-        "description": "Chat interface components for Freesail Agent-driven UI. Provides a complete chat experience as an A2UI surface."
-      }
-    }
-  },
   "publishConfig": {
     "access": "public"
   }

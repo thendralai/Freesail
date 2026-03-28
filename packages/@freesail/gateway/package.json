@@ -1,7 +1,7 @@
 {
   "name": "@freesail/gateway",
-  "version": "0.4.5",
-  "description": "Freesail Gateway - bridges AI Agents with frontend clients",
+  "version": "0.4.6",
+  "description": "Freesail Gateway - bridges the AI Agent with frontend",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,15 +28,15 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
+    "a2ui",
     "freesail",
-    "mcp",
-    "model-context-protocol",
-    "ai-agent",
-    "generative-ui"
+    "agent-driven ui",
+    "generative ui",
+    "ai agent"
   ],
   "dependencies": {
-    "@freesail/core": "^0.4.5",
-    "@freesail/logger": "^0.4.5",
+    "@freesail/core": "^0.4.6",
+    "@freesail/logger": "^0.4.6",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",

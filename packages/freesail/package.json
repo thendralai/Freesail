@@ -1,6 +1,6 @@
 {
   "name": "freesail",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Unified entry point for Freesail AI SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -21,9 +21,9 @@
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@freesail/core": "^0.4.5",
-    "@freesail/gateway": "^0.4.5",
-    "@freesail/react": "^0.4.5",
+    "@freesail/core": "^0.4.6",
+    "@freesail/gateway": "^0.4.6",
+    "@freesail/react": "^0.4.6",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1"
   },
@@ -40,13 +40,11 @@
     }
   },
   "keywords": [
-    "ai",
-    "freesail",
-    "generative-ui",
-    "mcp",
     "a2ui",
-    "agent",
-    "llm"
+    "freesail",
+    "agent-driven ui",
+    "generative ui",
+    "ai agent"
   ],
   "author": "Thendral AI Ltd",
   "contributors": [

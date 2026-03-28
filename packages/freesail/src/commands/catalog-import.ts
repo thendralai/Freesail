@@ -1,27 +1,22 @@
 /**
- * @fileoverview freesail import catalog
+ * @fileoverview freesail include catalog
  *
- * Adds or updates a package entry in `src/catalog.include.json` with all of
- * the package's components and functions, then re-runs `freesail prepare catalog`.
- * Edit catalog.include.json afterwards to remove anything you don't need.
+ * Reads `dist/freesailconfig.json` from an installed npm package and adds
+ * its components and functions to `src/includes/catalog.include.json`.
  *
  * Usage:
- *   freesail import catalog [options]
+ *   freesail include catalog [options]
  *
  * Options:
  *   --dir, -d <path>          Catalog root directory (default: CWD)
- *   --package, -p <name>      Package to import from
- *   --catalog-path <path>     Path to catalog JSON within the package
+ *   --package, -p <name>      Package to include from
  */
 
 import fs from 'fs';
 import path from 'path';
 import { createInterface } from 'readline';
-import {
-  buildCatalogConfig,
-  prepareCatalog,
-  resolvePackageCatalogJson,
-} from './catalog-prepare.js';
+import { pathToFileURL } from 'url';
+import { createRequire } from 'module';
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -30,11 +25,10 @@ import {
 interface ImportArgs {
   dir: string | undefined;
   pkg: string | undefined;
-  catalogPath: string | undefined;
 }
 
 function parseArgs(): ImportArgs {
-  const args = process.argv.slice(4); // strip: node freesail import catalog
+  const args = process.argv.slice(4); // strip: node freesail include catalog
   const get = (flags: string[]): string | undefined => {
     for (const flag of flags) {
       const idx = args.indexOf(flag);
@@ -48,7 +42,6 @@ function parseArgs(): ImportArgs {
   return {
     dir: get(['--dir', '-d']),
     pkg: get(['--package', '-p']),
-    catalogPath: get(['--catalog-path']),
   };
 }
 
@@ -56,25 +49,26 @@ function parseArgs(): ImportArgs {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function ask(rl: ReturnType<typeof createInterface>, question: string, defaultValue?: string): Promise<string> {
-  const prompt = defaultValue !== undefined ? `${question} [${defaultValue}]: ` : `${question}: `;
+function ask(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
   return new Promise((resolve) => {
-    rl.question(prompt, (answer) => {
-      resolve(answer.trim() || defaultValue || '');
-    });
+    rl.question(`${question}: `, (answer) => resolve(answer.trim()));
   });
 }
 
-/** Derive a default catalog JSON path from a package name.
- *  @freesail/standard-catalog → dist/StandardCatalog.json
- *  @scope/my-catalog          → dist/MyCatalog.json
- *  my-catalog                 → dist/MyCatalog.json
- */
-function defaultCatalogPath(packageName: string): string | undefined {
-  const bare = packageName.replace(/^@[^/]+\//, ''); // strip scope
-  const slugMatch = bare.match(/^(.+?)[-_]catalog/);
-  if (slugMatch) return `dist/${bare}.json`;
-  return undefined;
+/** Resolve the root directory of an installed package from `fromDir`. */
+function resolvePackageRoot(packageName: string, fromDir: string): string {
+  const require = createRequire(pathToFileURL(path.join(fromDir, '_')).href);
+  // Use resolve.paths() to get the node_modules search directories without
+  // needing to load the package (avoids ESM/CJS and exports field issues).
+  const searchPaths = require.resolve.paths(packageName) ?? [];
+  for (const searchDir of searchPaths) {
+    const pkgDir = path.join(searchDir, packageName);
+    if (fs.existsSync(path.join(pkgDir, 'package.json'))) return pkgDir;
+  }
+  throw new Error(
+    `Package "${packageName}" not found.\n` +
+    `   Run: npm install ${packageName}`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -88,11 +82,32 @@ export async function run(): Promise<void> {
   const targetDir = path.resolve(process.cwd(), cliArgs.dir ?? '.');
 
   // Verify this is a catalog directory
-  const includeJsonPath = path.join(targetDir, 'src', 'includes', 'catalog.include.json');
-  if (!fs.existsSync(includeJsonPath)) {
-    console.error(`❌ Not a catalog directory: ${targetDir}`);
-    console.error('   Expected src/includes/catalog.include.json to be present.');
+  const freesailConfigPath = path.join(targetDir, 'src', 'freesailconfig.json');
+  if (!fs.existsSync(freesailConfigPath)) {
+    console.error(`❌ No src/freesailconfig.json found in: ${targetDir}`);
     console.error('   Run from a catalog root or use --dir <path>.');
+    process.exit(1);
+  }
+
+  let freesailConfig: Record<string, unknown>;
+  try {
+    freesailConfig = JSON.parse(fs.readFileSync(freesailConfigPath, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    console.error(`❌ Failed to parse src/freesailconfig.json in: ${targetDir}`);
+    process.exit(1);
+  }
+
+  const targetCatalog = freesailConfig['catalog'] as Record<string, unknown> | undefined;
+  if (!targetCatalog?.['catalogFile']) {
+    console.error(`❌ Missing "catalog.catalogFile" in src/freesailconfig.json.`);
+    process.exit(1);
+  }
+
+  const srcPath = path.join(targetDir, 'src');
+  const includeJsonPath = path.join(srcPath, 'includes', 'catalog.include.json');
+  if (!fs.existsSync(includeJsonPath)) {
+    console.error(`❌ src/includes/catalog.include.json not found.`);
+    console.error('   Run freesail prepare catalog first.');
     process.exit(1);
   }
 
@@ -105,58 +120,81 @@ export async function run(): Promise<void> {
       console.error('Package name is required.');
       process.exit(1);
     }
+    rl.close();
 
-    // 2. Resolve catalogPath
-    const derivedPath = defaultCatalogPath(pkgName);
-    const resolvedCatalogPath =
-      cliArgs.catalogPath ??
-      (derivedPath ? derivedPath : await ask(rl, 'Path to catalog JSON within the package'));
-
-    if (!resolvedCatalogPath) {
-      console.error('Catalog JSON path is required.');
+    // 2. Find the installed package and read its dist/freesailconfig.json
+    let pkgRoot: string;
+    try {
+      pkgRoot = resolvePackageRoot(pkgName, srcPath);
+    } catch (err) {
+      console.error(`❌ ${(err as Error).message}`);
       process.exit(1);
     }
 
-    rl.close();
-
-    // 3. Try to load the catalog JSON from the installed package
-    let sourceJson: Record<string, unknown> | null = null;
-    try {
-      sourceJson = resolvePackageCatalogJson(pkgName, resolvedCatalogPath, path.join(targetDir, 'src'));
-    } catch {
-      // package not installed
+    const distFreesailConfigPath = path.join(pkgRoot, 'dist', 'freesailconfig.json');
+    if (!fs.existsSync(distFreesailConfigPath)) {
+      console.error(`❌ No dist/freesailconfig.json found in "${pkgName}".`);
+      console.error('   The package may not have been built with a recent version of the Freesail CLI.');
+      process.exit(1);
     }
 
-    if (!sourceJson) {
-      console.warn(`   ⚠  Package "${pkgName}" is not installed in this project.`);
-      console.warn(`      Install it first: npm install ${pkgName}`);
-      console.warn('      Then re-run this command.');
+    let pkgFreesailConfig: Record<string, unknown>;
+    try {
+      pkgFreesailConfig = JSON.parse(fs.readFileSync(distFreesailConfigPath, 'utf-8')) as Record<string, unknown>;
+    } catch {
+      console.error(`❌ Failed to parse dist/freesailconfig.json in "${pkgName}".`);
+      process.exit(1);
+    }
+
+    const pkgCatalog = pkgFreesailConfig['catalog'] as Record<string, unknown> | undefined;
+    if (!pkgCatalog?.['catalogFile']) {
+      console.error(`❌ No valid catalog entry in dist/freesailconfig.json of "${pkgName}".`);
+      process.exit(1);
+    }
+
+    // 3. Load the catalog JSON from the installed package (always in dist/)
+    const catalogFile = pkgCatalog['catalogFile'] as string;
+    const catalogPath = `dist/${catalogFile}`;
+    const catalogJsonPath = path.join(pkgRoot, catalogPath);
+
+    if (!fs.existsSync(catalogJsonPath)) {
+      console.error(`❌ Catalog file not found: ${catalogJsonPath}`);
+      process.exit(1);
+    }
+
+    let sourceJson: Record<string, unknown>;
+    try {
+      sourceJson = JSON.parse(fs.readFileSync(catalogJsonPath, 'utf-8')) as Record<string, unknown>;
+    } catch {
+      console.error(`❌ Failed to parse catalog JSON: ${catalogJsonPath}`);
       process.exit(1);
     }
 
     const components = Object.keys((sourceJson['components'] ?? {}) as Record<string, unknown>);
     const functions = Object.keys((sourceJson['functions'] ?? {}) as Record<string, unknown>);
 
-    // 4. Read existing catalog.include.json and upsert the entry
+    // 4. Upsert into catalog.include.json
     const existing = JSON.parse(fs.readFileSync(includeJsonPath, 'utf-8')) as {
       includes: Record<string, unknown>;
     };
 
-    const entry: Record<string, unknown> = { catalogPath: resolvedCatalogPath };
+    const entry: Record<string, unknown> = { catalogPath };
     if (components.length > 0) entry['components'] = components;
     if (functions.length > 0) entry['functions'] = functions;
-
     existing.includes[pkgName] = entry;
 
     fs.writeFileSync(includeJsonPath, JSON.stringify(existing, null, 2) + '\n');
-    console.log(`✅ Updated src/includes/catalog.include.json`);
-    console.log(`   Package:    ${pkgName}`);
+    console.log(`✅ Added "${pkgName}"`);
     if (components.length > 0) console.log(`   Components: ${components.length}`);
     if (functions.length > 0) console.log(`   Functions:  ${functions.length}`);
-    console.log('   Edit catalog.include.json to remove anything you don\'t need.\n');
+    console.log(`\n✅ Updated src/includes/catalog.include.json`);
 
-    // 5. Re-run prepare
-    prepareCatalog(buildCatalogConfig(targetDir, path.join(targetDir, 'src')));
+    if (components.length === 0 && functions.length === 0) {
+      console.warn('   ⚠  No components or functions were found in the included catalog.');
+    }
+
+    console.log('\n👉 Run the below command to update your catalog:');
+    console.log('   npx freesail prepare catalog');
   } finally {
     rl.close();
   }

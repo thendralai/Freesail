@@ -1,7 +1,7 @@
 import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { z } from 'zod';
-import { jsonSchemaToZod } from '@freesail/agentruntime';
+import { jsonSchemaToZod } from '@freesail/agent-runtime';
 import { logger } from '@freesail/logger';
 
 export class LangChainAdapter {

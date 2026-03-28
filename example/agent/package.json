@@ -1,6 +1,6 @@
 {
   "name": "freesail-agent-example",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "private": true,
   "description": "Example LangChain agent for Freesail — supports Gemini and OpenAI",
   "type": "module",
@@ -16,7 +16,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@freesail/agentruntime": "*",
+    "@freesail/agent-runtime": "*",
     "@freesail/logger": "*",
     "@langchain/core": "^1.1.32",
     "@langchain/google-genai": "^2.1.25",

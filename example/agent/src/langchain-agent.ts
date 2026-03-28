@@ -1,8 +1,8 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import type { FreesailAgent, ActionEvent } from '@freesail/agentruntime';
-import { SharedCache } from '@freesail/agentruntime';
+import type { FreesailAgent, ActionEvent } from '@freesail/agent-runtime';
+import { SharedCache } from '@freesail/agent-runtime';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { NativeLogger } from '@freesail/logger';
 

@@ -48,32 +48,15 @@ interface CatalogConfig {
   name: string;
   packagePath: string;
   srcPath: string;
-  /** null when catalog.include.json exists but prepare hasn't been run yet */
+  /** null when prepare hasn't been run yet */
   jsonFile: string | null;
   prefix: string;
+  catalogId?: string;
+  title?: string;
+  description?: string;
 }
 
-/** Find the generated catalog JSON in srcPath, trying kebab and legacy names. */
-function findJsonFile(srcPath: string, name: string): string | null {
-  const prefix = name.replace(/[-_]catalog$/, '').replace(/-/g, '_');
-  const candidates = [
-    `${name}.json`,
-    `${prefix}-catalog.json`,
-    `${prefix}_catalog.json`,
-    `${prefix}_catalog_v1.json`,
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(path.join(srcPath, candidate))) return candidate;
-  }
-  return null;
-}
 
-function buildCatalogConfig(packagePath: string, srcPath: string): CatalogConfig {
-  const name = path.basename(packagePath);
-  const prefix = name.replace(/[-_]catalog$/, '').replace(/-/g, '_');
-  const jsonFile = findJsonFile(srcPath, name);
-  return { name, packagePath, srcPath, jsonFile, prefix };
-}
 
 function parseDirArg(): string | undefined {
   const args = process.argv.slice(4);
@@ -82,28 +65,45 @@ function parseDirArg(): string | undefined {
   return undefined;
 }
 
+function buildConfigFromEntry(packageDir: string, entry: Record<string, unknown>): CatalogConfig {
+  const catalogFile = entry['catalogFile'] as string;
+  const srcPath = path.join(packageDir, 'src');
+  const name = path.basename(catalogFile, '.json');
+  const prefix = name.replace(/[-_]catalog$/, '').replace(/-/g, '_');
+  const absJsonPath = path.join(srcPath, catalogFile);
+  const jsonFile = fs.existsSync(absJsonPath) ? catalogFile : null;
+  return {
+    name, packagePath: packageDir, srcPath, jsonFile, prefix,
+    catalogId: entry['catalogId'] as string | undefined,
+    title: entry['title'] as string | undefined,
+    description: entry['description'] as string | undefined,
+  };
+}
+
 function discoverCatalogs(dir: string): CatalogConfig[] {
-  const srcPath = path.join(dir, 'src');
-
-  // Primary: dir itself contains src/includes/catalog.include.json
-  if (fs.existsSync(path.join(srcPath, 'includes', 'catalog.include.json'))) {
-    return [buildCatalogConfig(dir, srcPath)];
+  const configPath = path.join(dir, 'src', 'freesailconfig.json');
+  if (!fs.existsSync(configPath)) {
+    console.error(`❌ No src/freesailconfig.json found in: ${dir}`);
+    console.error(`   Run 'freesail new catalog' to scaffold a new catalog, or add src/freesailconfig.json manually.`);
+    process.exit(1);
   }
 
-  // Monorepo: scan src/ subdirectories for sub-catalogs each with includes/catalog.include.json
-  if (fs.existsSync(srcPath)) {
-    const catalogs: CatalogConfig[] = [];
-    for (const entry of fs.readdirSync(srcPath, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const subDir = path.join(srcPath, entry.name);
-      if (fs.existsSync(path.join(subDir, 'includes', 'catalog.include.json'))) {
-        catalogs.push(buildCatalogConfig(subDir, subDir));
-      }
-    }
-    if (catalogs.length > 0) return catalogs;
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    console.error(`❌ Failed to parse src/freesailconfig.json in: ${dir}`);
+    process.exit(1);
   }
 
-  return [];
+  const catalog = config['catalog'] as Record<string, unknown> | undefined;
+  if (!catalog?.['catalogFile']) {
+    console.error(`❌ Missing "catalog.catalogFile" in src/freesailconfig.json.`);
+    console.error(`   Expected: { "catalog": { "catalogFile": "my-catalog.json", ... } }`);
+    process.exit(1);
+  }
+
+  return [buildConfigFromEntry(dir, catalog)];
 }
 
 // ---------------------------------------------------------------------------
@@ -215,14 +215,14 @@ function extractIncludedNames(srcPath: string): { components: Set<string>; funct
   const components = new Set<string>();
   const functions = new Set<string>();
 
-  const compBlock = source.match(/export const includedComponents\s*=\s*\{([^}]*)\}/s);
+  const compBlock = source.match(/export const includedComponents[^=]*=\s*\{([^}]*)\}/s);
   if (compBlock?.[1]) {
     for (const m of compBlock[1].matchAll(/^\s+(\w+)\s*:/gm)) {
       if (m[1]) components.add(m[1]);
     }
   }
 
-  const fnBlock = source.match(/export const includedFunctions\s*=\s*\{([^}]*)\}/s);
+  const fnBlock = source.match(/export const includedFunctions[^=]*=\s*\{([^}]*)\}/s);
   if (fnBlock?.[1]) {
     for (const m of fnBlock[1].matchAll(/^\s+(\w+)\s*:/gm)) {
       if (m[1]) functions.add(m[1]);
@@ -562,21 +562,7 @@ export function run(): void {
   const dirArg = parseDirArg();
   const targetDir = dirArg ? path.resolve(process.cwd(), dirArg) : CWD;
 
-  if (dirArg && !fs.existsSync(path.join(targetDir, 'src', 'includes', 'catalog.include.json'))) {
-    console.error(`❌ Not a catalog directory: ${targetDir}`);
-    console.error('   Expected src/includes/catalog.include.json to be present.');
-    process.exit(1);
-  }
-
   const catalogs = discoverCatalogs(targetDir);
-
-  if (catalogs.length === 0) {
-    console.error(
-      '❌ No catalog found. Run from a catalog directory\n' +
-        '   (must contain src/includes/catalog.include.json), or use --dir <path>.'
-    );
-    process.exit(1);
-  }
 
   let allPassed = true;
   for (const config of catalogs) {

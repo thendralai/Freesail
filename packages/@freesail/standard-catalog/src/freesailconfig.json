@@ -1,0 +1,8 @@
+{
+  "catalog": {
+    "catalogFile": "standard-catalog.json",
+    "catalogId": "https://freesail.dev/catalogs/standard-catalog.json",
+    "title": "Freesail Standard Catalog",
+    "description": "Unified catalog of standard A2UI components and functions."
+  }
+}

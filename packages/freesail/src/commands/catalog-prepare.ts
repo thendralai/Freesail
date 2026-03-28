@@ -50,6 +50,9 @@ export interface CatalogConfig {
   packagePath: string;
   srcPath: string;
   prefix: string;
+  catalogId?: string;
+  title?: string;
+  description?: string;
 }
 
 interface CatalogMeta {
@@ -96,28 +99,43 @@ function parseDirArg(): string | undefined {
   return undefined;
 }
 
+export function buildConfigFromEntry(packageDir: string, entry: Record<string, unknown>): CatalogConfig {
+  const catalogFile = entry['catalogFile'] as string;
+  const srcPath = path.join(packageDir, 'src');
+  const name = path.basename(catalogFile, '.json');
+  const prefix = name.replace(/[-_]catalog$/, '').replace(/-/g, '_');
+  return {
+    name, packagePath: packageDir, srcPath, prefix,
+    catalogId: entry['catalogId'] as string | undefined,
+    title: entry['title'] as string | undefined,
+    description: entry['description'] as string | undefined,
+  };
+}
+
 function discoverCatalogs(dir: string): CatalogConfig[] {
-  const srcPath = path.join(dir, 'src');
-
-  // Primary: dir itself contains src/includes/catalog.include.json
-  if (fs.existsSync(path.join(srcPath, 'includes', 'catalog.include.json'))) {
-    return [buildCatalogConfig(dir, srcPath)];
+  const configPath = path.join(dir, 'src', 'freesailconfig.json');
+  if (!fs.existsSync(configPath)) {
+    console.error(`❌ No src/freesailconfig.json found in: ${dir}`);
+    console.error(`   Run 'freesail new catalog' to scaffold a new catalog, or add src/freesailconfig.json manually.`);
+    process.exit(1);
   }
 
-  // Monorepo: scan src/ subdirectories for sub-catalogs each with includes/catalog.include.json
-  if (fs.existsSync(srcPath)) {
-    const catalogs: CatalogConfig[] = [];
-    for (const entry of fs.readdirSync(srcPath, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const subDir = path.join(srcPath, entry.name);
-      if (fs.existsSync(path.join(subDir, 'includes', 'catalog.include.json'))) {
-        catalogs.push(buildCatalogConfig(subDir, subDir));
-      }
-    }
-    if (catalogs.length > 0) return catalogs;
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    console.error(`❌ Failed to parse src/freesailconfig.json in: ${dir}`);
+    process.exit(1);
   }
 
-  return [];
+  const catalog = config['catalog'] as Record<string, unknown> | undefined;
+  if (!catalog?.['catalogFile']) {
+    console.error(`❌ Missing "catalog.catalogFile" in src/freesailconfig.json.`);
+    console.error(`   Expected: { "catalog": { "catalogFile": "my-catalog.json", ... } }`);
+    process.exit(1);
+  }
+
+  return [buildConfigFromEntry(dir, catalog)];
 }
 
 // ---------------------------------------------------------------------------
@@ -164,62 +182,29 @@ function domainFromPackageName(packageName: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Metadata from package.json
+// Metadata from CatalogConfig (populated from freesailconfig.json)
 // ---------------------------------------------------------------------------
 
-function readCatalogMeta(packagePath: string, prefix: string): CatalogMeta {
-  const fallback: CatalogMeta = {
-    catalogId: `https://freesail.local/catalogs/${prefix.replace(/_/g, '-')}-catalog.json`,
-    title: `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Catalog`,
-    description: `A Freesail catalog for ${prefix}`,
-  };
+function readCatalogMeta(config: CatalogConfig): CatalogMeta {
+  const fallbackTitle = `${config.prefix.charAt(0).toUpperCase() + config.prefix.slice(1)} Catalog`;
+  const fallbackDesc = `A Freesail catalog for ${config.prefix}`;
 
-  // Walk up to find the nearest package.json
-  let dir = packagePath;
-  let pkgPath: string | null = null;
-  while (dir !== path.dirname(dir)) {
-    const candidate = path.join(dir, 'package.json');
-    if (fs.existsSync(candidate)) {
-      pkgPath = candidate;
-      break;
-    }
-    dir = path.dirname(dir);
-  }
-  if (!pkgPath) return fallback;
-
-  let pkg: Record<string, unknown>;
-  try {
-    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-  } catch {
-    return fallback;
+  // Derive catalogId from package.json name scope as fallback
+  let derivedCatalogId = `https://freesail.local/catalogs/${config.name}.json`;
+  const pkgPath = path.join(config.packagePath, 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as Record<string, unknown>;
+      const pkgName = (pkg['name'] as string) ?? '';
+      const domain = domainFromPackageName(pkgName);
+      derivedCatalogId = `https://${domain}/catalogs/${config.name}.json`;
+    } catch { /* use fallback */ }
   }
 
-  // Derive catalogId from package name org scope
-  const pkgName = (pkg['name'] as string) ?? '';
-  const domain = domainFromPackageName(pkgName);
-  const derivedCatalogId = `https://${domain}/catalogs/${prefix.replace(/_/g, '-')}-catalog.json`;
-
-  const freesail = pkg['freesail'] as Record<string, unknown> | undefined;
-  if (!freesail) {
-    return { ...fallback, catalogId: derivedCatalogId };
-  }
-
-  // Multi-catalog: freesail.catalogs.{prefix}
-  const catalogs = freesail['catalogs'] as Record<string, Record<string, string>> | undefined;
-  if (catalogs?.[prefix]) {
-    const meta = catalogs[prefix]!;
-    return {
-      catalogId: meta['catalogId'] ?? derivedCatalogId,
-      title: meta['title'] ?? fallback.title,
-      description: meta['description'] ?? fallback.description,
-    };
-  }
-
-  // Single catalog: optional overrides from freesail block
   return {
-    catalogId: (freesail['catalogId'] as string) ?? derivedCatalogId,
-    title: (freesail['title'] as string) ?? fallback.title,
-    description: (freesail['description'] as string) ?? fallback.description,
+    catalogId: config.catalogId ?? derivedCatalogId,
+    title: config.title ?? fallbackTitle,
+    description: config.description ?? fallbackDesc,
   };
 }
 
@@ -279,22 +264,21 @@ export function resolvePackageCatalogJson(
   catalogPath: string,
   fromDir: string,
 ): Record<string, unknown> {
-  // Anchor resolution to `fromDir` so workspace symlinks resolve correctly
   const require = createRequire(pathToFileURL(path.join(fromDir, '_')).href);
-
-  let pkgJsonPath: string;
-  try {
-    pkgJsonPath = require.resolve(`${packageName}/package.json`);
-  } catch {
+  const searchPaths = require.resolve.paths(packageName) ?? [];
+  let pkgRoot: string | undefined;
+  for (const searchDir of searchPaths) {
+    const candidate = path.join(searchDir, packageName);
+    if (fs.existsSync(path.join(candidate, 'package.json'))) { pkgRoot = candidate; break; }
+  }
+  if (!pkgRoot) {
     throw new Error(
       `Package "${packageName}" not found.\n` +
       `   Run: npm install ${packageName}`,
     );
   }
 
-  const pkgRoot = path.dirname(pkgJsonPath);
   const catalogJsonPath = path.join(pkgRoot, catalogPath);
-
   const catalog = readJsonSafe(catalogJsonPath);
   if (!catalog) {
     throw new Error(
@@ -398,10 +382,13 @@ function generateIncludesTs(includes: CatalogInclude, srcPath: string): void {
     '// AUTO-GENERATED BY FREESAIL CLI - DO NOT EDIT',
     '// Re-run `freesail prepare catalog` to regenerate this file.',
     '',
+    "import type { FreesailComponentProps, FunctionImplementation } from '@freesail/react';",
+    "import type React from 'react';",
+    '',
   ];
 
   interface PkgExports {
-    camelPrefix: string;
+    constName: string;
     components: string[];
     functions: string[];
   }
@@ -410,10 +397,11 @@ function generateIncludesTs(includes: CatalogInclude, srcPath: string): void {
 
   for (const [pkgName, entry] of Object.entries(includes.includes)) {
     const snakePrefix = derivePackagePrefix(pkgName);
-    // snake_case → camelCase: standard → standard, my_custom → myCustom
+    // snake_case → PascalCase: standard → Standard, my_custom → MyCustom
     const camelPrefix = snakePrefix.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    const pascalPrefix = camelPrefix.charAt(0).toUpperCase() + camelPrefix.slice(1);
     pkgMap.set(pkgName, {
-      camelPrefix,
+      constName: `${pascalPrefix}Catalog`,
       components: entry.components ?? [],
       functions: entry.functions ?? [],
     });
@@ -421,24 +409,49 @@ function generateIncludesTs(includes: CatalogInclude, srcPath: string): void {
 
   // Import lines — only import what is actually used
   for (const [pkgName, exports] of pkgMap) {
-    const named: string[] = [];
-    if (exports.components.length > 0) named.push(`${exports.camelPrefix}CatalogComponents`);
-    if (exports.functions.length > 0) named.push(`${exports.camelPrefix}CatalogFunctions`);
-    if (named.length > 0) {
-      lines.push(`import { ${named.join(', ')} } from '${pkgName}';`);
+    if (exports.components.length > 0 || exports.functions.length > 0) {
+      lines.push(`import { ${exports.constName} } from '${pkgName}';`);
     }
   }
 
   if (pkgMap.size > 0) lines.push('');
 
+  // Detect duplicate component/function names across packages and error early
+  const componentSeen = new Map<string, string>(); // name → pkgName
+  const conflicts: string[] = [];
+  for (const [pkgName, exports] of pkgMap) {
+    for (const name of exports.components) {
+      if (componentSeen.has(name)) {
+        conflicts.push(`  component "${name}" in both "${componentSeen.get(name)}" and "${pkgName}"`);
+      } else {
+        componentSeen.set(name, pkgName);
+      }
+    }
+  }
+  const functionSeen = new Map<string, string>(); // name → pkgName
+  for (const [pkgName, exports] of pkgMap) {
+    for (const name of exports.functions) {
+      if (functionSeen.has(name)) {
+        conflicts.push(`  function "${name}" in both "${functionSeen.get(name)}" and "${pkgName}"`);
+      } else {
+        functionSeen.set(name, pkgName);
+      }
+    }
+  }
+  if (conflicts.length > 0) {
+    throw new Error(
+      `Duplicate names in catalog.include.json — remove duplicates manually and then run npx freesail prepare catalog:\n${conflicts.join('\n')}`
+    );
+  }
+
   // includedComponents export
   const componentEntries: string[] = [];
   for (const [, exports] of pkgMap) {
     for (const name of exports.components) {
-      componentEntries.push(`  ${name}: ${exports.camelPrefix}CatalogComponents['${name}']!`);
+      componentEntries.push(`  ${name}: ${exports.constName}.components['${name}']!`);
     }
   }
-  lines.push('export const includedComponents = {');
+  lines.push('export const includedComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {');
   if (componentEntries.length > 0) {
     lines.push(componentEntries.join(',\n') + ',');
   }
@@ -448,11 +461,11 @@ function generateIncludesTs(includes: CatalogInclude, srcPath: string): void {
   const functionEntries: string[] = [];
   for (const [, exports] of pkgMap) {
     for (const name of exports.functions) {
-      functionEntries.push(`  ${name}: ${exports.camelPrefix}CatalogFunctions['${name}']!`);
+      functionEntries.push(`  ${name}: ${exports.constName}.functions!['${name}']!`);
     }
   }
   lines.push('');
-  lines.push('export const includedFunctions = {');
+  lines.push('export const includedFunctions: Record<string, FunctionImplementation> = {');
   if (functionEntries.length > 0) {
     lines.push(functionEntries.join(',\n') + ',');
   }
@@ -473,7 +486,7 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   console.log(`📦 Preparing: ${config.name}`);
 
   // 1. Read catalog metadata
-  const meta = readCatalogMeta(config.packagePath, config.prefix);
+  const meta = readCatalogMeta(config);
 
   // 2. Resolve schemas from catalog.include.json (opt-in inclusions)
   let importedComponents: Record<string, unknown> = {};
@@ -597,8 +610,9 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   catalog['$defs'] = finalDefs;
 
   const outputFile = `${config.name}.json`;
-  const outputPath = path.join(config.srcPath, outputFile);
-  fs.writeFileSync(outputPath, JSON.stringify(catalog, null, 2) + '\n');
+  const catalogJson = JSON.stringify(catalog, null, 2) + '\n';
+
+  fs.writeFileSync(path.join(config.srcPath, outputFile), catalogJson);
 
   const componentCount = Object.keys(mergedComponents).length;
   const functionCount = Object.keys(mergedFunctions).length;
@@ -624,21 +638,7 @@ export function run(): void {
   const dirArg = parseDirArg();
   const targetDir = dirArg ? path.resolve(process.cwd(), dirArg) : CWD;
 
-  if (dirArg && !fs.existsSync(path.join(targetDir, 'src', 'includes', 'catalog.include.json'))) {
-    console.error(`❌ Not a catalog directory: ${targetDir}`);
-    console.error('   Expected src/includes/catalog.include.json to be present.');
-    process.exit(1);
-  }
-
   const catalogs = discoverCatalogs(targetDir);
-
-  if (catalogs.length === 0) {
-    console.error(
-      '❌ No catalog found. Run this command from a catalog directory\n' +
-      '   (must contain src/includes/catalog.include.json), or use --dir <path>.',
-    );
-    process.exit(1);
-  }
 
   let allPassed = true;
   for (const config of catalogs) {

@@ -1,6 +1,6 @@
 {
   "name": "@freesail/standard-catalog",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Freesail Standard UI Component Catalog",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,37 +11,37 @@
       "import": "./dist/index.js"
     },
     "./utils": {
-      "types": "./dist/common/common-utils.d.ts",
-      "import": "./dist/common/common-utils.js"
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "src/schemas",
-    "src/common",
     "LICENSE"
   ],
   "scripts": {
     "prepare:catalog": "freesail prepare catalog",
     "build": "tsc",
+    "postbuild": "cp src/freesailconfig.json dist/ && cp src/standard-catalog.json dist/",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "prebuild": "freesail prepare catalog && freesail validate catalog"
   },
   "keywords": [
-    "freesail",
-    "catalog",
-    "generative-ui",
     "a2ui",
-    "react"
+    "freesail",
+    "agent-driven ui",
+    "generative ui",
+    "ai agent"
   ],
   "peerDependencies": {
-    "@freesail/react": "*",
+    "@freesail/react": "0.4.6",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@freesail/react": "*",
+    "@freesail/react": "0.4.6",
     "@types/react": "^18.2.0",
     "react": "^18.2.0"
   },
@@ -53,15 +53,6 @@
     "Shanmugam Sudalaimuthu"
   ],
   "license": "MIT",
-  "freesail": {
-    "catalogs": {
-      "standard": {
-        "catalogId": "https://freesail.dev/catalogs/standard_catalog_v1.json",
-        "title": "Freesail Standard Catalog",
-        "description": "Unified catalog of standard A2UI components and functions."
-      }
-    }
-  },
   "publishConfig": {
     "access": "public"
   }

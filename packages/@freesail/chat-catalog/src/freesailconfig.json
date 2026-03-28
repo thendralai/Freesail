@@ -1,0 +1,8 @@
+{
+  "catalog": {
+    "catalogFile": "chat-catalog.json",
+    "catalogId": "https://freesail.dev/catalogs/chat-catalog.json",
+    "title": "Freesail Chat Catalog",
+    "description": "Chat interface components for Freesail Agent-driven UI. Provides a complete chat experience as an A2UI surface."
+  }
+}

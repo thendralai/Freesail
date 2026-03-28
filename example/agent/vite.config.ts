@@ -14,7 +14,7 @@ export default defineConfig({
       { find: '@freesail/core', replacement: path.resolve(__dirname, '../../packages/@freesail/core/src') },
       { find: '@freesail/logger', replacement: path.resolve(__dirname, '../../packages/@freesail/logger/src') },
       { find: '@freesail/gateway', replacement: path.resolve(__dirname, '../../packages/@freesail/gateway/src') },
-      { find: '@freesail/agentruntime', replacement: path.resolve(__dirname, '../../packages/@freesail/agentruntime/src') },
+      { find: '@freesail/agent-runtime', replacement: path.resolve(__dirname, '../../packages/@freesail/agent-runtime/src') },
     ]
   },
   build: {

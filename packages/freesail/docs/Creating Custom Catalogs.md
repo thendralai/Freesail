@@ -77,7 +77,7 @@ Both run automatically before each `npm run build`.
 The inclusion model lets you pull components and functions from any installed catalog package into your own catalog. This is the primary way to reuse the standard Freesail components.
 
 ```bash
-npx freesail import catalog --package @freesail/standard-catalog
+npx freesail include catalog --package @freesail/standard-catalog
 ```
 
 This command:
@@ -99,7 +99,7 @@ Edit `catalog.include.json` afterwards to remove anything you don't need:
 }
 ```
 
-You can import from multiple packages by running `freesail import catalog` once per package, or by editing `catalog.include.json` directly.
+You can import from multiple packages by running `freesail include catalog` once per package, or by editing `catalog.include.json` directly.
 
 ---
 

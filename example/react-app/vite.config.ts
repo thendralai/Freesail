@@ -48,8 +48,8 @@ export default defineConfig({
     alias: [
       // Use array form — these take priority over package.json `exports`
       { find: 'freesail', replacement: path.resolve(__dirname, '../../packages/freesail/src') },
-      { find: '@freesail-community/weathercatalog', replacement: path.resolve(__dirname, '../../packages/@freesail-community/weather-catalog/src') },
-      { find: '@freesail/standard-catalog/utils', replacement: path.resolve(__dirname, '../../packages/@freesail/standard-catalog/src/common/common-utils.ts') },
+      { find: '@freesail-community/weather-catalog', replacement: path.resolve(__dirname, '../../packages/@freesail-community/weather-catalog/src') },
+      { find: '@freesail/standard-catalog/utils', replacement: path.resolve(__dirname, '../../packages/@freesail/standard-catalog/src/components/utils.ts') },
       { find: '@freesail/standard-catalog', replacement: path.resolve(__dirname, '../../packages/@freesail/standard-catalog/src') },
       { find: '@freesail/chat-catalog', replacement: path.resolve(__dirname, '../../packages/@freesail/chat-catalog/src') },
       { find: '@freesail/react', replacement: path.resolve(__dirname, '../../packages/@freesail/react/src') },
@@ -62,7 +62,7 @@ export default defineConfig({
       '@freesail/core',
       '@freesail/standard-catalog',
       '@freesail/chat-catalog',
-      '@freesail-community/weathercatalog',
+      '@freesail-community/weather-catalog',
     ]
   }
 });

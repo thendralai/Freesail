@@ -16,7 +16,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { z } from 'zod';
 import { NativeLogger, getConsoleSink, configure } from '@freesail/logger';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { FreesailAgentRuntime, SharedCache } from '@freesail/agentruntime';
+import { FreesailAgentRuntime, SharedCache } from '@freesail/agent-runtime';
 import { FreesailLangchainSessionAgent } from './langchain-agent.js';
 import { LangChainAdapter } from './langchain-adapter.js';
 

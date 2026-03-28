@@ -1,6 +1,6 @@
 {
   "name": "@freesail/logger",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Standard logging library for Freesail packages",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,9 +21,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "keywords": [
+    "a2ui",
     "freesail",
-    "logging",
-    "logtape"
+    "agent-driven ui",
+    "generative ui",
+    "ai agent"
   ],
   "license": "MIT",
   "publishConfig": {

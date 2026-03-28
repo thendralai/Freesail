@@ -21,31 +21,11 @@
 
 import type { CatalogDefinition } from '@freesail/react';
 import { standardCatalogComponents } from './components/components.js';
+import { standardCatalogFunctions } from './functions/functions.js';
 import catalogSchema from './standard-catalog.json';
 
-// Re-export all individual components for advanced usage
-export * from './components/components.js';
-export { standardCatalogComponents } from './components/components.js';
-export { standardCatalogFunctions } from './functions/functions.js';
-
-export const STANDARD_CATALOG_ID = catalogSchema.catalogId;
-
-/**
- * The standard catalog as a CatalogDefinition.
- *
- * Pass this to FreesailProvider's `catalogDefinitions` prop:
- *
- * ```tsx
- * <FreesailProvider
- *   gateway="/api"
- *   catalogDefinitions={[StandardCatalog]}
- * >
- * ```
- */
-import { standardCatalogFunctions } from './functions/functions.js';
-
 export const StandardCatalog: CatalogDefinition = {
-  namespace: STANDARD_CATALOG_ID,
+  namespace: catalogSchema.catalogId,
   schema: catalogSchema,
   components: standardCatalogComponents,
   functions: standardCatalogFunctions,

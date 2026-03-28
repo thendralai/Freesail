@@ -138,7 +138,7 @@ export const ${camelPrefix}CatalogFunctions: Record<string, FunctionImplementati
 `;
 }
 
-function generateIndexTs(prefix: string): string {
+function generateIndexTs(prefix: string, catalogName: string): string {
   const camelPrefix = prefix.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
   const pascalPrefix = camelPrefix.charAt(0).toUpperCase() + camelPrefix.slice(1);
   const constName = `${pascalPrefix}Catalog`;
@@ -150,7 +150,7 @@ function generateIndexTs(prefix: string): string {
 import type { CatalogDefinition } from '@freesail/react';
 import { ${camelPrefix}CatalogComponents } from './components/components.js';
 import { ${camelPrefix}CatalogFunctions } from './functions/functions.js';
-import catalogSchema from './${prefix}-catalog.json';
+import catalogSchema from './${catalogName}.json';
 
 export const ${constName}: CatalogDefinition = {
   namespace: catalogSchema.catalogId,
@@ -161,13 +161,30 @@ export const ${constName}: CatalogDefinition = {
 `;
 }
 
-function generatePackageJson(packageName: string, prefix: string): string {
+function generatePackageJson(packageName: string, description: string, catalogName: string): string {
   const pkg = {
     name: packageName,
-    description: `Freesail ${prefix} catalog`,
+    description,
     ...newDefaults.packageJson,
+    scripts: {
+      ...newDefaults.packageJson.scripts,
+      postbuild: `cp src/freesailconfig.json dist/ && cp src/${catalogName}.json dist/`,
+    },
   };
   return JSON.stringify(pkg, null, 2);
+}
+
+function generateFreesailConfig(
+  catalogName: string,
+  catalogId: string,
+  title: string,
+  description: string,
+): string {
+  return JSON.stringify(
+    { catalog: { catalogFile: `${catalogName}.json`, catalogId, title, description } },
+    null,
+    2,
+  ) + '\n';
 }
 
 function generateTsconfig(): string {
@@ -220,7 +237,7 @@ export async function run(): Promise<void> {
 
     const title = await ask(rl, 'Catalog title', `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Catalog`);
     const description = await ask(rl, 'Catalog description', `A custom Freesail catalog for ${prefix}`);
-    const packageName = await ask(rl, 'npm package name', `@${domain}/${prefix}_catalog`);
+    const packageName = await ask(rl, 'npm package name', `@${domain}/${prefix}-catalog`);
     const outputDir = dirArg ?? await ask(rl, 'Output directory', `./${prefix}-catalog`);
     if (dirArg) console.log(`Output directory: ${outputDir}`);
 
@@ -230,13 +247,14 @@ export async function run(): Promise<void> {
     const standardCatalogInstalled =
       tryLoadPackageCatalog(standardCatalog.package, standardCatalog.catalogPath) !== null;
 
-    // Derive catalogId from the package org scope
-    const catalogDomain = domainFromPackageName(packageName, domain);
-    const catalogId = `https://${catalogDomain}/catalogs/${prefix.replace(/_/g, '-')}-catalog.json`;
-
     // Resolve output path
     const outPath = path.resolve(process.cwd(), outputDir);
     const srcPath = path.join(outPath, 'src');
+
+    // Derive catalogId from the actual folder name and package org scope
+    const catalogName = path.basename(outPath);
+    const catalogDomain = domainFromPackageName(packageName, domain);
+    const catalogId = `https://${catalogDomain}/catalogs/${catalogName}.json`;
 
     if (fs.existsSync(outPath) && fs.readdirSync(outPath).length > 0) {
       console.error(`\n❌ Directory already exists and is not empty: ${outPath}`);
@@ -293,15 +311,21 @@ export async function run(): Promise<void> {
     fs.writeFileSync(path.join(srcPath, 'functions', 'functions.ts'), generateFunctionsTs(prefix));
     console.log('   📄 src/functions/functions.ts');
 
-    fs.writeFileSync(path.join(srcPath, 'index.ts'), generateIndexTs(prefix));
+    fs.writeFileSync(path.join(srcPath, 'index.ts'), generateIndexTs(prefix, catalogName));
     console.log('   📄 src/index.ts');
 
     // Generate package files
     fs.writeFileSync(
       path.join(outPath, 'package.json'),
-      generatePackageJson(packageName, prefix),
+      generatePackageJson(packageName, description, catalogName),
     );
     console.log('   📄 package.json');
+
+    fs.writeFileSync(
+      path.join(outPath, 'src', 'freesailconfig.json'),
+      generateFreesailConfig(catalogName, catalogId, title, description),
+    );
+    console.log('   📄 src/freesailconfig.json');
 
     fs.writeFileSync(path.join(outPath, 'tsconfig.json'), generateTsconfig());
     console.log('   📄 tsconfig.json');
@@ -327,12 +351,12 @@ export async function run(): Promise<void> {
       console.log('  npm install');
     }
     console.log('  npm run build');
-    console.log('\nAdd custom components in src/components.tsx');
-    console.log('  and define their schemas in src/components.json');
-    console.log('Add custom functions in src/functions.ts');
-    console.log('  and define their schemas in src/functions.json');
+    console.log('\nAdd custom components in src/components/components.tsx');
+    console.log('  and define their schemas in src/components/components.json');
+    console.log('Add custom functions in src/functions/functions.ts');
+    console.log('  and define their schemas in src/functions/functions.json');
     console.log('\nTo import components/functions from a catalog package, run:');
-    console.log('  npx freesail import catalog --package <name>');
+    console.log('  npx freesail include catalog --package <name>');
     console.log('\n⚠  Update the package scope (e.g. @myorg) before publishing.');
   } finally {
     rl.close();

@@ -31,7 +31,7 @@ src/
 To pull components and functions from an installed catalog package:
 
 ```bash
-npx freesail import catalog --package @freesail/standard-catalog
+npx freesail include catalog --package @freesail/standard-catalog
 ```
 
 ## Adding Components
@@ -52,7 +52,7 @@ npx freesail import catalog --package @freesail/standard-catalog
 | --- | --- |
 | `npx freesail prepare catalog` | Merge schemas and generate `weather-catalog.json` |
 | `npx freesail validate catalog` | Validate implementations match the catalog schema |
-| `npx freesail import catalog --package <name>` | Import components/functions from a catalog package |
+| `npx freesail include catalog --package <name>` | Include components/functions from a catalog package |
 | `npm run build` | Compile TypeScript (runs prepare + validate automatically) |
 | `npm run dev` | Watch mode for development |
 | `npm run clean` | Remove build artifacts |
