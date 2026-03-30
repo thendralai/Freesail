@@ -32,7 +32,7 @@ interface CLIConfig {
   mcpHost: string;
   /** Webhook URL for forwarding upstream messages. Undocumented for now */
   webhookUrl?: string;
-  /** Session timeout in ms */
+  /** Session timeout in minutes */
   sessionTimeout?: number;
   /** Directory to write catalog prompt logs to */
   catalogLogDir?: string;
@@ -120,6 +120,9 @@ function parseArgs(): CLIConfig {
       case '--webhook-url':
         config.webhookUrl = args[++i];
         break;
+      case '--session-timeout':
+        config.sessionTimeout = parseFloat(args[++i] ?? '30');
+        break;
       case '--log-file':
         config.logFile = args[++i];
         break;
@@ -173,6 +176,7 @@ Options:
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: http)
   --mcp-port <port>      Port for MCP Streamable HTTP server (default: 3000)
   --mcp-host <host>      Host to bind MCP HTTP server to (default: 127.0.0.1)
+  --session-timeout <m>  Session idle timeout in minutes (default: 30)
   --log-file <file>      Path to log file (default: logs to console/stderr only)
   --log-level <level>    Minimum log level: fatal|error|warn|info|debug (default: info)
   --log-filter <f>       Per-subsystem level override, e.g. express:debug or mcp:warn
@@ -182,7 +186,7 @@ Options:
   --help                 Show this help message
 
 Config file (freesail.config.json) supports all of the above plus:
-  sessionTimeout         Session idle timeout in milliseconds (default: 1800000 = 30 min)
+  sessionTimeout         Session idle timeout in minutes (default: 30)
   catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)
   bodyLimit              JSON body size limit (default: "5mb")
   log.file / log.level / log.filters  (same as CLI flags above)
@@ -275,7 +279,7 @@ async function main(): Promise<void> {
 
   // Create session manager
   const sessionManager = createSessionManager({
-    sessionTimeout: config.sessionTimeout,
+    sessionTimeout: config.sessionTimeout != null ? config.sessionTimeout * 60 * 1000 : undefined,
     catalogLogDir: config.catalogLogDir,
   });
 
