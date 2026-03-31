@@ -297,6 +297,7 @@ export type ClientErrorCode =
   | 'VALIDATION_FAILED'
   | 'SURFACE_NOT_FOUND'
   | 'COMPONENT_RENDER_FAILED'
+  | 'DATA_MODEL_UPDATE_FAILED'
   | string;
 
 /**

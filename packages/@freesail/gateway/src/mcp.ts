@@ -466,7 +466,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         surfaceId: z.string().describe('The surface to update'),
         sessionId: z.string().describe('Target client session ID'),
         path: z.string().optional().describe('JSON pointer to the data location (e.g., "/user/name"). Defaults to "/"'),
-        value: z.unknown().optional().describe('The value to set. If omitted, removes the key at path.'),
+        value: z.unknown().optional().describe('The value to set. Pass native objects/arrays/primitives — do NOT pass a JSON-encoded string (e.g. pass {"key":"val"}, not "{\"key\":\"val\"}"). If omitted, removes the key at path.'),
       },
     },
     async ({ surfaceId, sessionId, path, value }) => {
@@ -476,6 +476,21 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
           isError: true,
         };
+      }
+
+      // Reject JSON-encoded strings — agents must pass native objects, not serialized JSON.
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            value = JSON.parse(value);
+          } catch {
+            return {
+              content: [{ type: 'text', text: JSON.stringify({ success: false, error: `'value' appears to be a JSON-encoded string but could not be parsed. Pass a native object/array instead of a JSON string.` }) }],
+              isError: true,
+            };
+          }
+        }
       }
 
       // Reject writes to __-prefixed paths (reserved for client-side internal state)

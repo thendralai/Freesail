@@ -22,6 +22,7 @@ import {
   isDeleteSurfaceMessage,
   isGetDataModelMessage,
   type SurfaceManager,
+  type SurfaceError,
   type A2UITransport,
   type TransportOptions,
   type SurfaceId,
@@ -214,6 +215,11 @@ export function FreesailProvider({
       }
     });
 
+    // Forward surface manager errors upstream so the agent can react to them
+    const unsubError = surfaceManager.on('error', (error: SurfaceError) => {
+      newTransport.sendError(error.surfaceId, error.code, error.message, error.path);
+    });
+
     // Handle errors
     newTransport.on('error', (error: Error) => {
       console.error('[Freesail] Transport error:', error);
@@ -232,6 +238,7 @@ export function FreesailProvider({
       unsubSurfaceDeleted();
       unsubOrphan();
       unsubOrphanComponents();
+      unsubError();
       newTransport.disconnect();
       surfaceManager.dispose();
     };

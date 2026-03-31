@@ -292,7 +292,16 @@ export class SurfaceManager {
         this.removeAtJsonPointer(surface.dataModel, path);
       } else {
         // Set the value at path
-        this.setAtJsonPointer(surface.dataModel, path, value);
+        const ok = this.setAtJsonPointer(surface.dataModel, path, value);
+        if (!ok) {
+          this.emit('error', {
+            code: 'DATA_MODEL_UPDATE_FAILED',
+            message: `Cannot set value at path '${path}': an intermediate segment is not an object. Ensure parent paths are initialised as objects before setting nested values.`,
+            surfaceId,
+            path,
+          });
+          return false;
+        }
       }
     }
 
@@ -441,7 +450,7 @@ export class SurfaceManager {
     obj: Record<string, unknown>,
     pointer: JsonPointer,
     value: unknown
-  ): void {
+  ): boolean {
     const parts = pointer.split('/').filter((p) => p !== '');
     let current: Record<string, unknown> = obj;
 
@@ -450,6 +459,9 @@ export class SurfaceManager {
       if (!(part in current)) {
         current[part] = {};
       }
+      if (typeof current[part] !== 'object' || current[part] === null) {
+        return false;
+      }
       current = current[part] as Record<string, unknown>;
     }
 
@@ -457,6 +469,7 @@ export class SurfaceManager {
     if (lastPart) {
       current[lastPart] = value;
     }
+    return true;
   }
 
   private removeAtJsonPointer(
