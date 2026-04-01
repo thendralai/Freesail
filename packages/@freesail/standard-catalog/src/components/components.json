@@ -420,7 +420,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "ChoicePicker": {
+    "ChoicePickerSingleSelect": {
       "type": "object",
       "allOf": [
         {
@@ -434,10 +434,10 @@
         },
         {
           "type": "object",
-          "description": "A component that allows selecting one or more options from a list.",
+          "description": "A component that allows selecting exactly one option from a list of options.",
           "properties": {
             "component": {
-              "const": "ChoicePicker"
+              "const": "ChoicePickerSingleSelect"
             },
             "label": {
               "$ref": "./common/common_types.json#/$defs/DynamicString",
@@ -445,10 +445,84 @@
             },
             "variant": {
               "type": "string",
-              "description": "A hint for how the choice picker should be displayed and behave.",
+              "description": "How the choice picker should be displayed - a group of checkboxes or chips.",
               "enum": [
-                "multipleSelection",
-                "mutuallyExclusive"
+                "checkbox",
+                "chips"
+              ]
+            },
+            "options": {
+              "description": "The list of available options to choose from. Can be a literal array or a data binding to a list in the data model.",
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "description": "The text to display for this option.",
+                        "$ref": "./common/common_types.json#/$defs/DynamicString"
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "The stable value associated with this option."
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "$ref": "./common/common_types.json#/$defs/DataBinding"
+                }
+              ]
+            },
+            "value": {
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
+              "description": "The currently selected value. This should be bound to a string in the data model."
+            }
+          },
+          "required": [
+            "component",
+            "options",
+            "value"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ChoicePickerMultiSelect": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "./common/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        },
+        {
+          "$ref": "./common/common_types.json#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "description": "A component that allows selecting one or more options from a list of options.",
+          "properties": {
+            "component": {
+              "const": "ChoicePickerMultiSelect"
+            },
+            "label": {
+              "$ref": "./common/common_types.json#/$defs/DynamicString",
+              "description": "The label for the group of options."
+            },
+            "variant": {
+              "type": "string",
+              "description": "How the choice picker should be displayed - a group of checkboxes or chips.",
+              "enum": [
+                "checkbox",
+                "chips"
               ]
             },
             "options": {

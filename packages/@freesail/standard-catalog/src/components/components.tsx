@@ -417,14 +417,102 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
   );
 }
 
-export function ChoicePicker({ component, onDataChange }: FreesailComponentProps) {
+export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
-  const variant = (component['variant'] as string) ?? 'mutuallyExclusive';
+  const variant = (component['variant'] as string) ?? 'checkbox';
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
   const rawOptions = component['options'];
+  const options: Array<{ label: string; value: string }> = Array.isArray(rawOptions)
+    ? rawOptions.map((opt) => {
+      if (typeof opt === 'string') {
+        return { label: opt, value: opt.toLowerCase().replace(/\s+/g, '_') };
+      } else if (opt && typeof opt === 'object' && 'label' in opt && 'value' in opt) {
+        return { label: String(opt.label), value: String(opt.value) };
+      } else {
+        return { label: '', value: '' };
+      }
+    })
+    : [];
 
+  const rawValueList = component['value'];
+  const value: string = typeof rawValueList === 'string' ? rawValueList : (Array.isArray(rawValueList) && rawValueList.length > 0 ? rawValueList[0] : '');
+
+  const rawValue = component['__rawValue'] as { path?: string } | string[] | undefined;
+  const boundPath = (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue) && 'path' in rawValue) ? (rawValue as { path?: string }).path : null;
+
+  const [localValue, setLocalValue] = useState(value);
+  useEffect(() => { setLocalValue(value); }, [value]);
+
+  const handleRadioChange = (val: string) => {
+    setLocalValue(val);
+    const writePath = boundPath ?? `/input/${component.id}`;
+    if (onDataChange) {
+      onDataChange(writePath, val);
+    }
+  };
+
+  if (variant === 'chips') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {options.map((opt) => {
+            const selected = localValue === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleRadioChange(opt.value)}
+                style={{
+                  borderRadius: '9999px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
+                  backgroundColor: 'transparent',
+                  color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-main, #0f172a)',
+                  padding: selected ? '3px 11px' : '4px 12px',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {options.map((opt) => (
+          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name={component.id}
+              checked={localValue === opt.value}
+              onChange={() => handleRadioChange(opt.value)}
+            />
+            <span style={{ fontSize: '14px' }}>{opt.label}</span>
+          </label>
+        ))}
+      </div>
+      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+    </div>
+  );
+}
+
+export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailComponentProps) {
+  const label = String((component['label'] as string) ?? '');
+  const variant = (component['variant'] as string) ?? 'checkbox';
+  const checks = (component['checks'] as any[]) ?? [];
+  const validationError = validateChecks(checks);
+
+  const rawOptions = component['options'];
   const options: Array<{ label: string; value: string }> = Array.isArray(rawOptions)
     ? rawOptions.map((opt) => {
       if (typeof opt === 'string') {
@@ -444,27 +532,8 @@ export function ChoicePicker({ component, onDataChange }: FreesailComponentProps
   const boundPath = (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue) && 'path' in rawValue) ? (rawValue as { path?: string }).path : null;
 
   const [localValue, setLocalValue] = useState(value);
-
   const valueKey = JSON.stringify(value);
   useEffect(() => { setLocalValue(value); }, [valueKey]);
-
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newValue = [e.target.value];
-    setLocalValue(newValue);
-    const writePath = boundPath ?? `/input/${component.id}`;
-    if (onDataChange) {
-      onDataChange(writePath, newValue);
-    }
-  };
-
-  const handleRadioChange = (val: string) => {
-    const newValue = [val];
-    setLocalValue(newValue);
-    const writePath = boundPath ?? `/input/${component.id}`;
-    if (onDataChange) {
-      onDataChange(writePath, newValue);
-    }
-  };
 
   const handleCheckboxChange = (val: string, checked: boolean) => {
     let newValue = [...localValue];
@@ -480,41 +549,34 @@ export function ChoicePicker({ component, onDataChange }: FreesailComponentProps
     }
   };
 
-  if (variant === 'multipleSelection') {
+  if (variant === 'chips') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {options.map((opt) => (
-            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={localValue.includes(opt.value)}
-                onChange={(e) => handleCheckboxChange(opt.value, e.target.checked)}
-              />
-              <span style={{ fontSize: '14px' }}>{opt.label}</span>
-            </label>
-          ))}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {options.map((opt) => {
+            const selected = localValue.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleCheckboxChange(opt.value, !selected)}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
+                  backgroundColor: 'transparent',
+                  color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-main, #0f172a)',
+                  padding: selected ? '3px 11px' : '4px 12px',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
-        {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
-      </div>
-    );
-  }
-
-  if (options.length > 5) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {label && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
-        <select
-          value={localValue[0] ?? ''}
-          onChange={handleSelectChange}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', backgroundColor: 'var(--freesail-bg-root, #ffffff)', color: 'var(--freesail-text-main, #0f172a)' }}
-        >
-          <option value="" disabled>Select an option</option>
-          {options.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
         {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
       </div>
     );
@@ -527,10 +589,9 @@ export function ChoicePicker({ component, onDataChange }: FreesailComponentProps
         {options.map((opt) => (
           <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <input
-              type="radio"
-              name={component.id}
+              type="checkbox"
               checked={localValue.includes(opt.value)}
-              onChange={() => handleRadioChange(opt.value)}
+              onChange={(e) => handleCheckboxChange(opt.value, e.target.checked)}
             />
             <span style={{ fontSize: '14px' }}>{opt.label}</span>
           </label>
@@ -1697,7 +1758,8 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 // =============================================================================
 
 export const standardCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
-  Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, ChoicePicker, Modal, Spacer,
+  Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, Modal, Spacer,
+  ChoicePickerSingleSelect, ChoicePickerMultiSelect,
   GridLayout, Markdown, CheckBox, Image, Divider, List, Tab, TabGroup,
   Video, AudioPlayer, Slider, Dropdown, BarChart, LineChart, PieChart, Sparkline, StatCard,
 };
