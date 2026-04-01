@@ -286,6 +286,11 @@ export class SessionManager {
    * Returns an error string if invalid, null if OK.
    */
   validateCatalogForSession(sessionId: string, catalogId: string): string | null {
+    // Ensure the catalog is actually registered in the gateway
+    if (!this.catalogStore.has(catalogId)) {
+      return `Catalog '${catalogId}' is not registered in the gateway`;
+    }
+
     const session = this.sessions.get(sessionId);
     if (!session) return `Session ${sessionId} not found`;
 

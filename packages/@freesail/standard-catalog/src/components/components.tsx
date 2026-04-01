@@ -562,7 +562,6 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
                 type="button"
                 onClick={() => handleCheckboxChange(opt.value, !selected)}
                 style={{
-                  padding: '4px 12px',
                   borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: '14px',
