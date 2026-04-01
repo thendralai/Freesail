@@ -313,7 +313,14 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
             'deleteSurface' in message ? message.deleteSurface.surfaceId :
               null;
 
-    sessionManager.sendToSession(sessionId, message);
+    const writeSuccess = sessionManager.sendToSession(sessionId, message);
+    if (!writeSuccess) {
+      return {
+        success: false,
+        message,
+        error: `Failed to deliver message to session ${sessionId}. The client connection may have been lost.`,
+      };
+    }
 
     // Register surface→session mapping for createSurface
     if (surfaceId && 'createSurface' in message) {

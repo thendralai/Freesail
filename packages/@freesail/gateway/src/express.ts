@@ -255,15 +255,19 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         // Targeted send to one session
         const sent = sessionManager.sendToSession(sessionId, message as any);
         if (!sent) {
-          // Fallback: try surface-based routing, then broadcast
+          // Fallback: try surface-based routing
           const surfaceId = extractSurfaceId(message);
           if (surfaceId) {
             const surfaceSent = sessionManager.sendToSurface(surfaceId, message as any);
             if (!surfaceSent) {
               logger.warn(`[Express] Session ${sessionId} not found, and surface ${surfaceId} not found`);
+              res.status(404).json({ success: false, error: `Session ${sessionId} not found and surface ${surfaceId} has no active connection` });
+              return;
             }
           } else {
             logger.warn(`[Express] Session ${sessionId} not found, and no surfaceId provided`);
+            res.status(404).json({ success: false, error: `Session ${sessionId} not found` });
+            return;
           }
         } else {
           // Also register surface→session mapping for createSurface
@@ -274,7 +278,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
           logger.info(`[Express] Sent message to session ${sessionId}`);
         }
       } else {
-        // No session: try surface-based routing, then broadcast
+        // No session: try surface-based routing
         const surfaceId = extractSurfaceId(message);
         if (surfaceId) {
           const sent = sessionManager.sendToSurface(surfaceId, message as any);
@@ -282,9 +286,13 @@ export function createExpressServer(options: ExpressServerOptions): Express {
             logger.info(`[Express] Sent message to surface ${surfaceId}`);
           } else {
             logger.warn('[Express] Surface not mapped');
+            res.status(404).json({ success: false, error: `Surface ${surfaceId} has no active connection` });
+            return;
           }
         } else {
           logger.warn('[Express] No session or surface specified');
+          res.status(400).json({ success: false, error: 'No sessionId or surfaceId provided' });
+          return;
         }
       }
 

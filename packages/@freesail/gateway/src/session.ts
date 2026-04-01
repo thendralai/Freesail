@@ -830,7 +830,10 @@ export class SessionManager {
       getDataModel: { surfaceId },
     } as DownstreamMessage;
 
-    this.sendToSession(sessionId, message);
+    const sent = this.sendToSession(sessionId, message);
+    if (!sent) {
+      return Promise.reject(new Error(`Failed to send getDataModel request to session ${sessionId}: client connection may be lost`));
+    }
 
     const key = `${sessionId}:${surfaceId}`;
     return new Promise<Record<string, unknown>>((resolve, reject) => {
