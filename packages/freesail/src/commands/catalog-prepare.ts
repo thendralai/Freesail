@@ -144,8 +144,9 @@ function discoverCatalogs(dir: string): CatalogConfig[] {
 
 /**
  * Recursively rewrite $ref values in local schema files.
- * Local components.json / functions.json may use file-relative refs
- * (e.g. `./common_types.json#/$defs/Foo`) that need to become `#/$defs/Foo`.
+ * Any file-relative ref (e.g. `./common_types.json#/$defs/Foo`) is rewritten
+ * to an internal ref (`#/$defs/Foo`). The referenced file's $defs are
+ * collected separately by collectExternalRefs() and merged into localDefs.
  * Imported schemas from catalog packages already use internal refs and don't
  * need rewriting.
  */
@@ -156,15 +157,38 @@ function rewriteRefs(obj: unknown): unknown {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (key === '$ref' && typeof value === 'string') {
-      result[key] = value.replace(
-        /^(?:(?:\.\.\/common\/|\.\/common\/|\.\/)?common(?:_types|_components)|catalog)\.json(#.*)$/,
-        '$1',
-      );
+      result[key] = value.replace(/^\.\.?\/[^#]+\.json(#.*)$/, '$1');
     } else {
       result[key] = rewriteRefs(value);
     }
   }
   return result;
+}
+
+/**
+ * Walk a schema tree and collect all file-relative $ref paths.
+ * e.g. `./common_types.json#/$defs/Foo` → records filePath → Set{'Foo'}
+ * Used to discover which external files need to be read before rewriting refs.
+ */
+function collectExternalRefs(
+  obj: unknown,
+  baseDir: string,
+  refs: Map<string, Set<string>>,
+): void {
+  if (!obj || typeof obj !== 'object') return;
+  if (Array.isArray(obj)) { obj.forEach(i => collectExternalRefs(i, baseDir, refs)); return; }
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (key === '$ref' && typeof value === 'string') {
+      const match = value.match(/^(\.\.?\/[^#]+\.json)#\/\$defs\/(.+)$/);
+      if (match) {
+        const filePath = path.resolve(baseDir, match[1]!);
+        if (!refs.has(filePath)) refs.set(filePath, new Set());
+        refs.get(filePath)!.add(match[2]!);
+      }
+    } else {
+      collectExternalRefs(value, baseDir, refs);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -557,15 +581,41 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   const customComponentsJson = readJsonSafe(path.join(config.srcPath, 'components', 'components.json'));
   const customFunctionsJson = readJsonSafe(path.join(config.srcPath, 'functions', 'functions.json'));
 
+  // Resolve $defs from external files referenced by components.json / functions.json
+  const componentsDir = path.join(config.srcPath, 'components');
+  const functionsDir = path.join(config.srcPath, 'functions');
+  const externalRefs = new Map<string, Set<string>>();
+  collectExternalRefs(customComponentsJson, componentsDir, externalRefs);
+  collectExternalRefs(customFunctionsJson, functionsDir, externalRefs);
+
+  const externalDefs: Record<string, unknown> = {};
+  for (const [filePath, defNames] of externalRefs) {
+    const fileJson = readJsonSafe(filePath);
+    if (!fileJson) {
+      console.warn(`   ⚠  External $ref file not found: ${filePath}`);
+      continue;
+    }
+    const fileDefs = (fileJson['$defs'] ?? fileJson) as Record<string, unknown>;
+    for (const defName of defNames) {
+      if (defName in fileDefs) {
+        externalDefs[defName] = fileDefs[defName];
+        collectReferencedDefs(fileDefs[defName], fileDefs, externalDefs, new Set([defName]));
+      } else {
+        console.warn(`   ⚠  $def "${defName}" not found in ${path.basename(filePath)}`);
+      }
+    }
+  }
+
   const localComponents = rewriteRefs(
     customComponentsJson?.['components'] ?? {},
   ) as Record<string, unknown>;
   const localFunctions = rewriteRefs(
     customFunctionsJson?.['functions'] ?? {},
   ) as Record<string, unknown>;
-  const localDefs = rewriteRefs(
-    customComponentsJson?.['$defs'] ?? {},
-  ) as Record<string, unknown>;
+  const localDefs = rewriteRefs({
+    ...externalDefs,
+    ...(customComponentsJson?.['$defs'] ?? {}),
+  }) as Record<string, unknown>;
 
   // 4. Merge: imported has lower precedence; local overrides on collision
   const mergedComponents: Record<string, unknown> = { ...importedComponents, ...localComponents };
