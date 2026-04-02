@@ -4,7 +4,8 @@
   "mcpMode": "http",
   "mcpPort": 3000,
   "mcpHost": "127.0.0.1",
-  "sessionTimeout": 1800000,
+  "sessionTimeout": 1800,
+  "reconnectGracePeriod": 180,
   "catalogLogDir": "/var/log/freesail/catalogs",
   "bodyLimit": "5mb",
   "log": {

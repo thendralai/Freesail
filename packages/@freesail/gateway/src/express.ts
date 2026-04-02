@@ -82,19 +82,28 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
-    // Generate session ID
-    const sessionId = generateSessionId();
-
-    // Create session
-    const session = sessionManager.createSession(sessionId, {
+    const newResponse = {
       write: (data: string) => res.write(data),
       end: () => res.end(),
-    });
+    };
 
-    logger.info(`[Express] Client connected: ${sessionId}`);
+    // Attempt to resume an existing session if the client provides its prior session ID
+    const requestedSessionId = req.query['sessionId'] as string | undefined;
+    let sessionId: string;
+    let resumed = false;
+
+    if (requestedSessionId && sessionManager.resumeSession(requestedSessionId, newResponse)) {
+      sessionId = requestedSessionId;
+      resumed = true;
+      logger.info(`[Express] Session resumed: ${sessionId}`);
+    } else {
+      sessionId = generateSessionId();
+      sessionManager.createSession(sessionId, newResponse);
+      logger.info(`[Express] Client connected: ${sessionId}`);
+    }
 
     // Send initial connection message
-    res.write(`data: ${JSON.stringify({ connected: true, sessionId })}\n\n`);
+    res.write(`data: ${JSON.stringify({ connected: true, sessionId, ...(resumed && { resumed: true }) })}\n\n`);
 
     // Keep-alive ping every 30 seconds
     const pingInterval = setInterval(() => {
@@ -105,29 +114,11 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       }
     }, 30000);
 
-    // Handle client disconnect — single handler clears ping and removes session
+    // Handle client disconnect — suspend the session to allow reconnection within the grace period
     req.on('close', () => {
       clearInterval(pingInterval);
       logger.info(`[Express] Client disconnected: ${sessionId}`);
-
-      const agentId = sessionManager.getAgentForSession(sessionId);
-      if (agentId) {
-        // Store a disconnect notification so the claiming agent can observe the
-        // browser session going offline even after the session has been removed.
-        const disconnectEvent = {
-          version: 'v0.9' as const,
-          action: {
-            name: '__session_disconnected',
-            surfaceId: '__system' as const,
-            sourceComponentId: '__gateway',
-            timestamp: new Date().toISOString(),
-            context: { sessionId },
-          },
-        };
-        sessionManager.enqueueDisconnectNotification(agentId, sessionId, disconnectEvent as any);
-      }
-
-      sessionManager.removeSession(sessionId);
+      sessionManager.suspendSession(sessionId);
     });
   });
 

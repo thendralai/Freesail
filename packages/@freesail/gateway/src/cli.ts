@@ -32,8 +32,10 @@ interface CLIConfig {
   mcpHost: string;
   /** Webhook URL for forwarding upstream messages. Undocumented for now */
   webhookUrl?: string;
-  /** Session timeout in minutes */
+  /** Session timeout in seconds */
   sessionTimeout?: number;
+  /** Session resumption grace period in seconds */
+  reconnectGracePeriod?: number;
   /** Directory to write catalog prompt logs to */
   catalogLogDir?: string;
   /** JSON body size limit (default: '5mb') */
@@ -58,6 +60,7 @@ interface FileConfig {
   mcpMode?: 'stdio' | 'http';
   webhookUrl?: string;
   sessionTimeout?: number;
+  reconnectGracePeriod?: number;
   catalogLogDir?: string;
   bodyLimit?: string;
   log?: {
@@ -121,7 +124,10 @@ function parseArgs(): CLIConfig {
         config.webhookUrl = args[++i];
         break;
       case '--session-timeout':
-        config.sessionTimeout = parseFloat(args[++i] ?? '30');
+        config.sessionTimeout = parseFloat(args[++i] ?? '1800');
+        break;
+      case '--reconnect-grace-period':
+        config.reconnectGracePeriod = parseFloat(args[++i] ?? '180');
         break;
       case '--log-file':
         config.logFile = args[++i];
@@ -176,7 +182,8 @@ Options:
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: http)
   --mcp-port <port>      Port for MCP Streamable HTTP server (default: 3000)
   --mcp-host <host>      Host to bind MCP HTTP server to (default: 127.0.0.1)
-  --session-timeout <m>  Session idle timeout in minutes (default: 30)
+  --session-timeout <s>  Session idle timeout in seconds (default: 1800)
+  --reconnect-grace-period <s>  Session resumption window in seconds (default: 180)
   --log-file <file>      Path to log file (default: logs to console/stderr only)
   --log-level <level>    Minimum log level: fatal|error|warn|info|debug (default: info)
   --log-filter <f>       Per-subsystem level override, e.g. express:debug or mcp:warn
@@ -186,7 +193,8 @@ Options:
   --help                 Show this help message
 
 Config file (freesail.config.json) supports all of the above plus:
-  sessionTimeout         Session idle timeout in minutes (default: 30)
+  sessionTimeout         Session idle timeout in seconds (default: 1800)
+  reconnectGracePeriod   Session resumption window in seconds (default: 180)
   catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)
   bodyLimit              JSON body size limit (default: "5mb")
   log.file / log.level / log.filters  (same as CLI flags above)
@@ -231,6 +239,7 @@ async function main(): Promise<void> {
     mcpHost: cliArgs.mcpHost !== '127.0.0.1' ? cliArgs.mcpHost : (fileConfig.mcpHost ?? cliArgs.mcpHost),
     webhookUrl: cliArgs.webhookUrl ?? fileConfig.webhookUrl,
     sessionTimeout: cliArgs.sessionTimeout ?? fileConfig.sessionTimeout,
+    reconnectGracePeriod: cliArgs.reconnectGracePeriod ?? fileConfig.reconnectGracePeriod,
     catalogLogDir: cliArgs.catalogLogDir ?? fileConfig.catalogLogDir,
     bodyLimit: cliArgs.bodyLimit ?? fileConfig.bodyLimit,
     logFile: cliArgs.logFile ?? fileConfig.log?.file,
@@ -279,7 +288,8 @@ async function main(): Promise<void> {
 
   // Create session manager
   const sessionManager = createSessionManager({
-    sessionTimeout: config.sessionTimeout != null ? config.sessionTimeout * 60 * 1000 : undefined,
+    sessionTimeout: config.sessionTimeout != null ? config.sessionTimeout * 1000 : undefined,
+    reconnectGracePeriod: config.reconnectGracePeriod != null ? config.reconnectGracePeriod * 1000 : undefined,
     catalogLogDir: config.catalogLogDir,
   });
 

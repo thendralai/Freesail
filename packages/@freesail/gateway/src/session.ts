@@ -84,6 +84,8 @@ export interface SessionManagerOptions {
   sessionTimeout?: number;
   /** Cleanup interval in ms (default: 1 minute) */
   cleanupInterval?: number;
+  /** Grace period in ms to hold a session open after SSE disconnect, allowing reconnection (default: 30 seconds) */
+  reconnectGracePeriod?: number;
   /** Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var) */
   catalogLogDir?: string;
 }
@@ -91,6 +93,7 @@ export interface SessionManagerOptions {
 const DEFAULT_OPTIONS: Required<Omit<SessionManagerOptions, 'catalogLogDir'>> = {
   sessionTimeout: 30 * 60 * 1000,
   cleanupInterval: 60 * 1000,
+  reconnectGracePeriod: 180 * 1000,
 };
 
 /**
@@ -114,6 +117,7 @@ export class SessionManager {
   private options: Required<Omit<SessionManagerOptions, 'catalogLogDir'>>;
   private catalogLogDir: string | undefined;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+  private pendingReconnects: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(options: SessionManagerOptions = {}) {
     const { catalogLogDir, ...rest } = options;
@@ -517,6 +521,13 @@ export class SessionManager {
   removeSession(id: string): void {
     const session = this.sessions.get(id);
     if (session) {
+      // Cancel any pending reconnect grace timer
+      const pendingTimer = this.pendingReconnects.get(id);
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        this.pendingReconnects.delete(id);
+      }
+
       // Clean up surface mappings
       for (const surfaceId of session.surfaces) {
         this.surfaceToSession.delete(surfaceId);
@@ -559,6 +570,61 @@ export class SessionManager {
       // Emit lifecycle event
       this.emitSessionEvent('sessionRemoved', id);
     }
+  }
+
+  /**
+   * Suspend a session after its SSE connection drops.
+   * Ends the SSE response and starts a grace period timer. If the client does
+   * not reconnect within the grace period, removeSession() is called and the
+   * claiming agent (if any) is notified of the disconnect.
+   */
+  suspendSession(id: string): void {
+    const session = this.sessions.get(id);
+    if (!session) return;
+
+    session.response.end();
+
+    const timer = setTimeout(() => {
+      this.pendingReconnects.delete(id);
+
+      const agentId = this.sessionToAgent.get(id);
+      if (agentId) {
+        this.enqueueDisconnectNotification(agentId, id, {
+          version: 'v0.9' as const,
+          action: {
+            name: '__session_disconnected',
+            surfaceId: '__system' as SurfaceId,
+            sourceComponentId: '__gateway',
+            timestamp: new Date().toISOString(),
+            context: { sessionId: id },
+          },
+        } as UpstreamMessage);
+      }
+
+      this.removeSession(id);
+    }, this.options.reconnectGracePeriod);
+
+    this.pendingReconnects.set(id, timer);
+  }
+
+  /**
+   * Resume a suspended session by swapping in a new SSE response.
+   * Cancels the grace period timer and resets lastActivity.
+   * Returns true if the session was found and resumed, false otherwise.
+   */
+  resumeSession(id: string, newResponse: ClientSession['response']): boolean {
+    const session = this.sessions.get(id);
+    if (!session) return false;
+
+    const timer = this.pendingReconnects.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.pendingReconnects.delete(id);
+    }
+
+    session.response = newResponse;
+    session.lastActivity = Date.now();
+    return true;
   }
 
   /**
@@ -794,6 +860,11 @@ export class SessionManager {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
+
+    for (const timer of this.pendingReconnects.values()) {
+      clearTimeout(timer);
+    }
+    this.pendingReconnects.clear();
 
     for (const session of this.sessions.values()) {
       session.response.end();

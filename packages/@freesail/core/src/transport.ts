@@ -86,7 +86,12 @@ const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities
 export class A2UITransport {
   private options: Required<Omit<TransportOptions, 'capabilities'>> & { capabilities?: A2UIClientCapabilities };
 
-  private get sseUrl(): string { return `${this.options.gateway}/sse`; }
+  private get sseUrl(): string {
+    if (this._sessionId) {
+      return `${this.options.gateway}/sse?sessionId=${encodeURIComponent(this._sessionId)}`;
+    }
+    return `${this.options.gateway}/sse`;
+  }
   private get postUrl(): string { return `${this.options.gateway}/message`; }
   private state: ConnectionState = 'disconnected';
   private eventSource: EventSource | null = null;
@@ -173,6 +178,8 @@ export class A2UITransport {
       this.eventSource = null;
     }
 
+    // Clear session ID on deliberate disconnect so a future connect() starts a fresh session.
+    this._sessionId = null;
     this.setState('disconnected');
   }
 
@@ -407,7 +414,8 @@ export class A2UITransport {
       this.eventSource = null;
     }
 
-    this._sessionId = null;
+    // Keep _sessionId so the reconnect attempt can request the same session from the gateway.
+    // It is only cleared on an explicit disconnect() call.
     this.parser.reset();
 
     if (this.options.autoReconnect && this.state !== 'disconnected') {
