@@ -73,7 +73,7 @@ function App() {
   return (
     <FreesailProvider
       gateway="/api"
-      catalogDefinitions={[{{pascalPrefix}}Catalog]}
+      catalogs={[{{pascalPrefix}}Catalog]}
     >
       {/* your app */}
     </FreesailProvider>

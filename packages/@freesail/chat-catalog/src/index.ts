@@ -12,7 +12,7 @@
  *
  * <FreesailProvider
  *   gateway="/api"
- *   catalogDefinitions={[ChatCatalog]}
+ *   catalogs={[ChatCatalog]}
  * >
  *   <FreesailSurface surfaceId="__chat" />
  * </FreesailProvider>
@@ -32,12 +32,12 @@ export const CHAT_CATALOG_ID = catalogSchema.catalogId;
 /**
  * The chat catalog as a CatalogDefinition.
  *
- * Pass this to FreesailProvider's `catalogDefinitions` prop:
+ * Pass this to FreesailProvider's `catalogs` prop:
  *
  * ```tsx
  * <FreesailProvider
  *   gateway="/gateway"
- *   catalogDefinitions={[ChatCatalog]}
+ *   catalogs={[ChatCatalog]}
  * >
  *   <FreesailSurface surfaceId="__chat" />
  * </FreesailProvider>

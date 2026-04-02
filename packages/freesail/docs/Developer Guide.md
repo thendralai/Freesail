@@ -209,7 +209,7 @@ function App() {
     <ReactUI.FreesailProvider
       sseUrl="http://localhost:3001/sse"
       postUrl="http://localhost:3001/message"
-      catalogDefinitions={CATALOGS}
+      catalogs={CATALOGS}
     >
       <MainLayout />
     </ReactUI.FreesailProvider>

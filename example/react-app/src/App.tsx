@@ -99,7 +99,7 @@ function App() {
       <ReactUI.FreesailThemeProvider theme={activeTheme}>
         <ReactUI.FreesailProvider
           gateway={getGatewayUrl()}
-          catalogDefinitions={ALL_CATALOGS}
+          catalogs={ALL_CATALOGS}
           onConnectionChange={(connected) => {
             console.log('Connection status:', connected);
           }}

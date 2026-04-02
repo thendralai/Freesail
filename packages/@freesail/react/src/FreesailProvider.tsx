@@ -43,18 +43,14 @@ export interface FreesailProviderProps {
   children: ReactNode;
   /** Base gateway URL (e.g. 'http://localhost:3001'). SSE and POST endpoints are derived automatically. */
   gateway: string;
-  /** List of supported catalog IDs */
-  catalogs?: CatalogId[];
   /**
-   * Array of custom catalog definitions to register.
+   * Array of catalogs to register.
    * Each definition bundles a namespace, schema, and component map.
    * Components are auto-registered on mount.
    */
-  catalogDefinitions?: CatalogDefinition[];
+  catalogs?: CatalogDefinition[];
   /** Additional transport options */
   transportOptions?: Partial<Omit<TransportOptions, 'gateway' | 'capabilities'>>;
-  /** Auto-connect on mount (default: true) */
-  autoConnect?: boolean;
   /** Callback when connection state changes */
   onConnectionChange?: (connected: boolean) => void;
   /** Callback when an error occurs */
@@ -71,9 +67,7 @@ export function FreesailProvider({
   children,
   gateway,
   catalogs = [],
-  catalogDefinitions = [],
   transportOptions,
-  autoConnect = true,
   onConnectionChange,
   onError,
 }: FreesailProviderProps) {
@@ -86,18 +80,16 @@ export function FreesailProvider({
   // without needing to be recreated when callbacks change
   const onConnectionChangeRef = useRef(onConnectionChange);
   const onErrorRef = useRef(onError);
-  const catalogDefinitionsRef = useRef(catalogDefinitions);
-  const autoConnectRef = useRef(autoConnect);
+  const catalogsRef = useRef(catalogs);
   useEffect(() => {
     onConnectionChangeRef.current = onConnectionChange;
     onErrorRef.current = onError;
-    catalogDefinitionsRef.current = catalogDefinitions;
-    autoConnectRef.current = autoConnect;
+    catalogsRef.current = catalogs;
   });
 
   // Register custom catalog definitions
   useEffect(() => {
-    for (const def of catalogDefinitions) {
+    for (const def of catalogs) {
       registerCatalog(
         def.namespace as CatalogId,
         def.components as Record<string, FreesailComponent>,
@@ -105,14 +97,11 @@ export function FreesailProvider({
         def.schema as Record<string, unknown> | undefined
       );
     }
-  }, [catalogDefinitions]);
+  }, [catalogs]);
 
-  // Merge explicit catalog IDs with catalog definition namespaces
   const mergedCatalogs = useMemo(() => {
-    const definitionIds = catalogDefinitions.map((d) => d.namespace as CatalogId);
-    const combined = [...catalogs, ...definitionIds];
-    return Array.from(new Set(combined));
-  }, [catalogs, catalogDefinitions]);
+    return catalogs.map((d) => d.namespace as CatalogId);
+  }, [catalogs]);
 
   // Build capabilities from catalogs
   const capabilities: A2UIClientCapabilities | undefined = useMemo(() => {
@@ -199,7 +188,7 @@ export function FreesailProvider({
 
     // When session starts, register catalog schemas with the gateway
     newTransport.on('sessionStart', (_sessionId: string) => {
-      const defs = catalogDefinitionsRef.current;
+      const defs = catalogsRef.current;
       if (defs.length > 0) {
         const schemas = defs
           .map((def) => def.schema)
@@ -228,10 +217,7 @@ export function FreesailProvider({
 
     setTransport(newTransport);
 
-    // Auto-connect if enabled
-    if (autoConnectRef.current) {
-      newTransport.connect();
-    }
+    newTransport.connect();
 
     // Cleanup
     return () => {

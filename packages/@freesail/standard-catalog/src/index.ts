@@ -12,7 +12,7 @@
  *
  * <FreesailProvider
  *   gateway="/gateway"
- *   catalogDefinitions={[StandardCatalog]}
+ *   catalogs={[StandardCatalog]}
  * >
  *   <App />
  * </FreesailProvider>
