@@ -157,7 +157,7 @@ function rewriteRefs(obj: unknown): unknown {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (key === '$ref' && typeof value === 'string') {
-      result[key] = value.replace(/^\.\.?\/[^#]+\.json(#.*)$/, '$1');
+      result[key] = value.replace(/^(?:\.\.?\/[^#]+|catalog)\.json(#.*)$/, '$1');
     } else {
       result[key] = rewriteRefs(value);
     }
@@ -595,15 +595,17 @@ export function prepareCatalog(config: CatalogConfig): boolean {
       console.warn(`   ⚠  External $ref file not found: ${filePath}`);
       continue;
     }
-    const fileDefs = (fileJson['$defs'] ?? fileJson) as Record<string, unknown>;
+    const rawFileDefs = (fileJson['$defs'] ?? fileJson) as Record<string, unknown>;
+    const rawCollected: Record<string, unknown> = {};
     for (const defName of defNames) {
-      if (defName in fileDefs) {
-        externalDefs[defName] = fileDefs[defName];
-        collectReferencedDefs(fileDefs[defName], fileDefs, externalDefs, new Set([defName]));
+      if (defName in rawFileDefs) {
+        rawCollected[defName] = rawFileDefs[defName];
+        collectReferencedDefs(rawFileDefs[defName], rawFileDefs, rawCollected, new Set([defName]));
       } else {
         console.warn(`   ⚠  $def "${defName}" not found in ${path.basename(filePath)}`);
       }
     }
+    Object.assign(externalDefs, rewriteRefs(rawCollected) as Record<string, unknown>);
   }
 
   const localComponents = rewriteRefs(
