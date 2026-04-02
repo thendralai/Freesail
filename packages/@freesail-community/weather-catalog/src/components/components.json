@@ -11,7 +11,7 @@
         },
         {
           "type": "object",
-          "description": "A comprehensive weather summary card for a location. Key properties: location (required), temperature (required), condition (required, e.g. sunny/cloudy/rainy), unit (C/F, default C), humidity (0-100), windSpeed, windUnit (km/h/mph/m/s), feelsLike, background (CSS color override).",
+          "description": "A comprehensive weather summary card for a location. Key properties: location (required), temperature (required), condition (required, e.g. sunny/cloudy/rainy), unit (C/F, default C), humidity (0-100), windSpeed, windUnit (km/h/mph/m/s), feelsLike, background (CSS color override). User-Writable: false.",
           "properties": {
             "component": {
               "const": "WeatherCard"
@@ -96,7 +96,7 @@
         },
         {
           "type": "object",
-          "description": "A single row in a weather forecast, showing the day's conditions. Key properties: day (required, e.g. 'Mon', 'Today'), high (required), low (required), condition (required), unit (C/F, default C), precipitation (chance percentage 0-100).",
+          "description": "A single row in a weather forecast, showing the day's conditions. Key properties: day (required, e.g. 'Mon', 'Today'), high (required), low (required), condition (required), unit (C/F, default C), precipitation (chance percentage 0-100). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ForecastRow"
@@ -163,7 +163,7 @@
         },
         {
           "type": "object",
-          "description": "A container panel that groups ForecastRow children into a titled forecast list. Key properties: children (required, array of ForecastRow IDs or a template), title (default 'Forecast').",
+          "description": "A container panel that groups ForecastRow children into a titled forecast list. Key properties: children (required, array of ForecastRow IDs or a template), title (default 'Forecast'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ForecastPanel"
@@ -197,7 +197,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a temperature value with its unit symbol. Key properties: value (required, numeric temperature), unit (C/F, default C), size (sm/md/lg/xl, default lg), color (CSS color).",
+          "description": "Renders a temperature value with its unit symbol. Key properties: value (required, numeric temperature), unit (C/F, default C), size (sm/md/lg/xl, default lg), color (CSS color). User-Writable: false.",
           "properties": {
             "component": {
               "const": "TemperatureDisplay"
@@ -250,7 +250,7 @@
         },
         {
           "type": "object",
-          "description": "Displays a weather condition icon. Key properties: condition (required, e.g. sunny/cloudy/rainy/stormy/snowy/foggy/windy), size (sm/md/lg/xl, default md), animated (boolean, default false).",
+          "description": "Displays a weather condition icon. Key properties: condition (required, e.g. sunny/cloudy/rainy/stormy/snowy/foggy/windy), size (sm/md/lg/xl, default md), animated (boolean, default false). User-Writable: false.",
           "properties": {
             "component": {
               "const": "WeatherIcon"
@@ -305,7 +305,7 @@
         },
         {
           "type": "object",
-          "description": "Displays wind speed and direction. Key properties: speed (required), unit (km/h/mph/m/s, default km/h), direction (cardinal, e.g. N/NE/E/SE/S/SW/W/NW), gustSpeed.",
+          "description": "Displays wind speed and direction. Key properties: speed (required), unit (km/h/mph/m/s, default km/h), direction (cardinal, e.g. N/NE/E/SE/S/SW/W/NW), gustSpeed. User-Writable: false.",
           "properties": {
             "component": {
               "const": "WindIndicator"
@@ -362,7 +362,7 @@
         },
         {
           "type": "object",
-          "description": "A gauge that visualizes the current humidity level. Key properties: value (required, percentage 0-100), label (default 'Humidity').",
+          "description": "A gauge that visualizes the current humidity level. Key properties: value (required, percentage 0-100), label (default 'Humidity'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "HumidityGauge"
@@ -396,7 +396,7 @@
         },
         {
           "type": "object",
-          "description": "Displays the current UV index with a visual indicator. Key properties: value (required, 0-11+), label (default 'UV Index').",
+          "description": "Displays the current UV index with a visual indicator. Key properties: value (required, 0-11+), label (default 'UV Index'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "UVIndex"
@@ -430,7 +430,7 @@
         },
         {
           "type": "object",
-          "description": "Displays a weather alert or warning banner. Key properties: severity (required, info/advisory/watch/warning), title (required), message (alert description), expires (expiry time).",
+          "description": "Displays a weather alert or warning banner. Key properties: severity (required, info/advisory/watch/warning), title (required), message (alert description), expires (expiry time). User-Writable: false.",
           "properties": {
             "component": {
               "const": "WeatherAlert"
@@ -478,7 +478,7 @@
         },
         {
           "type": "object",
-          "description": "Shows sunrise and sunset times with an optional sun position indicator. Key properties: sunrise (required, e.g. '6:32 AM'), sunset (required, e.g. '7:15 PM'), currentTime (for positioning the sun indicator).",
+          "description": "Shows sunrise and sunset times with an optional sun position indicator. Key properties: sunrise (required, e.g. '6:32 AM'), sunset (required, e.g. '7:15 PM'), currentTime (for positioning the sun indicator). User-Writable: false.",
           "properties": {
             "component": {
               "const": "SunriseSunset"
@@ -516,7 +516,7 @@
         },
         {
           "type": "object",
-          "description": "Displays the Air Quality Index (AQI) with an optional primary pollutant. Key properties: value (required, AQI 0-500), label (default 'Air Quality'), pollutant (e.g. 'PM2.5', 'O3').",
+          "description": "Displays the Air Quality Index (AQI) with an optional primary pollutant. Key properties: value (required, AQI 0-500), label (default 'Air Quality'), pollutant (e.g. 'PM2.5', 'O3'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "AirQuality"

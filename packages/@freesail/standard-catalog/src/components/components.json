@@ -11,7 +11,7 @@
         },
         {
           "type": "object",
-          "description": "Renders text content. Key properties: text (required), variant (h1/h2/h3/h4/h5/caption/body), size (CSS font-size), weight (CSS font-weight), color (CSS color).",
+          "description": "Renders text content. Key properties: text (required), variant (h1/h2/h3/h4/h5/caption/body), size (CSS font-size), weight (CSS font-weight), color (CSS color). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Text"
@@ -65,7 +65,7 @@
         },
         {
           "type": "object",
-          "description": "Displays a Material Design icon. Key properties: name (required, a Material Icon name in camelCase).",
+          "description": "Displays a Material Design icon. Key properties: name (required, a Material Icon name in camelCase). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Icon"
@@ -118,7 +118,7 @@
         },
         {
           "type": "object",
-          "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls vertical alignment).",
+          "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls vertical alignment). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Row"
@@ -179,7 +179,7 @@
         },
         {
           "type": "object",
-          "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls horizontal alignment of children; default is 'start'; set to 'stretch' for list layouts where children should fill the full width).",
+          "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls horizontal alignment of children; default is 'start'; set to 'stretch' for list layouts where children should fill the full width). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Column"
@@ -240,7 +240,7 @@
         },
         {
           "type": "object",
-          "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)').",
+          "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Card"
@@ -286,7 +286,7 @@
         },
         {
           "type": "object",
-          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default true). Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default true).",
+          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default true). Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default true). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Modal"
@@ -323,7 +323,7 @@
         },
         {
           "type": "object",
-          "description": "A clickable button that triggers an action. Key properties: action (required), label (text for the button), child (ID of a child component, e.g. Icon), variant (primary/secondary/outline/borderless/danger; default is 'primary' which uses the theme's primary color).",
+          "description": "A clickable button that triggers an action. Key properties: action (required), label (text for the button), child (ID of a child component, e.g. Icon), variant (primary/secondary/outline/borderless/danger; default is 'primary' which uses the theme's primary color). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Button"
@@ -375,7 +375,7 @@
         },
         {
           "type": "object",
-          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label — use this when the TextField is inside a GridLayout where column headers already describe the field), min/max (numeric bounds, only used when variant is 'number').",
+          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label — use this when the TextField is inside a GridLayout where column headers already describe the field), min/max (numeric bounds, only used when variant is 'number'). User-Writable: true.",
           "properties": {
             "component": {
               "const": "TextField"
@@ -434,7 +434,7 @@
         },
         {
           "type": "object",
-          "description": "A component that allows selecting exactly one option from a list of options.",
+          "description": "A component that allows selecting exactly one option from a list of options. User-Writable: true.",
           "properties": {
             "component": {
               "const": "ChoicePickerSingleSelect"
@@ -508,7 +508,7 @@
         },
         {
           "type": "object",
-          "description": "A component that allows selecting one or more options from a list of options.",
+          "description": "A component that allows selecting one or more options from a list of options. User-Writable: true.",
           "properties": {
             "component": {
               "const": "ChoicePickerMultiSelect"
@@ -582,7 +582,7 @@
         },
         {
           "type": "object",
-          "description": "A date and/or time picker input. Key properties: value (required, ISO 8601 format), enableDate, enableTime, min, max, label.",
+          "description": "A date and/or time picker input. Key properties: value (required, ISO 8601 format), enableDate, enableTime, min, max, label. User-Writable: true.",
           "properties": {
             "component": {
               "const": "DateTimeInput"
@@ -675,7 +675,7 @@
         },
         {
           "type": "object",
-          "description": "An empty space component used for layout and spacing.",
+          "description": "An empty space component used for layout and spacing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Spacer"
@@ -723,7 +723,7 @@
         },
         {
           "type": "object",
-          "description": "Displays an image. Key properties: url (required), fit (contain/cover/fill/none/scale-down), variant (icon/avatar/smallFeature/mediumFeature/largeFeature/header).",
+          "description": "Displays an image. Key properties: url (required), fit (contain/cover/fill/none/scale-down), variant (icon/avatar/smallFeature/mediumFeature/largeFeature/header). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Image"
@@ -775,7 +775,7 @@
         },
         {
           "type": "object",
-          "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs).",
+          "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Video"
@@ -809,7 +809,7 @@
         },
         {
           "type": "object",
-          "description": "An audio player that supports direct audio file URLs and embedded third-party players (e.g. Spotify, SoundCloud).",
+          "description": "An audio player that supports direct audio file URLs and embedded third-party players (e.g. Spotify, SoundCloud). User-Writable: false.",
           "properties": {
             "component": {
               "const": "AudioPlayer"
@@ -847,7 +847,7 @@
         },
         {
           "type": "object",
-          "description": "A scrollable list that lays out children vertically or horizontally, with optional alignment control.",
+          "description": "A scrollable list that lays out children vertically or horizontally, with optional alignment control. User-Writable: false.",
           "properties": {
             "component": {
               "const": "List"
@@ -894,7 +894,7 @@
         },
         {
           "type": "object",
-          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components.",
+          "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components. User-Writable: false.",
           "properties": {
             "component": {
               "const": "TabGroup"
@@ -926,7 +926,7 @@
         },
         {
           "type": "object",
-          "description": "A single tab within a TabGroup. Has a title and a child component.",
+          "description": "A single tab within a TabGroup. Has a title and a child component. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Tab"
@@ -960,7 +960,7 @@
         },
         {
           "type": "object",
-          "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal).",
+          "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Divider"
@@ -996,7 +996,7 @@
         },
         {
           "type": "object",
-          "description": "A dropdown (select) component for choosing a single option from a list.",
+          "description": "A dropdown (select) component for choosing a single option from a list. User-Writable: true.",
           "properties": {
             "component": {
               "const": "Dropdown"
@@ -1071,7 +1071,7 @@
         },
         {
           "type": "object",
-          "description": "A checkbox toggle for boolean values. Key properties: label (required), value (required, data binding for the checked state).",
+          "description": "A checkbox toggle for boolean values. Key properties: label (required), value (required, data binding for the checked state). User-Writable: true.",
           "properties": {
             "component": {
               "const": "CheckBox"
@@ -1108,7 +1108,7 @@
         },
         {
           "type": "object",
-          "description": "A slider for selecting a numeric value within a range. Key properties: value (required), min (required), max (required), label.",
+          "description": "A slider for selecting a numeric value within a range. Key properties: value (required), min (required), max (required), label. User-Writable: true.",
           "properties": {
             "component": {
               "const": "Slider"
@@ -1151,7 +1151,7 @@
         },
         {
           "type": "object",
-          "description": "Renders rich Markdown content. Use this for multi-paragraph text, formatted content, or when HTML-like structure is needed. Key properties: text (required, the markdown string to render).",
+          "description": "Renders rich Markdown content. Use this for multi-paragraph text, formatted content, or when HTML-like structure is needed. Key properties: text (required, the markdown string to render). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Markdown"
@@ -1180,7 +1180,7 @@
         },
         {
           "type": "object",
-          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path), rowPadding (controls the padding of each cell; default '10px 16px'; use to add vertical spacing between rows, e.g. '14px 16px'). IMPORTANT: Row padding is controlled by rowPadding on the GridLayout, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a GridLayout, always set hideLabel: true on each one — the column headers already serve as labels, and showing them again inside each cell makes rows unnecessarily tall.",
+          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path), rowPadding (controls the padding of each cell; default '10px 16px'; use to add vertical spacing between rows, e.g. '14px 16px'). IMPORTANT: Row padding is controlled by rowPadding on the GridLayout, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a GridLayout, always set hideLabel: true on each one — the column headers already serve as labels, and showing them again inside each cell makes rows unnecessarily tall. User-Writable: false.",
           "properties": {
             "component": {
               "const": "GridLayout"
@@ -1221,7 +1221,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a bar chart from an array of data points. Each data point has a label and value. The chart auto-scales to fit. Use orientation 'horizontal' for long labels or many categories.",
+          "description": "Renders a bar chart from an array of data points. Each data point has a label and value. The chart auto-scales to fit. Use orientation 'horizontal' for long labels or many categories. User-Writable: false.",
           "properties": {
             "component": {
               "const": "BarChart"
@@ -1303,7 +1303,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a line chart from an array of data points. Supports optional area fill and data point dots. Good for showing trends over time.",
+          "description": "Renders a line chart from an array of data points. Supports optional area fill and data point dots. Good for showing trends over time. User-Writable: false.",
           "properties": {
             "component": {
               "const": "LineChart"
@@ -1379,7 +1379,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a pie or donut chart from an array of segments. Each segment has a label and value. Colors are auto-assigned if not provided.",
+          "description": "Renders a pie or donut chart from an array of segments. Each segment has a label and value. Colors are auto-assigned if not provided. User-Writable: false.",
           "properties": {
             "component": {
               "const": "PieChart"
@@ -1448,7 +1448,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a compact inline sparkline chart from an array of numbers. Use inside StatCard or alongside text to show a quick trend.",
+          "description": "Renders a compact inline sparkline chart from an array of numbers. Use inside StatCard or alongside text to show a quick trend. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Sparkline"
@@ -1503,7 +1503,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a KPI / summary statistic card with a large value, label, and optional trend indicator. Use multiple StatCards in a Row to create a dashboard header.",
+          "description": "Renders a KPI / summary statistic card with a large value, label, and optional trend indicator. Use multiple StatCards in a Row to create a dashboard header. User-Writable: false.",
           "properties": {
             "component": {
               "const": "StatCard"

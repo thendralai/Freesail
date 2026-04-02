@@ -11,7 +11,7 @@
         },
         {
           "type": "object",
-          "description": "Top-level wrapper for a chat interface. Provides layout structure (header, message area, input) for a complete chat experience. Key properties: height (CSS value, default 100%), title (optional header), children (required).",
+          "description": "Top-level wrapper for a chat interface. Provides layout structure (header, message area, input) for a complete chat experience. Key properties: height (CSS value, default 100%), title (optional header), children (required). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ChatContainer"
@@ -49,7 +49,7 @@
         },
         {
           "type": "object",
-          "description": "Scrollable container for chat messages. Automatically scrolls to the bottom when new messages are added. Use a ChildList template with a data model path (e.g. /messages) to render messages dynamically.",
+          "description": "Scrollable container for chat messages. Automatically scrolls to the bottom when new messages are added. Use a ChildList template with a data model path (e.g. /messages) to render messages dynamically. User-Writable: false.",
           "properties": {
             "component": {
               "const": "ChatMessageList"
@@ -78,7 +78,7 @@
         },
         {
           "type": "object",
-          "description": "Renders a single chat message bubble. Styled differently based on role (user, assistant, system). Key properties: role (required), content (required), timestamp (optional ISO 8601).",
+          "description": "Renders a single chat message bubble. Styled differently based on role (user, assistant, system). Key properties: role (required), content (required), timestamp (optional ISO 8601). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ChatMessage"
@@ -121,7 +121,7 @@
         },
         {
           "type": "object",
-          "description": "Text input field with a send button for composing chat messages. Emits user input as an action. Key properties: placeholder (default 'Type a message...'), disabled (to block input while agent is processing).",
+          "description": "Text input field with a send button for composing chat messages. Emits user input as an action. Key properties: placeholder (default 'Type a message...'), disabled (to block input while agent is processing). User-Writable: true.",
           "properties": {
             "component": {
               "const": "ChatInput"
@@ -155,7 +155,7 @@
         },
         {
           "type": "object",
-          "description": "Animated typing indicator shown while the agent is generating a response. Key properties: visible (show/hide, default false), text (label, default 'Thinking...').",
+          "description": "Animated typing indicator shown while the agent is generating a response. Key properties: visible (show/hide, default false), text (label, default 'Thinking...'). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ChatTypingIndicator"
@@ -189,7 +189,7 @@
         },
         {
           "type": "object",
-          "description": "Renders streaming token-by-token output from the agent. Appends each new token value to an internal buffer and displays the accumulated text. Key properties: token (latest emitted token), active (whether stream is live, default false).",
+          "description": "Renders streaming token-by-token output from the agent. Appends each new token value to an internal buffer and displays the accumulated text. Key properties: token (latest emitted token), active (whether stream is live, default false). User-Writable: false.",
           "properties": {
             "component": {
               "const": "AgentStream"
