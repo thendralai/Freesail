@@ -3,7 +3,7 @@
  */
 
 // Provider
-export { FreesailProvider, type FreesailProviderProps } from './FreesailProvider.js';
+export { FreesailProvider, type FreesailProviderProps, type SurfaceInterceptorResult } from './FreesailProvider.js';
 
 // Surface Component
 export { FreesailSurface, type FreesailSurfaceProps } from './FreesailSurface.js';

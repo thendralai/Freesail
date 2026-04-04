@@ -30,10 +30,21 @@ import {
   type CatalogId,
   type DownstreamMessage,
   type A2UIClientCapabilities,
+  type A2UIComponent,
+  type JsonPointer,
 } from '@freesail/core';
 import { FreesailContext, type FreesailContextValue } from './context.js';
 import { registerCatalog, type FreesailComponent } from './registry.js';
 import type { CatalogDefinition } from './types.js';
+
+/**
+ * Returned by a surface operation interceptor.
+ * allowed: whether to proceed with the operation.
+ * message: if allowed and non-empty, FreesailProvider sends a
+ *          'client_side_validation_message' action upstream.
+ *          If not allowed, appended to the operation-specific error.
+ */
+export type SurfaceInterceptorResult = { allowed: boolean; message: string };
 
 /**
  * Props for FreesailProvider.
@@ -55,6 +66,33 @@ export interface FreesailProviderProps {
   onConnectionChange?: (connected: boolean) => void;
   /** Callback when an error occurs */
   onError?: (error: Error) => void;
+  /**
+   * Extra capability key/values merged into the standard catalog list
+   * advertised to the agent on every upstream message.
+   * e.g. { MaxAgentSurfaceCount: 5 }
+   */
+  additionalCapabilities?: Record<string, unknown>;
+  /** Called before honouring an agent createSurface. Return allowed: false to block. */
+  onBeforeCreateSurface?: (
+    surfaceId: SurfaceId,
+    catalogId: CatalogId,
+    sendDataModel: boolean | undefined
+  ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
+  /** Called before honouring an agent updateComponents. Return allowed: false to block. */
+  onBeforeUpdateComponents?: (
+    surfaceId: SurfaceId,
+    components: A2UIComponent[]
+  ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
+  /** Called before honouring an agent updateDataModel. Return allowed: false to block. */
+  onBeforeUpdateDataModel?: (
+    surfaceId: SurfaceId,
+    path: JsonPointer | undefined,
+    value: unknown
+  ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
+  /** Called before honouring an agent deleteSurface. Return allowed: false to block. */
+  onBeforeDeleteSurface?: (
+    surfaceId: SurfaceId
+  ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
 }
 
 /**
@@ -70,6 +108,11 @@ export function FreesailProvider({
   transportOptions,
   onConnectionChange,
   onError,
+  additionalCapabilities,
+  onBeforeCreateSurface,
+  onBeforeUpdateComponents,
+  onBeforeUpdateDataModel,
+  onBeforeDeleteSurface,
 }: FreesailProviderProps) {
   const [surfaceManager] = useState<SurfaceManager>(() => createSurfaceManager());
   const [transport, setTransport] = useState<A2UITransport | null>(null);
@@ -81,10 +124,12 @@ export function FreesailProvider({
   const onConnectionChangeRef = useRef(onConnectionChange);
   const onErrorRef = useRef(onError);
   const catalogsRef = useRef(catalogs);
+  const interceptorsRef = useRef({ onBeforeCreateSurface, onBeforeUpdateComponents, onBeforeUpdateDataModel, onBeforeDeleteSurface });
   useEffect(() => {
     onConnectionChangeRef.current = onConnectionChange;
     onErrorRef.current = onError;
     catalogsRef.current = catalogs;
+    interceptorsRef.current = { onBeforeCreateSurface, onBeforeUpdateComponents, onBeforeUpdateDataModel, onBeforeDeleteSurface };
   });
 
   // Register custom catalog definitions
@@ -103,11 +148,12 @@ export function FreesailProvider({
     return catalogs.map((d) => d.namespace as CatalogId);
   }, [catalogs]);
 
-  // Build capabilities from catalogs
+  // Build capabilities from catalogs and any additional custom capabilities
   const capabilities: A2UIClientCapabilities | undefined = useMemo(() => {
-    if (mergedCatalogs.length === 0) return undefined;
-    return { catalogs: mergedCatalogs };
-  }, [mergedCatalogs]);
+    const hasExtra = additionalCapabilities && Object.keys(additionalCapabilities).length > 0;
+    if (mergedCatalogs.length === 0 && !hasExtra) return undefined;
+    return { catalogs: mergedCatalogs, ...additionalCapabilities };
+  }, [mergedCatalogs, additionalCapabilities]);
 
   // Initialize transport
   useEffect(() => {
@@ -130,7 +176,7 @@ export function FreesailProvider({
         );
         return;
       }
-      handleMessage(message, surfaceManager, agentDeletedRef.current);
+      void handleMessage(message, surfaceManager, agentDeletedRef.current, newTransport, interceptorsRef.current);
     });
 
     // Notify agent when a surface is deleted client-side (e.g. disconnect cleanup)
@@ -295,18 +341,71 @@ export function FreesailProvider({
 // Message Handler
 // =============================================================================
 
-function handleMessage(message: DownstreamMessage, manager: SurfaceManager, agentDeleted: Set<string>): void {
+async function handleMessage(
+  message: DownstreamMessage,
+  manager: SurfaceManager,
+  agentDeleted: Set<string>,
+  transport: A2UITransport,
+  interceptors: {
+    onBeforeCreateSurface?: FreesailProviderProps['onBeforeCreateSurface'];
+    onBeforeUpdateComponents?: FreesailProviderProps['onBeforeUpdateComponents'];
+    onBeforeUpdateDataModel?: FreesailProviderProps['onBeforeUpdateDataModel'];
+    onBeforeDeleteSurface?: FreesailProviderProps['onBeforeDeleteSurface'];
+  }
+): Promise<void> {
   if (isCreateSurfaceMessage(message)) {
     const { surfaceId, catalogId, sendDataModel } = message.createSurface;
+    if (interceptors.onBeforeCreateSurface) {
+      const { allowed, message: msg } = await interceptors.onBeforeCreateSurface(surfaceId, catalogId, sendDataModel);
+      if (!allowed) {
+        transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Create surface operation failed: ${msg}`);
+        return;
+      }
+      if (msg) {
+        transport.sendAction(surfaceId, 'client_side_validation_message', '__system' as ComponentId, { message: msg });
+      }
+    }
     manager.createSurface({ surfaceId, catalogId, sendDataModel });
   } else if (isUpdateComponentsMessage(message)) {
     const { surfaceId, components } = message.updateComponents;
+    if (interceptors.onBeforeUpdateComponents) {
+      const { allowed, message: msg } = await interceptors.onBeforeUpdateComponents(surfaceId, components);
+      if (!allowed) {
+        const ids = components.map((c: A2UIComponent) => c.id).join(', ');
+        transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Update components operation failed for components [${ids}]: ${msg}`);
+        return;
+      }
+      if (msg) {
+        transport.sendAction(surfaceId, 'client_side_validation_message', '__system' as ComponentId, { message: msg });
+      }
+    }
     manager.updateComponents(surfaceId, components);
   } else if (isUpdateDataModelMessage(message)) {
     const { surfaceId, path, value } = message.updateDataModel;
+    if (interceptors.onBeforeUpdateDataModel) {
+      const { allowed, message: msg } = await interceptors.onBeforeUpdateDataModel(surfaceId, path, value);
+      if (!allowed) {
+        const pathDisplay = path ?? '/';
+        transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Update data model operation failed at paths [${pathDisplay}]: ${msg}`);
+        return;
+      }
+      if (msg) {
+        transport.sendAction(surfaceId, 'client_side_validation_message', '__system' as ComponentId, { message: msg });
+      }
+    }
     manager.updateDataModel(surfaceId, path, value);
   } else if (isDeleteSurfaceMessage(message)) {
     const { surfaceId } = message.deleteSurface;
+    if (interceptors.onBeforeDeleteSurface) {
+      const { allowed, message: msg } = await interceptors.onBeforeDeleteSurface(surfaceId);
+      if (!allowed) {
+        transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Delete surface operation failed: ${msg}`);
+        return;
+      }
+      if (msg) {
+        transport.sendAction(surfaceId, 'client_side_validation_message', '__system' as ComponentId, { message: msg });
+      }
+    }
     agentDeleted.add(surfaceId as string);
     manager.deleteSurface(surfaceId);
   }
