@@ -14,7 +14,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-export CATALOG_LOG_DIR="${CATALOG_LOG_DIR:-$SCRIPT_DIR/.freesail_logs}"
 
 # Load .env if present
 if [ -f "$SCRIPT_DIR/agent/.env" ]; then
@@ -103,23 +102,17 @@ echo ""
 echo -e "${GREEN}Starting Freesail stack...${NC}"
 echo ""
 
-# Port configuration
+# Port configuration (used for status output only — all gateway settings are in freesail-gateway.config.json)
 GATEWAY_HTTP_PORT="${GATEWAY_PORT:-3001}"
 GATEWAY_MCP_PORT="${MCP_PORT:-3000}"
 
-# Build gateway args — log settings come from .env (LOG_LEVEL, LOG_FILE, LOG_FILTER)
-GATEWAY_ARGS=(--http-port "$GATEWAY_HTTP_PORT" --mcp-port "$GATEWAY_MCP_PORT")
-[ -n "${LOG_LEVEL:-}" ]  && GATEWAY_ARGS+=(--log-level "$LOG_LEVEL")
-[ -n "${LOG_FILE:-}" ]   && GATEWAY_ARGS+=(--log-file "$LOG_FILE")
-for _filter in ${LOG_FILTER:-}; do
-  GATEWAY_ARGS+=(--log-filter "$_filter")
-done
-
 # 1. Start Gateway (standalone process)
-# Gateway HTTP binds to 0.0.0.0 (all interfaces) by default; MCP stays on localhost.
+# All configuration is read from freesail-gateway.config.json in this directory.
 echo -e "${BLUE}[Gateway]${NC} Starting on HTTP port ${GATEWAY_HTTP_PORT}, MCP port ${GATEWAY_MCP_PORT}"
-node "$ROOT_DIR/packages/freesail/dist/cli.js" run gateway "${GATEWAY_ARGS[@]}" &
+cd "$SCRIPT_DIR"
+npx freesail run gateway &
 GATEWAY_PID=$!
+cd "$ROOT_DIR"
 
 # Wait for gateway to be ready
 echo -e "${BLUE}[Gateway]${NC} Waiting for gateway to start..."
