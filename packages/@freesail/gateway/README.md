@@ -28,7 +28,7 @@ npx freesail-gateway
 ## CLI Options
 
 ```
---config <file>        Path to JSON config file (default: freesail.config.json in CWD)
+--config <file>        Path to JSON config file (default: freesail-gateway.config.json in CWD)
 --http-port <port>     Port for the A2UI HTTP/SSE server (default: 3001)
 --http-host <host>     Host to bind the A2UI server to (default: 0.0.0.0)
 --mcp-mode <mode>      MCP transport: 'stdio' or 'http' (default: http)
@@ -68,10 +68,10 @@ freesail run gateway --log-file gateway.log --log-level info --log-filter mcp:wa
 
 All settings can be provided via a JSON config file. CLI flags take precedence over config file values.
 
-The gateway looks for `freesail.config.json` in the current working directory by default. A sample is included in this package — copy it as a starting point:
+The gateway looks for `freesail-gateway.config.json` in the current working directory by default. A sample is included in this package — copy it as a starting point:
 
 ```bash
-cp node_modules/@freesail/gateway/freesail.config.sample.json freesail.config.json
+cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.config.json
 ```
 
 ### Full Reference

@@ -18,7 +18,7 @@ import { configure, getConsoleSink, getFileSink, getTextFormatter, type LogLevel
  * CLI configuration.
  */
 interface CLIConfig {
-  /** Path to JSON config file (default: freesail.config.json in CWD) */
+  /** Path to JSON config file (default: freesail-gateway.config.json in CWD) */
   configFile?: string;
   /** MCP mode: 'stdio' or 'http' */
   mcpMode: 'stdio' | 'http';
@@ -74,7 +74,7 @@ interface FileConfig {
  * Load and parse a JSON config file. Returns an empty object if the file does not exist.
  */
 function loadConfigFile(configFile?: string): FileConfig {
-  const filePath = configFile ?? join(process.cwd(), 'freesail.config.json');
+  const filePath = configFile ?? join(process.cwd(), 'freesail-gateway.config.json');
   if (!existsSync(filePath)) return {};
   try {
     return JSON.parse(readFileSync(filePath, 'utf-8')) as FileConfig;
@@ -176,7 +176,7 @@ Usage:
   freesail-gateway [options]
 
 Options:
-  --config <file>        Path to JSON config file (default: freesail.config.json in CWD)
+  --config <file>        Path to JSON config file (default: freesail-gateway.config.json in CWD)
   --http-port <port>     Port for the A2UI HTTP/SSE server (default: 3001)
   --http-host <host>     Host to bind the A2UI HTTP/SSE server to (default: 0.0.0.0)
   --mcp-mode <mode>      MCP transport mode: 'stdio' or 'http' (default: http)
@@ -192,7 +192,7 @@ Options:
                          Dot-notation maps to nested categories (repeatable)
   --help                 Show this help message
 
-Config file (freesail.config.json) supports all of the above plus:
+Config file (freesail-gateway.config.json) supports all of the above plus:
   sessionTimeout         Session idle timeout in seconds (default: 1800)
   reconnectGracePeriod   Session resumption window in seconds (default: 180)
   catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)

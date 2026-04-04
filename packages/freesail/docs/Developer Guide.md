@@ -44,7 +44,7 @@ freesail run gateway --mcp-mode stdio --http-port 3001
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--config <file>` | `freesail.config.json` | Path to JSON config file |
+| `--config <file>` | `freesail-gateway.config.json` | Path to JSON config file |
 | `--mcp-mode <mode>` | `http` | MCP transport: `http` (standalone) or `stdio` (child process) |
 | `--mcp-port <port>` | `3000` | Port for MCP Streamable HTTP server (http mode only) |
 | `--mcp-host <host>` | `127.0.0.1` | Bind address for MCP server (http mode only) |
@@ -58,7 +58,7 @@ freesail run gateway --mcp-mode stdio --http-port 3001
 
 All gateway settings can be provided via a JSON config file instead of (or alongside) CLI flags. **CLI flags take precedence over config file values.**
 
-By default the gateway looks for `freesail.config.json` in the current working directory. Override the path with `--config`:
+By default the gateway looks for `freesail-gateway.config.json` in the current working directory. Override the path with `--config`:
 
 ```bash
 freesail run gateway --config /etc/freesail/gateway.json
@@ -67,7 +67,7 @@ freesail run gateway --config /etc/freesail/gateway.json
 A sample config file is included in the package at `node_modules/@freesail/gateway/freesail.config.sample.json`. Copy and edit it as a starting point:
 
 ```bash
-cp node_modules/@freesail/gateway/freesail.config.sample.json freesail.config.json
+cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.config.json
 ```
 
 **Full config file reference:**
