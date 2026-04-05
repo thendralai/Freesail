@@ -76,3 +76,7 @@ function App() {
   );
 }
 ```
+
+## License
+
+MIT — see [LICENSE](./LICENSE)

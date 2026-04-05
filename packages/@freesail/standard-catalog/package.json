@@ -20,7 +20,8 @@
     "dist",
     "src/schemas",
     "LICENSE",
-    "3rdpartylicenses.txt"
+    "3rdpartylicenses.txt",
+    "README.md"
   ],
   "scripts": {
     "prepare:catalog": "freesail prepare catalog",

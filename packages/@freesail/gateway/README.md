@@ -208,3 +208,9 @@ Idle sessions are cleaned up after **30 minutes** by default. Override via confi
 ```json
 { "sessionTimeout": 3600000 }
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE)

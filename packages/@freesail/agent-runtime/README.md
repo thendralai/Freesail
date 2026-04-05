@@ -334,3 +334,9 @@ await runtime.start();
 
 // On shutdown: await runtime.stop();
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE)

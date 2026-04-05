@@ -15,7 +15,8 @@
   "files": [
     "dist",
     "src/schemas",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "prepare:catalog": "freesail prepare catalog",
