@@ -2526,6 +2526,82 @@
         }
       ]
     },
+    "anyFunction": {
+      "oneOf": [
+        {
+          "$ref": "#/functions/required"
+        },
+        {
+          "$ref": "#/functions/regex"
+        },
+        {
+          "$ref": "#/functions/checkLength"
+        },
+        {
+          "$ref": "#/functions/getLength"
+        },
+        {
+          "$ref": "#/functions/numeric"
+        },
+        {
+          "$ref": "#/functions/email"
+        },
+        {
+          "$ref": "#/functions/formatString"
+        },
+        {
+          "$ref": "#/functions/formatNumber"
+        },
+        {
+          "$ref": "#/functions/formatCurrency"
+        },
+        {
+          "$ref": "#/functions/formatDate"
+        },
+        {
+          "$ref": "#/functions/pluralize"
+        },
+        {
+          "$ref": "#/functions/now"
+        },
+        {
+          "$ref": "#/functions/openUrl"
+        },
+        {
+          "$ref": "#/functions/and"
+        },
+        {
+          "$ref": "#/functions/or"
+        },
+        {
+          "$ref": "#/functions/isEmpty"
+        },
+        {
+          "$ref": "#/functions/eq"
+        },
+        {
+          "$ref": "#/functions/neq"
+        },
+        {
+          "$ref": "#/functions/gt"
+        },
+        {
+          "$ref": "#/functions/gte"
+        },
+        {
+          "$ref": "#/functions/lt"
+        },
+        {
+          "$ref": "#/functions/lte"
+        },
+        {
+          "$ref": "#/functions/show"
+        },
+        {
+          "$ref": "#/functions/hide"
+        }
+      ]
+    },
     "DynamicBoolean": {
       "description": "A boolean value that can be a literal, a path, or a function call returning a boolean.",
       "oneOf": [
@@ -2815,82 +2891,6 @@
       "discriminator": {
         "propertyName": "component"
       }
-    },
-    "anyFunction": {
-      "oneOf": [
-        {
-          "$ref": "#/functions/required"
-        },
-        {
-          "$ref": "#/functions/regex"
-        },
-        {
-          "$ref": "#/functions/checkLength"
-        },
-        {
-          "$ref": "#/functions/getLength"
-        },
-        {
-          "$ref": "#/functions/numeric"
-        },
-        {
-          "$ref": "#/functions/email"
-        },
-        {
-          "$ref": "#/functions/formatString"
-        },
-        {
-          "$ref": "#/functions/formatNumber"
-        },
-        {
-          "$ref": "#/functions/formatCurrency"
-        },
-        {
-          "$ref": "#/functions/formatDate"
-        },
-        {
-          "$ref": "#/functions/pluralize"
-        },
-        {
-          "$ref": "#/functions/now"
-        },
-        {
-          "$ref": "#/functions/openUrl"
-        },
-        {
-          "$ref": "#/functions/and"
-        },
-        {
-          "$ref": "#/functions/or"
-        },
-        {
-          "$ref": "#/functions/isEmpty"
-        },
-        {
-          "$ref": "#/functions/eq"
-        },
-        {
-          "$ref": "#/functions/neq"
-        },
-        {
-          "$ref": "#/functions/gt"
-        },
-        {
-          "$ref": "#/functions/gte"
-        },
-        {
-          "$ref": "#/functions/lt"
-        },
-        {
-          "$ref": "#/functions/lte"
-        },
-        {
-          "$ref": "#/functions/show"
-        },
-        {
-          "$ref": "#/functions/hide"
-        }
-      ]
     }
   }
 }
