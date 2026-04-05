@@ -227,9 +227,6 @@ export class SurfaceManager {
       // Track root component
       if (component.id === 'root') {
         surface.rootId = component.id;
-      } else if (surface.rootId === null) {
-        // Fallback to first component if no 'root' found yet
-        surface.rootId = component.id;
       }
     }
 

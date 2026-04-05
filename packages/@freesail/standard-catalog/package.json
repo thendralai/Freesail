@@ -29,6 +29,8 @@
     "postbuild": "cp src/freesailconfig.json dist/ && cp src/standard-catalog.json dist/",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prebuild": "freesail prepare catalog && freesail validate catalog"
   },
   "keywords": [
@@ -45,7 +47,8 @@
   "devDependencies": {
     "@freesail/react": "0.4.6",
     "@types/react": "^18.2.0",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "react-markdown": "^10.1.0"

@@ -235,10 +235,40 @@ function propertyToSchema(prop: CatalogProperty, defs?: Record<string, unknown>,
   // Using anyOf (at-least-one) instead of oneOf (exactly-one) avoids false failures:
   // when some branches resolve to {} at the depth cap, they match any value, which
   // causes oneOf uniqueness checks to fail even for valid inputs.
+  //
+  // If the schema also has type/properties/required at the same level (e.g. FunctionCall),
+  // those base constraints must not be discarded. Combine them with the variant part via allOf.
   if (prop.oneOf || prop.anyOf) {
     const branches = (prop.oneOf ?? prop.anyOf)!;
-    return {
+    const variantPart: Record<string, unknown> = {
       anyOf: branches.map(p => propertyToSchema(p, defs, depth + 1)),
+    };
+    const rawProp = prop as Record<string, unknown>;
+    const hasBaseConstraints = prop.type || prop.properties || Array.isArray(rawProp['required']);
+    if (hasBaseConstraints) {
+      const basePart: Record<string, unknown> = {};
+      if (prop.type) basePart['type'] = prop.type;
+      if (prop.properties) {
+        const innerProps: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(prop.properties)) {
+          innerProps[k] = propertyToSchema(v, defs, depth + 1);
+        }
+        basePart['properties'] = innerProps;
+      }
+      if (Array.isArray(rawProp['required'])) basePart['required'] = rawProp['required'];
+      if (prop.additionalProperties !== undefined) {
+        const raw = rawProp['additionalProperties'];
+        basePart['additionalProperties'] = typeof raw === 'boolean'
+          ? raw
+          : propertyToSchema(raw as CatalogProperty, defs, depth + 1);
+      }
+      return {
+        allOf: [basePart, variantPart],
+        ...(prop.description ? { description: prop.description } : {}),
+      };
+    }
+    return {
+      ...variantPart,
       ...(prop.description ? { description: prop.description } : {}),
     };
   }

@@ -271,7 +271,7 @@
       ],
       "oneOf": [
         {
-          "$ref": "catalog.json#/$defs/anyFunction"
+          "$ref": "#/$defs/anyFunction"
         }
       ]
     },
