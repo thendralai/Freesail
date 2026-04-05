@@ -51,6 +51,12 @@ export class FreesailAgentRuntime {
    */
   private sessionsUpdateChain: Promise<void> = Promise.resolve();
 
+  /**
+   * Session IDs whose per-session subscription failed. These sessions have
+   * no push mechanism, so they must be polled when resources/list_changed fires.
+   */
+  private missedSubscriptions: Set<string> = new Set();
+
   constructor(config: AgentRuntimeConfig) {
     this.mcpClient = config.mcpClient;
     this.agentFactory = config.agentFactory;
@@ -112,6 +118,18 @@ export class FreesailAgentRuntime {
       }
     }
     this.activeSubscriptions.clear();
+  }
+
+  /**
+   * Drain pending actions for sessions whose subscription failed.
+   * Call this from the resources/list_changed notification handler so that
+   * sessions without a working push subscription are still served.
+   */
+  async pollPendingActions(): Promise<void> {
+    if (this.missedSubscriptions.size === 0) return;
+    await Promise.allSettled(
+      [...this.missedSubscriptions].map(sessionId => this.handleSessionActions(sessionId))
+    );
   }
 
   /**
@@ -246,13 +264,17 @@ export class FreesailAgentRuntime {
 
           // Subscribe to per-session resource only after claiming — prevents other
           // agents from dequeuing actions that belong to this agent.
+          // If subscription fails, track the session so pollPendingActions() can
+          // drain it whenever resources/list_changed fires as a fallback.
           const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
           if (!this.activeSubscriptions.has(sessionUri)) {
             try {
               await this.mcpClient.subscribeResource({ uri: sessionUri });
               this.activeSubscriptions.add(sessionUri);
+              this.missedSubscriptions.delete(sessionId);
             } catch (err) {
-              logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId}:`, err);
+              logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId} — will poll via list_changed:`, err);
+              this.missedSubscriptions.add(sessionId);
             }
           }
 

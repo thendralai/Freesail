@@ -31,7 +31,7 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prebuild": "freesail prepare catalog && freesail validate catalog"
+    "prebuild": "vitest run && freesail prepare catalog && freesail validate catalog"
   },
   "keywords": [
     "a2ui",

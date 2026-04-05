@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateAgentSurfaceAccess } from './surface-access.js';
+import { validateAgentSurfaceAccess, validateComponentIds, validateDataModelPath } from './surface-access.js';
 
 // ---------------------------------------------------------------------------
 // Agent-created surfaces
@@ -58,10 +58,6 @@ describe('validateAgentSurfaceAccess — client-managed surfaces', () => {
     expect(validateAgentSurfaceAccess('__sidebar', 'delete_surface')).not.toBeNull();
   });
 
-  it('rejects update_components on client-managed surface', () => {
-    expect(validateAgentSurfaceAccess('__sidebar', 'update_components')).not.toBeNull();
-  });
-
   it('rejects client-managed ID with special characters', () => {
     expect(validateAgentSurfaceAccess('__side-bar', 'update_data_model')).not.toBeNull();
   });
@@ -74,10 +70,77 @@ describe('validateAgentSurfaceAccess — client-managed surfaces', () => {
     expect(validateAgentSurfaceAccess('__', 'update_data_model')).not.toBeNull();
   });
 
-  it('rejects component IDs starting with __ in update_components', () => {
-    // This is tested at the MCP layer — but surface ID validation itself
-    // allows __foo for update_data_model only.
-    expect(validateAgentSurfaceAccess('__foo', 'update_data_model')).toBeNull();
-    expect(validateAgentSurfaceAccess('__foo', 'update_components')).not.toBeNull();
+  it('allows update_components on a client-managed surface', () => {
+    expect(validateAgentSurfaceAccess('__sidebar', 'update_components')).toBeNull();
+  });
+
+  it('allows all non-create/delete operations on a client-managed surface', () => {
+    for (const op of ['update_components', 'update_data_model']) {
+      expect(validateAgentSurfaceAccess('__sidebar', op)).toBeNull();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateDataModelPath
+// ---------------------------------------------------------------------------
+
+describe('validateDataModelPath', () => {
+  it('allows a valid sub-path', () => {
+    expect(validateDataModelPath('/projects')).toBeNull();
+  });
+
+  it('allows a nested sub-path', () => {
+    expect(validateDataModelPath('/user/name')).toBeNull();
+  });
+
+  it('rejects root path "/"', () => {
+    expect(validateDataModelPath('/')).not.toBeNull();
+  });
+
+  it('rejects empty string', () => {
+    expect(validateDataModelPath('')).not.toBeNull();
+  });
+
+  it('rejects undefined', () => {
+    expect(validateDataModelPath(undefined)).not.toBeNull();
+  });
+
+  it('rejects paths starting with __', () => {
+    expect(validateDataModelPath('/__componentState')).not.toBeNull();
+  });
+
+  it('rejects paths starting with __  with nested segment', () => {
+    expect(validateDataModelPath('/__componentState/modal/visible')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateComponentIds
+// ---------------------------------------------------------------------------
+
+describe('validateComponentIds', () => {
+  it('allows normal component IDs', () => {
+    expect(validateComponentIds([{ id: 'header' }, { id: 'body' }])).toBeNull();
+  });
+
+  it('allows components without an id', () => {
+    expect(validateComponentIds([{}])).toBeNull();
+  });
+
+  it('rejects a single component with a __ prefix', () => {
+    expect(validateComponentIds([{ id: '__internal' }])).not.toBeNull();
+  });
+
+  it('rejects when one of many components has a __ prefix', () => {
+    const error = validateComponentIds([{ id: 'header' }, { id: '__reserved' }, { id: 'footer' }]);
+    expect(error).not.toBeNull();
+    expect(error).toContain('__reserved');
+  });
+
+  it('lists all offending IDs in the error', () => {
+    const error = validateComponentIds([{ id: '__a' }, { id: '__b' }]);
+    expect(error).toContain('__a');
+    expect(error).toContain('__b');
   });
 });

@@ -45,19 +45,69 @@ export function Row({ component, children }: FreesailComponentProps) {
 }
 
 export function Card({ component, children }: FreesailComponentProps) {
+  const zoomable = component['zoomable'] as boolean | undefined;
+  const [isZoomed, setIsZoomed] = useState(false);
+
   const style: CSSProperties = {
     padding: (component['padding'] as string) ?? '1.5rem',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
     borderRadius: (component['borderRadius'] as string) ?? 'var(--freesail-radius-md)',
     border: '1px solid var(--freesail-border, #e2e8f0)',
-    boxShadow: 'var(--freesail-shadow-sm)',
+    boxShadow: isZoomed ? 'var(--freesail-shadow-md, 0 4px 20px rgba(0,0,0,0.18))' : 'var(--freesail-shadow-sm)',
     background: getSemanticBackground(component['background'] as string) ?? 'var(--freesail-bg-surface, #ffffff)',
     color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)',
     alignSelf: 'stretch',
+    position: 'relative',
+    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+    transform: isZoomed ? 'scale(1.5)' : 'scale(1)',
+    transformOrigin: 'top center',
+    zIndex: isZoomed ? 100 : undefined,
   };
 
-  return <div style={style}>{children}</div>;
+  const zoomBtnStyle: CSSProperties = {
+    position: 'absolute',
+    top: '0.5rem',
+    right: '0.5rem',
+    width: '22px',
+    height: '22px',
+    borderRadius: '4px',
+    border: '1px solid var(--freesail-border, #e2e8f0)',
+    background: 'var(--freesail-bg-surface, #ffffff)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'var(--freesail-text-muted, #64748b)',
+    zIndex: 1,
+    padding: 0,
+  };
+
+  return (
+    <div style={style}>
+      {zoomable && (
+        <button
+          type="button"
+          style={zoomBtnStyle}
+          onClick={() => setIsZoomed(z => !z)}
+          title={isZoomed ? 'Restore' : 'Zoom in'}
+        >
+          {isZoomed ? (
+            /* ZoomInMap — arrows pointing inward at all four corners */
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+            </svg>
+          ) : (
+            /* ZoomOutMap — arrows pointing outward at all four corners */
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
+            </svg>
+          )}
+        </button>
+      )}
+      {children}
+    </div>
+  );
 }
 
 // =============================================================================

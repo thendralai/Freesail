@@ -25,7 +25,7 @@ import {
 } from '@freesail/core';
 import { generateCatalogIndex, generateComponentDetails, generateFunctionDetails, validateComponent } from './converter.js';
 import type { SessionManager } from './session.js';
-import { validateAgentSurfaceAccess } from './surface-access.js';
+import { validateAgentSurfaceAccess, validateComponentIds, validateDataModelPath } from './surface-access.js';
 
 /**
  * Recursively strip null values from an object, converting them to undefined
@@ -379,12 +379,10 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         };
       }
 
-      // Reject if any component ID starts with '__' (reserved for client-managed components)
-      const reservedComponents = components.filter(comp => comp.id?.startsWith('__'));
-      if (reservedComponents.length > 0) {
-        const ids = reservedComponents.map(c => c.id).join(', ');
+      const componentIdError = validateComponentIds(components);
+      if (componentIdError) {
         return {
-          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Component IDs starting with '__' are reserved for client use: ${ids}` }) }],
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: componentIdError }) }],
           isError: true,
         };
       }
@@ -446,7 +444,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       inputSchema: {
         surfaceId: z.string().describe('The surface to update'),
         sessionId: z.string().describe('Target client session ID'),
-        path: z.string().optional().describe('JSON pointer to the data location (e.g., "/user/name"). Defaults to "/"'),
+        path: z.string().describe('JSON pointer to the data location (e.g., "/user/name", "/projects"). Must be a specific sub-path — root path "/" is not allowed.'),
         value: z.unknown().optional().describe('The value to set. Pass native objects/arrays/primitives — do NOT pass a JSON-encoded string (e.g. pass {"key":"val"}, not "{\"key\":\"val\"}"). If omitted, removes the key at path.'),
       },
     },
@@ -474,10 +472,10 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         }
       }
 
-      // Reject writes to __-prefixed paths (reserved for client-side internal state)
-      if (path && path.replace(/^\/+/, '').startsWith('__')) {
+      const pathError = validateDataModelPath(path);
+      if (pathError) {
         return {
-          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Data model paths starting with '__' are reserved for client-side use. Agents cannot write to '${path}'.` }) }],
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: pathError }) }],
           isError: true,
         };
       }

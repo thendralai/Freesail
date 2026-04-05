@@ -138,7 +138,7 @@
         },
         {
           "type": "object",
-          "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'). User-Writable: false.",
+          "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'), zoomable (boolean, adds a zoom toggle button). User-Writable: false.",
           "properties": {
             "component": {
               "const": "Card"
@@ -159,6 +159,10 @@
             "background": {
               "$ref": "#/$defs/DynamicString",
               "description": "A CSS color value for the card's background fill. Accepts any valid CSS color, e.g. hex ('#22c55e'), named ('red'), rgb/rgba, hsl. Defaults to the theme surface color."
+            },
+            "zoomable": {
+              "type": "boolean",
+              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it zooms the card to 1.5× its original size for easier reading; clicking again restores it."
             },
             "child": {
               "$ref": "#/$defs/ComponentId",

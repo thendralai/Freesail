@@ -136,9 +136,11 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
       }
 
       // Full update: show user message + activate AgentStream
-      await this.updateChatModel('/', {
-        messages: [...this.chatMessages], isTyping: true, stream: { token: '', active: true },
-      });
+      await Promise.all([
+        this.updateChatModel('/messages', [...this.chatMessages]),
+        this.updateChatModel('/isTyping', true),
+        this.updateChatModel('/stream', { token: '', active: true }),
+      ]);
 
       const sessionPrompt =
         `[Session Context] The following message is from session "${this.sessionId}". ` +
@@ -163,15 +165,19 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
 
       logger.info(`[${this.sessionId}] Assistant: ${response?.slice(0, 120)}...`);
 
-      await this.updateChatModel('/', {
-        messages: [...this.chatMessages], isTyping: false, stream: { token: '', active: false },
-      });
+      await Promise.all([
+        this.updateChatModel('/messages', [...this.chatMessages]),
+        this.updateChatModel('/isTyping', false),
+        this.updateChatModel('/stream', { token: '', active: false }),
+      ]);
     } catch (error) {
       logger.error(`[${this.sessionId}] Chat error:`, error);
       this.chatMessages.push({ role: 'assistant', content: 'An error occurred.', timestamp: new Date().toISOString() });
-      await this.updateChatModel('/', {
-        messages: [...this.chatMessages], isTyping: false, stream: { token: '', active: false },
-      });
+      await Promise.all([
+        this.updateChatModel('/messages', [...this.chatMessages]),
+        this.updateChatModel('/isTyping', false),
+        this.updateChatModel('/stream', { token: '', active: false }),
+      ]);
     }
   }
 
