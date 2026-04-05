@@ -8,7 +8,7 @@ const newVersion = rootPkg.version;
 
 // 2. Find ALL package.json files in your workspaces
 const packageFiles = globSync('packages/**/package.json', {
-  ignore: ['**/node_modules/**', 'packages/@freesail-community/**']
+  ignore: ['**/node_modules/**']
 });
 
 packageFiles.forEach(filePath => {

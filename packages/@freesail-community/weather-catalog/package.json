@@ -1,6 +1,6 @@
 {
   "name": "@freesail-community/weather-catalog",
-  "version": "0.4.6",
+  "version": "0.6.0",
   "description": "All community built UI component catalogs for Freesail A2UI SDK",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@freesail/chat-catalog",
-  "version": "0.4.6",
+  "version": "0.6.0",
   "description": "Freesail Chat UI Catalog",
   "type": "module",
   "main": "./dist/index.js",
