@@ -23,6 +23,7 @@ export default defineConfig([
     clean: false, // Don't clean the whole dist folder!
     loader: {
       '.md': 'text',
+      '.txt': 'text',
     },
     banner: {
       js: '#!/usr/bin/env node',

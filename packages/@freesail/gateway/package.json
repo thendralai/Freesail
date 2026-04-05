@@ -49,7 +49,11 @@
     "tsx": "^4.7.0",
     "vitest": "^4.0.18"
   },
-  "author": "Thendral AI Ltd",
+  "author": {
+    "name": "Thendral AI Ltd",
+    "email": "support@thendral.ai",
+    "url": "https://www.thendral.ai"
+  },
   "contributors": [
     "Shanmugam Sudalaimuthu"
   ],

@@ -47,7 +47,11 @@
   "dependencies": {
     "react-markdown": "^10.1.0"
   },
-  "author": "Thendral AI Ltd",
+  "author": {
+    "name": "Thendral AI Ltd",
+    "email": "support@thendral.ai",
+    "url": "https://www.thendral.ai"
+  },
   "contributors": [
     "Shanmugam Sudalaimuthu"
   ],

@@ -19,6 +19,8 @@ import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 import { prepareCatalog, buildCatalogConfig } from './catalog-prepare.js';
 import readmeTemplate from './catalog-readme.md';
+import licensePlaceholder from './catalog-license-placeholder.txt';
+import thirdPartyLicenses from './catalog-3rdpartylicenses.txt';
 import newDefaults from './catalog-new-defaults.json';
 
 // ---------------------------------------------------------------------------
@@ -332,6 +334,12 @@ export async function run(): Promise<void> {
 
     fs.writeFileSync(path.join(outPath, 'README.md'), generateReadme(prefix, title, description));
     console.log('   📄 README.md');
+
+    fs.writeFileSync(path.join(outPath, 'LICENSE'), licensePlaceholder);
+    console.log('   📄 LICENSE');
+
+    fs.writeFileSync(path.join(outPath, '3rdpartylicenses.txt'), thirdPartyLicenses);
+    console.log('   📄 3rdpartylicenses.txt');
 
     // Run catalog-prepare to generate the initial catalog JSON and generated-includes.ts.
     // Skip if @freesail/standard-catalog is not yet installed — prepare would fail.

@@ -27,6 +27,11 @@
     "generative ui",
     "ai agent"
   ],
+  "author": {
+    "name": "Thendral AI Ltd",
+    "email": "support@thendral.ai",
+    "url": "https://www.thendral.ai"
+  },
   "license": "MIT",
   "publishConfig": {
     "access": "public"

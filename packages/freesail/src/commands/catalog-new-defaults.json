@@ -18,7 +18,7 @@
       },
       "./package.json": "./package.json"
     },
-    "files": ["dist", "src/schemas", "LICENSE"],
+    "files": ["dist", "src/schemas", "LICENSE", "3rdpartylicenses.txt"],
     "scripts": {
       "prepare:catalog": "freesail prepare catalog",
       "build": "tsc",

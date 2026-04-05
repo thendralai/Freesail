@@ -1,0 +1,4 @@
+# Add your license here
+#
+# This catalog is distributed under a license of your choice.
+# Replace this file with your actual license text before publishing.
