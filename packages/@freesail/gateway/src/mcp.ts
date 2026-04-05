@@ -415,6 +415,16 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         };
       }
 
+      // Reject if any component ID starts with '__' (reserved for client-managed components)
+      const reservedComponents = components.filter(comp => comp.id?.startsWith('__'));
+      if (reservedComponents.length > 0) {
+        const ids = reservedComponents.map(c => c.id).join(', ');
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Component IDs starting with '__' are reserved for client use: ${ids}` }) }],
+          isError: true,
+        };
+      }
+
       // Reject if the surface hasn't been created for this session yet
       const surfaceError = sessionManager.validateSurfaceForSession(sessionId, surfaceId);
       if (surfaceError) {
