@@ -50,6 +50,8 @@ export interface ClientSession {
   catalogIds: Set<string>;
   /** Client capabilities (supported catalogs, etc.) */
   capabilities: A2UIClientCapabilities | null;
+  /** User context injected by a reverse proxy (e.g. nginx) via X-User-Context header */
+  userContext: Record<string, unknown> | null;
   /** Session creation timestamp */
   createdAt: number;
   /** Last activity timestamp */
@@ -132,7 +134,8 @@ export class SessionManager {
   createSession(
     id: string,
     response: ClientSession['response'],
-    capabilities?: A2UIClientCapabilities
+    capabilities?: A2UIClientCapabilities,
+    userContext?: Record<string, unknown> | null
   ): ClientSession {
     const session: ClientSession = {
       id,
@@ -140,6 +143,7 @@ export class SessionManager {
       surfaces: new Set(),
       catalogIds: new Set(),
       capabilities: capabilities ?? null,
+      userContext: userContext ?? null,
       createdAt: Date.now(),
       lastActivity: Date.now(),
     };
@@ -464,6 +468,7 @@ export class SessionManager {
     id: string;
     surfaces: Array<{ surfaceId: string; surfaceCatalog: string | null; pendingActionCount: number }>;
     capabilities: A2UIClientCapabilities | null;
+    userContext: Record<string, unknown> | null;
     agentId: string | null;
     createdAt: number;
     lastActivity: number;
@@ -485,6 +490,7 @@ export class SessionManager {
           pendingActionCount: actionCountBySurface.get(surfaceId) ?? 0,
         })),
         capabilities: s.capabilities,
+        userContext: s.userContext,
         agentId: this.sessionToAgent.get(s.id) ?? null,
         createdAt: s.createdAt,
         lastActivity: s.lastActivity,
@@ -624,7 +630,7 @@ export class SessionManager {
    * Cancels the grace period timer and resets lastActivity.
    * Returns true if the session was found and resumed, false otherwise.
    */
-  resumeSession(id: string, newResponse: ClientSession['response']): boolean {
+  resumeSession(id: string, newResponse: ClientSession['response'], userContext?: Record<string, unknown> | null): boolean {
     const session = this.sessions.get(id);
     if (!session) return false;
 
@@ -636,6 +642,10 @@ export class SessionManager {
 
     session.response = newResponse;
     session.lastActivity = Date.now();
+    // Refresh user context on reconnect — claims may have changed since last connect
+    if (userContext !== undefined) {
+      session.userContext = userContext;
+    }
     return true;
   }
 

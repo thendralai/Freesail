@@ -15,6 +15,18 @@ import { createLogger } from '@freesail/logger';
 
 const logger = createLogger(['freesail', 'express']);
 
+function parseUserContext(header: string | undefined): Record<string, unknown> | null {
+  if (!header) return null;
+  try {
+    const parsed = JSON.parse(header);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseCookie(cookieHeader: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const part of cookieHeader.split(';')) {
@@ -109,16 +121,17 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     // Attempt to resume an existing session — cookie takes priority over query param (legacy fallback)
     const cookieSessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
     const requestedSessionId = cookieSessionId ?? (req.query['sessionId'] as string | undefined);
+    const userContext = parseUserContext(req.headers['x-user-context'] as string | undefined);
     let sessionId: string;
     let resumed = false;
 
-    if (requestedSessionId && sessionManager.resumeSession(requestedSessionId, newResponse)) {
+    if (requestedSessionId && sessionManager.resumeSession(requestedSessionId, newResponse, userContext)) {
       sessionId = requestedSessionId;
       resumed = true;
       logger.info(`[Express] Session resumed: ${sessionId}`);
     } else {
       sessionId = generateSessionId();
-      sessionManager.createSession(sessionId, newResponse);
+      sessionManager.createSession(sessionId, newResponse, undefined, userContext);
       logger.info(`[Express] Client connected: ${sessionId}`);
     }
 

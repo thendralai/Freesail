@@ -84,9 +84,11 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
   "mcpPort": 3000,
   "mcpHost": "127.0.0.1",
   "webhookUrl": "http://localhost:3002/action",
-  "sessionTimeout": 1800000,
-  "catalogLogDir": "/var/log/freesail/catalogs",
+  "sessionTimeout": 1800,
+  "reconnectGracePeriod": 180,
   "bodyLimit": "5mb",
+  "corsOrigins": ["https://app.example.com"],
+  "catalogLogDir": "/var/log/freesail/catalogs",
   "log": {
     "level": "info",
     "file": "/var/log/freesail/gateway.log",
@@ -103,18 +105,62 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
 
 All fields are optional.
 
+### `corsOrigins`
+
+Required only when the browser app and the gateway are on **different origins** (no shared-origin reverse proxy). Accepts a single origin string or an array for multi-app deployments:
+
+```json
+{ "corsOrigins": "https://app.example.com" }
+{ "corsOrigins": ["https://app1.example.com", "https://app2.example.com"] }
+```
+
+Omit when the gateway is behind nginx on the same domain as the UI — no CORS headers are needed in that case.
+
+---
+
+## Security
+
+### Session Identity
+
+The gateway issues each browser session an **HttpOnly `SameSite=Strict` cookie** (`freesail_session`). This means:
+
+- The session identifier never appears in URLs, request headers, or JavaScript — it is managed entirely by the browser.
+- CSRF is blocked by `SameSite=Strict`.
+- XSS cannot steal the session identifier.
+
+No application code is required to handle session identity — the cookie is set automatically on the first SSE connection and refreshed on reconnect.
+
+### User Context Propagation
+
+When deployed behind nginx, the gateway reads the `X-User-Context` header on every SSE connection and stores the parsed JSON as `userContext` on the session. Agents receive this context via `list_sessions`.
+
+Nginx validates the user's authentication (JWT, session cookie, etc.) and injects the header:
+
+```nginx
+location /sse {
+    # After validating the user's auth token:
+    proxy_set_header X-User-Context '{"userId":"$jwt_sub","orgId":"$jwt_org_id","email":"$jwt_email"}';
+    proxy_pass http://127.0.0.1:3001;
+    ...
+}
+```
+
+The value must be a JSON object. Any valid JSON key/value pairs are accepted — include whatever claims your application needs (userId, orgId, roles, tenantId, etc.). The gateway trusts this header as-is, so it must only be set by a trusted reverse proxy, never by the browser.
+
+`userContext` is refreshed on every reconnect, so if the user re-authenticates between sessions the agent always sees current claims.
+
 ---
 
 ## HTTPS / TLS
 
-The gateway itself runs plain HTTP. For production, place NGINX in front to handle TLS termination for both ports. This is the standard approach — NGINX handles certificate renewal, HTTP/2, and security hardening without any changes to the gateway.
+The gateway itself runs plain HTTP. For production, place nginx in front to handle TLS termination for both ports. This is the standard approach — nginx handles certificate renewal, HTTP/2, and security hardening without any changes to the gateway.
 
 ```
-Browser → HTTPS :443  → NGINX → HTTP :3001  (A2UI / SSE)
-Agent   → HTTPS :8443 → NGINX → HTTP :3000  (MCP HTTP)
+Browser → HTTPS :443  → nginx → HTTP :3001  (A2UI / SSE)
+Agent   → HTTPS :8443 → nginx → HTTP :3000  (MCP HTTP)
 ```
 
-Sample NGINX config:
+Sample nginx config:
 
 ```nginx
 # A2UI server — browser-facing SSE + POST
@@ -125,7 +171,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/gateway.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/gateway.example.com/privkey.pem;
 
-    location / {
+    location /sse {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
 
@@ -138,10 +184,20 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Inject authenticated user context (replace with your actual auth variables)
+        proxy_set_header X-User-Context '{"userId":"$jwt_sub","orgId":"$jwt_org_id"}';
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 
-# MCP HTTP server — agent-facing
+# MCP HTTP server — agent-facing (internal or separate TLS termination)
 server {
     listen 8443 ssl;
     server_name gateway.example.com;

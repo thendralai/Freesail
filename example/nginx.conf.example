@@ -51,6 +51,11 @@ server {
         proxy_read_timeout     3600s;  # 1 hour — SSE connections are long-lived
         proxy_send_timeout     3600s;
         chunked_transfer_encoding on;
+
+        # User context — inject authenticated identity claims for the agent.
+        # Replace with your actual auth variables (e.g. from nginx JWT module or auth_request).
+        # The gateway stores this as userContext on the session; agents see it via list_sessions.
+        # proxy_set_header X-User-Context '{"userId":"$jwt_sub","orgId":"$jwt_org_id","email":"$jwt_email"}';
     }
 
     location /message {
