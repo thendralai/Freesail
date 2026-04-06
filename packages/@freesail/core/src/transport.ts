@@ -274,10 +274,7 @@ export class A2UITransport {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          sessionId: this._sessionId,
-          catalogs,
-        }),
+        body: JSON.stringify({ catalogs }),
         signal: controller.signal,
       });
 
@@ -390,17 +387,13 @@ export class A2UITransport {
    * Register a surface with the gateway so it knows which session owns it.
    */
   private async registerSurfaceWithGateway(surfaceId: string): Promise<void> {
-    if (!this._sessionId) return;
     try {
       const baseUrl = this.options.gateway;
       await fetch(`${baseUrl}/register-surface`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          sessionId: this._sessionId,
-          surfaceId,
-        }),
+        body: JSON.stringify({ surfaceId }),
       });
     } catch (error) {
       this.emit('error', error instanceof Error ? error : new Error(String(error)));

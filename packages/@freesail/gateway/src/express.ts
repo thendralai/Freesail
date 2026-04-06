@@ -248,10 +248,8 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
   // Register surface with session
   app.post('/register-surface', (req: Request, res: Response) => {
-    const { sessionId, surfaceId } = req.body as {
-      sessionId: string;
-      surfaceId: string;
-    };
+    const { surfaceId } = req.body as { surfaceId: string };
+    const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
 
     if (!sessionId || !surfaceId) {
       res.status(400).json({ error: 'Missing sessionId or surfaceId' });
@@ -341,10 +339,8 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   // Register catalogs endpoint - clients send their catalog schemas on connection
   app.post('/register-catalogs', (req: Request, res: Response) => {
     try {
-      const { sessionId, catalogs: rawCatalogs } = req.body as {
-        sessionId: string;
-        catalogs: unknown[];
-      };
+      const { catalogs: rawCatalogs } = req.body as { catalogs: unknown[] };
+      const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
 
       if (!sessionId) {
         res.status(400).json({ error: 'Missing sessionId' });
