@@ -87,9 +87,6 @@ export class A2UITransport {
   private options: Required<Omit<TransportOptions, 'capabilities'>> & { capabilities?: A2UIClientCapabilities };
 
   private get sseUrl(): string {
-    if (this._sessionId) {
-      return `${this.options.gateway}/sse?sessionId=${encodeURIComponent(this._sessionId)}`;
-    }
     return `${this.options.gateway}/sse`;
   }
   private get postUrl(): string { return `${this.options.gateway}/message`; }
@@ -146,7 +143,7 @@ export class A2UITransport {
     this.setState('connecting');
 
     try {
-      this.eventSource = new EventSource(this.sseUrl);
+      this.eventSource = new EventSource(this.sseUrl, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         this.setState('connected');
@@ -276,6 +273,7 @@ export class A2UITransport {
       const response = await fetch(`${baseUrl}/register-catalogs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           sessionId: this._sessionId,
           catalogs,
@@ -398,6 +396,7 @@ export class A2UITransport {
       await fetch(`${baseUrl}/register-surface`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           sessionId: this._sessionId,
           surfaceId,
@@ -496,11 +495,6 @@ export class A2UITransport {
         'Content-Type': 'application/json',
       };
 
-      // Add session ID so gateway can route actions to correct session
-      if (this._sessionId) {
-        headers['X-A2UI-Session'] = this._sessionId;
-      }
-
       // Add capabilities if configured
       if (this.options.capabilities) {
         headers['X-A2UI-Capabilities'] = JSON.stringify(this.options.capabilities);
@@ -517,6 +511,7 @@ export class A2UITransport {
         headers,
         body: JSON.stringify(bodyPayload),
         signal: controller.signal,
+        credentials: 'include',
       });
 
       clearTimeout(timeout);

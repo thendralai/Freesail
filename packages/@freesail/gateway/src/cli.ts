@@ -40,6 +40,8 @@ interface CLIConfig {
   catalogLogDir?: string;
   /** JSON body size limit (default: '5mb') */
   bodyLimit?: string;
+  /** Allowed CORS origin(s). Single origin or array for multi-app deployments. Omit when behind nginx. */
+  corsOrigins?: string | string[];
   /** Path to log file */
   logFile?: string;
   /** Minimum log level to emit (default: info) */
@@ -63,6 +65,8 @@ interface FileConfig {
   reconnectGracePeriod?: number;
   catalogLogDir?: string;
   bodyLimit?: string;
+  /** Allowed CORS origin(s). Single origin or array for multi-app deployments. Omit when behind nginx. */
+  corsOrigins?: string | string[];
   log?: {
     file?: string;
     level?: LogLevel;
@@ -197,9 +201,26 @@ Config file (freesail-gateway.config.json) supports all of the above plus:
   reconnectGracePeriod   Session resumption window in seconds (default: 180)
   catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)
   bodyLimit              JSON body size limit (default: "5mb")
+  corsOrigins            Allowed CORS origin(s) — string or array of strings.
+                         Omit when the gateway is behind a reverse proxy (nginx) on the same
+                         origin as the UI; no CORS headers are needed in that case.
+                         Required when the UI and gateway are on different origins (e.g. dev
+                         without a proxy, or multiple web apps sharing one gateway).
+                         Example: "https://app.example.com"
+                         Example: ["https://app1.example.com", "https://app2.example.com"]
   log.file / log.level / log.filters  (same as CLI flags above)
 
 CLI flags take precedence over config file values.
+
+Deployment models:
+  Same-origin (recommended for production):
+    Run the gateway behind nginx (or Vite proxy in dev) on the same domain as the UI.
+    Set corsOrigins only if multiple separate origins share one gateway.
+    In FreesailProvider, omit the gateway prop — requests use relative paths automatically.
+
+  Cross-origin (direct access):
+    Set corsOrigins in the config to the UI origin(s).
+    Pass the gateway URL explicitly to FreesailProvider: gateway="https://gateway.example.com".
 
 Catalogs are provided by clients on connection via the /register-catalogs endpoint.
 Upstream actions are queued per-session and exposed as MCP resources.
@@ -242,6 +263,7 @@ async function main(): Promise<void> {
     reconnectGracePeriod: cliArgs.reconnectGracePeriod ?? fileConfig.reconnectGracePeriod,
     catalogLogDir: cliArgs.catalogLogDir ?? fileConfig.catalogLogDir,
     bodyLimit: cliArgs.bodyLimit ?? fileConfig.bodyLimit,
+    corsOrigins: cliArgs.corsOrigins ?? fileConfig.corsOrigins,
     logFile: cliArgs.logFile ?? fileConfig.log?.file,
     logLevel: cliArgs.logLevel !== 'info' ? cliArgs.logLevel : (fileConfig.log?.level ?? cliArgs.logLevel),
     logFilters: { ...(fileConfig.log?.filters ?? {}), ...cliArgs.logFilters },
@@ -314,6 +336,7 @@ async function main(): Promise<void> {
     sessionManager,
     webhookUrl: config.webhookUrl,
     bodyLimit: config.bodyLimit,
+    corsOrigin: config.corsOrigins,
     onUpstreamMessage: (sessionId, message) => {
       logger.info(`[Freesail] Upstream message (session=${sessionId}):`, JSON.stringify(message));
     },

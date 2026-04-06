@@ -98,7 +98,6 @@ function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <ReactUI.FreesailThemeProvider theme={activeTheme}>
         <ReactUI.FreesailProvider
-          gateway={getGatewayUrl()}
           catalogs={ALL_CATALOGS}
           onConnectionChange={(connected) => {
             console.log('Connection status:', connected);

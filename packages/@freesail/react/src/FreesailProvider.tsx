@@ -52,8 +52,18 @@ export type SurfaceInterceptorResult = { allowed: boolean; message: string };
 export interface FreesailProviderProps {
   /** Child components */
   children: ReactNode;
-  /** Base gateway URL (e.g. 'http://localhost:3001'). SSE and POST endpoints are derived automatically. */
-  gateway: string;
+  /**
+   * Base gateway URL. SSE and POST endpoints are derived automatically.
+   *
+   * Omit (or leave as default '') when the app and gateway share the same origin —
+   * i.e. the gateway is reverse-proxied onto the same domain (nginx in production,
+   * Vite proxy in dev). Requests will use relative paths and no CORS is needed.
+   *
+   * Set explicitly when the gateway is on a different origin:
+   *   gateway="https://gateway.example.com"
+   * In that case, configure corsOrigins in the gateway config to allow this origin.
+   */
+  gateway?: string;
   /**
    * Array of catalogs to register.
    * Each definition bundles a namespace, schema, and component map.
@@ -103,7 +113,7 @@ export interface FreesailProviderProps {
  */
 export function FreesailProvider({
   children,
-  gateway,
+  gateway = '',
   catalogs = [],
   transportOptions,
   onConnectionChange,

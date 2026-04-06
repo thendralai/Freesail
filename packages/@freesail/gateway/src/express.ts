@@ -15,6 +15,18 @@ import { createLogger } from '@freesail/logger';
 
 const logger = createLogger(['freesail', 'express']);
 
+function parseCookie(cookieHeader: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const part of cookieHeader.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (key) result[key] = value;
+  }
+  return result;
+}
+
 /**
  * Express server configuration.
  */
@@ -29,8 +41,13 @@ export interface ExpressServerOptions {
   onCatalogsRegistered?: (catalogs: Catalog[]) => void;
   /** URL to forward upstream actions to (e.g. agent webhook) */
   webhookUrl?: string;
-  /** CORS origin (default: '*') */
-  corsOrigin?: string;
+  /**
+   * Allowed CORS origin(s). If omitted, no CORS headers are sent (correct for nginx deployments
+   * where the gateway is not directly exposed). Accepts a single origin string or an array for
+   * multi-app deployments. The matched request Origin is echoed back, which is required for
+   * credentialed requests (cookies).
+   */
+  corsOrigin?: string | string[];
   /** JSON body size limit (default: '5mb') */
   bodyLimit?: string;
 }
@@ -44,7 +61,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     onUpstreamMessage,
     onCatalogsRegistered,
     webhookUrl,
-    corsOrigin = '*',
+    corsOrigin,
     bodyLimit = '5mb',
   } = options;
 
@@ -53,17 +70,24 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   // Middleware
   app.use(express.json({ limit: bodyLimit }));
 
-  // CORS headers
-  app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-A2UI-Capabilities, X-A2UI-Session');
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
-    next();
-  });
+  // CORS headers — only applied when corsOrigin is configured
+  if (corsOrigin) {
+    const allowedOrigins = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
+    app.use((req, res, next) => {
+      const requestOrigin = req.headers['origin'];
+      if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-A2UI-Capabilities');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+      }
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+      next();
+    });
+  }
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -76,19 +100,15 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
   // SSE endpoint for clients to receive downstream messages
   app.get('/sse', (req: Request, res: Response) => {
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
+    // Resolve session before flushing headers so Set-Cookie can be included
     const newResponse = {
       write: (data: string) => res.write(data),
       end: () => res.end(),
     };
 
-    // Attempt to resume an existing session if the client provides its prior session ID
-    const requestedSessionId = req.query['sessionId'] as string | undefined;
+    // Attempt to resume an existing session — cookie takes priority over query param (legacy fallback)
+    const cookieSessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
+    const requestedSessionId = cookieSessionId ?? (req.query['sessionId'] as string | undefined);
     let sessionId: string;
     let resumed = false;
 
@@ -101,6 +121,14 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       sessionManager.createSession(sessionId, newResponse);
       logger.info(`[Express] Client connected: ${sessionId}`);
     }
+
+    // Set all headers (including cookie) before flushing — once flushHeaders() is called headers are sent
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    const secure = process.env['NODE_ENV'] === 'production' ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `freesail_session=${sessionId}; HttpOnly${secure}; SameSite=Strict; Path=/`);
+    res.flushHeaders();
 
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ connected: true, sessionId, ...(resumed && { resumed: true }) })}\n\n`);
@@ -126,7 +154,8 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   app.post('/message', (req: Request, res: Response) => {
     try {
       const message = req.body as UpstreamMessage;
-      const sessionId = req.headers['x-a2ui-session'] as string | undefined;
+      const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session']
+        ?? (req.headers['x-a2ui-session'] as string | undefined);
 
       if (!message) {
         res.status(400).json({ error: 'Missing message body' });

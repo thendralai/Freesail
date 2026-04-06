@@ -8,6 +8,7 @@
   "reconnectGracePeriod": 180,
   "catalogLogDir": "/var/log/freesail/catalogs",
   "bodyLimit": "5mb",
+  "corsOrigins": ["https://app1.example.com", "https://app2.example.com"],
   "log": {
     "level": "info",
     "file": "/var/log/freesail/gateway.log",
