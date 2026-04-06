@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, type CSSProperties } from 'react';
+import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
 import type { FunctionCall } from '@freesail/core';
@@ -48,21 +49,17 @@ export function Card({ component, children }: FreesailComponentProps) {
   const zoomable = component['zoomable'] as boolean | undefined;
   const [isZoomed, setIsZoomed] = useState(false);
 
-  const style: CSSProperties = {
+  const cardStyle: CSSProperties = {
     padding: (component['padding'] as string) ?? '1.5rem',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
     borderRadius: (component['borderRadius'] as string) ?? 'var(--freesail-radius-md)',
     border: '1px solid var(--freesail-border, #e2e8f0)',
-    boxShadow: isZoomed ? 'var(--freesail-shadow-md, 0 4px 20px rgba(0,0,0,0.18))' : 'var(--freesail-shadow-sm)',
+    boxShadow: 'var(--freesail-shadow-sm)',
     background: getSemanticBackground(component['background'] as string) ?? 'var(--freesail-bg-surface, #ffffff)',
     color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)',
     alignSelf: 'stretch',
     position: 'relative',
-    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-    transform: isZoomed ? 'scale(1.5)' : 'scale(1)',
-    transformOrigin: 'top center',
-    zIndex: isZoomed ? 100 : undefined,
   };
 
   const zoomBtnStyle: CSSProperties = {
@@ -83,28 +80,62 @@ export function Card({ component, children }: FreesailComponentProps) {
     padding: 0,
   };
 
-  return (
-    <div style={style}>
-      {zoomable && (
-        <button
-          type="button"
-          style={zoomBtnStyle}
-          onClick={() => setIsZoomed(z => !z)}
-          title={isZoomed ? 'Restore' : 'Zoom in'}
-        >
-          {isZoomed ? (
-            /* ZoomInMap — arrows pointing inward at all four corners */
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-            </svg>
-          ) : (
-            /* ZoomOutMap — arrows pointing outward at all four corners */
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
-            </svg>
-          )}
-        </button>
+  const zoomBtn = zoomable && (
+    <button
+      type="button"
+      style={zoomBtnStyle}
+      onClick={() => setIsZoomed(z => !z)}
+      title={isZoomed ? 'Restore' : 'Zoom in'}
+    >
+      {isZoomed ? (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
+        </svg>
       )}
+    </button>
+  );
+
+  const overlayContent = isZoomed && ReactDOM.createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.5)',
+      }}
+      onClick={() => setIsZoomed(false)}
+    >
+      <div
+        style={{
+          ...cardStyle,
+          width: '80vw',
+          maxWidth: '1200px',
+          height: 'auto',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: 'var(--freesail-shadow-md, 0 4px 20px rgba(0,0,0,0.18))',
+          alignSelf: 'auto',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {zoomBtn}
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+
+  return (
+    <div style={cardStyle}>
+      {zoomBtn}
+      {overlayContent}
       {children}
     </div>
   );

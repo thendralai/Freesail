@@ -5,11 +5,53 @@
  * Renders a complete chat interface as an A2UI surface.
  */
 
-import React, { useState, useRef, useEffect, type CSSProperties } from 'react';
+import React, { useState, useRef, useEffect, useContext, useCallback, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
 import { getSemanticColor, getSemanticBackground, getContrastTextColor } from '@freesail/standard-catalog/utils';
 import { includedComponents } from '../includes/generated-includes.js';
+
+// =============================================================================
+// ChatContext  (internal — optimistic message reflection)
+// =============================================================================
+
+interface ChatContextValue {
+  optimisticMessages: string[];
+  addOptimisticMessage: (text: string) => void;
+  clearOptimisticMessages: () => void;
+}
+
+const ChatContext = React.createContext<ChatContextValue | null>(null);
+
+// =============================================================================
+// OptimisticUserMessage  (internal — instant local echo while agent round-trips)
+// =============================================================================
+
+function OptimisticUserMessage({ text }: { text: string }) {
+  const containerStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+  };
+  const bubbleStyle: CSSProperties = {
+    maxWidth: '85%',
+    padding: '10px 14px',
+    borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)',
+    backgroundColor: 'var(--freesail-primary, #2563eb)',
+    color: '#ffffff',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    boxShadow: 'var(--freesail-shadow-sm)',
+    opacity: 0.85,
+  };
+  return (
+    <div style={containerStyle}>
+      <div style={bubbleStyle}>{text}</div>
+    </div>
+  );
+}
 
 // =============================================================================
 // ChatContainer
@@ -29,6 +71,15 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
   const background = getSemanticBackground(rawBg);
   const color = getSemanticColor(component['color'] as string | undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const [optimisticMessages, setOptimisticMessages] = useState<string[]>([]);
+  const addOptimisticMessage = useCallback((text: string) => {
+    setOptimisticMessages(prev => [...prev, text]);
+  }, []);
+  const clearOptimisticMessages = useCallback(() => {
+    setOptimisticMessages([]);
+  }, []);
+  const chatContextValue: ChatContextValue = { optimisticMessages, addOptimisticMessage, clearOptimisticMessages };
 
   const childArray = React.Children.toArray(children);
   const fixedBottom = childArray.length > 1 ? childArray[childArray.length - 1] : null;
@@ -60,23 +111,25 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
   };
 
   return (
-    <div style={style}>
-      {title && (
-        <div style={{
-          padding: '16px',
-          borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
-          fontWeight: 600,
-          fontSize: '16px',
-          color: 'var(--freesail-text-main, #0f172a)',
-        }}>
-          {title}
+    <ChatContext.Provider value={chatContextValue}>
+      <div style={style}>
+        {title && (
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
+            fontWeight: 600,
+            fontSize: '16px',
+            color: 'var(--freesail-text-main, #0f172a)',
+          }}>
+            {title}
+          </div>
+        )}
+        <div ref={scrollRef} style={scrollStyle}>
+          {scrollableContent}
         </div>
-      )}
-      <div ref={scrollRef} style={scrollStyle}>
-        {scrollableContent}
+        {fixedBottom}
       </div>
-      {fixedBottom}
-    </div>
+    </ChatContext.Provider>
   );
 }
 
@@ -88,6 +141,17 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
  * Message list container. Scroll is managed by the parent ChatContainer.
  */
 export function ChatMessageList({ children }: FreesailComponentProps) {
+  const chatContext = useContext(ChatContext);
+  const childCount = React.Children.count(children);
+  const prevChildCountRef = useRef(childCount);
+
+  useEffect(() => {
+    if (childCount > prevChildCountRef.current) {
+      chatContext?.clearOptimisticMessages();
+    }
+    prevChildCountRef.current = childCount;
+  }, [childCount, chatContext]);
+
   const style: CSSProperties = {
     padding: '16px',
     display: 'flex',
@@ -95,11 +159,19 @@ export function ChatMessageList({ children }: FreesailComponentProps) {
     gap: '12px',
   };
 
-  const hasChildren = React.Children.count(children) > 0;
+  const optimisticMessages = chatContext?.optimisticMessages ?? [];
+  const hasChildren = childCount > 0 || optimisticMessages.length > 0;
 
   return (
     <div style={style}>
-      {hasChildren ? children : (
+      {hasChildren ? (
+        <>
+          {children}
+          {optimisticMessages.map((msg, i) => (
+            <OptimisticUserMessage key={`opt-${i}`} text={msg} />
+          ))}
+        </>
+      ) : (
         <div style={{ color: 'var(--freesail-text-muted, #64748b)', textAlign: 'center', marginTop: '40px' }}>
           <p>Ask the agent anything!</p>
           <p style={{ fontSize: '13px', marginTop: '8px' }}>
@@ -201,6 +273,25 @@ function formatTime(iso: string): string {
 // ChatInput
 // =============================================================================
 
+function SendIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
 /**
  * Chat input field with send button.
  * Fires a 'chat_send' action with context { text: string }.
@@ -209,11 +300,13 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
   const placeholder = (component['placeholder'] as string) ?? 'Type a message...';
   const disabled = (component['disabled'] as boolean) ?? false;
   const [text, setText] = useState('');
+  const chatContext = useContext(ChatContext);
 
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed || disabled) return;
     setText('');
+    chatContext?.addOptimisticMessage(trimmed);
     if (onAction) {
       onAction('chat_send', { text: trimmed });
     }
@@ -252,14 +345,19 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
   };
 
   const buttonStyle: CSSProperties = {
-    padding: '10px 20px',
+    width: '42px',
+    height: '42px',
+    padding: '10px',
     border: 'none',
-    borderRadius: '20px',
+    borderRadius: '50%',
     backgroundColor: buttonColor ?? 'var(--freesail-primary, #2563eb)',
     color: rawButtonColor ? getContrastTextColor(rawButtonColor, '#ffffff') : 'var(--freesail-primary-text, #ffffff)',
-    fontSize: '14px',
     cursor: disabled || !text.trim() ? 'not-allowed' : 'pointer',
     opacity: disabled || !text.trim() ? 0.5 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   };
 
   return (
@@ -273,8 +371,8 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
         disabled={disabled}
         style={inputStyle}
       />
-      <button onClick={handleSend} disabled={disabled || !text.trim()} style={buttonStyle}>
-        Send
+      <button onClick={handleSend} disabled={disabled || !text.trim()} style={buttonStyle} aria-label="Send message">
+        <SendIcon />
       </button>
     </div>
   );
@@ -284,12 +382,31 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
 // ChatTypingIndicator
 // =============================================================================
 
+const THINKING_PHRASES = [
+  'Thinking...', 'Planning...', 'Creating...', 'Building...',
+  'Designing...', 'Working...', 'Crafting...', 'Almost there...',
+];
+
 /**
- * Animated typing indicator.
+ * Animated typing indicator with rotating contextual phrases.
  */
 export function ChatTypingIndicator({ component, scopeData }: FreesailComponentProps) {
   const visible = (component['visible'] as boolean) ?? (scopeData as any)?.visible ?? false;
-  const text = (component['text'] as string) ?? 'Thinking...';
+
+  const [phraseIndex, setPhraseIndex] = useState(
+    () => Math.floor(Math.random() * THINKING_PHRASES.length)
+  );
+
+  useEffect(() => {
+    if (!visible) {
+      setPhraseIndex(Math.floor(Math.random() * THINKING_PHRASES.length));
+      return;
+    }
+    const interval = setInterval(() => {
+      setPhraseIndex(prev => (prev + 1) % THINKING_PHRASES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -314,7 +431,7 @@ export function ChatTypingIndicator({ component, scopeData }: FreesailComponentP
         <Dot delay={150} />
         <Dot delay={300} />
       </span>
-      <span>{text}</span>
+      <span>{THINKING_PHRASES[phraseIndex]}</span>
     </div>
   );
 }

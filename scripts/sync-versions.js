@@ -11,20 +11,27 @@ const packageFiles = globSync('packages/**/package.json', {
   ignore: ['**/node_modules/**']
 });
 
+const FREESAIL_SCOPES = ['@freesail/', '@freesail-community/'];
+
+function isFreesailDep(dep) {
+  return FREESAIL_SCOPES.some(scope => dep.startsWith(scope));
+}
+
 packageFiles.forEach(filePath => {
   const pkg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  
+
   // 3. Update the version
   pkg.version = newVersion;
-  
-  // 4. IMPORTANT: Update internal cross-dependencies
-  // This ensures @freesail/react points to the new version of @freesail/core
-  if (pkg.dependencies) {
-    Object.keys(pkg.dependencies).forEach(dep => {
-      if (dep.startsWith('@freesail/')) {
-        pkg.dependencies[dep] = `^${newVersion}`;
-      }
-    });
+
+  // 4. IMPORTANT: Update internal cross-dependencies across all dep sections
+  for (const section of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    if (pkg[section]) {
+      Object.keys(pkg[section]).forEach(dep => {
+        if (isFreesailDep(dep)) {
+          pkg[section][dep] = `^${newVersion}`;
+        }
+      });
+    }
   }
 
   fs.writeFileSync(filePath, JSON.stringify(pkg, null, 2) + '\n');

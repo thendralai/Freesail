@@ -264,16 +264,37 @@ export class FreesailAgentRuntime {
 
           // Subscribe to per-session resource only after claiming — prevents other
           // agents from dequeuing actions that belong to this agent.
-          // If subscription fails, track the session so pollPendingActions() can
-          // drain it whenever resources/list_changed fires as a fallback.
+          // If subscription fails after retries, track the session so pollPendingActions()
+          // can drain it whenever resources/list_changed fires as a fallback.
+          //
+          // Retry rationale: Node.js (undici) reuses keep-alive connections from the
+          // connection pool. If the gateway closed the previous connection (e.g. after
+          // the claim_session tool call) and the pooled socket is stale, the very next
+          // POST (subscribeResource) hits a closed socket and throws TypeError: fetch
+          // failed. A single retry after a short delay picks a fresh connection and
+          // succeeds in practice.
           const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
           if (!this.activeSubscriptions.has(sessionUri)) {
-            try {
-              await this.mcpClient.subscribeResource({ uri: sessionUri });
+            const RETRY_DELAYS_MS = [100, 500];
+            let subscribed = false;
+            let lastErr: unknown;
+            for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+              if (attempt > 0) {
+                await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+              }
+              try {
+                await this.mcpClient.subscribeResource({ uri: sessionUri });
+                subscribed = true;
+                break;
+              } catch (err) {
+                lastErr = err;
+              }
+            }
+            if (subscribed) {
               this.activeSubscriptions.add(sessionUri);
               this.missedSubscriptions.delete(sessionId);
-            } catch (err) {
-              logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId} — will poll via list_changed:`, err);
+            } else {
+              logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId} — will poll via list_changed:`, lastErr);
               this.missedSubscriptions.add(sessionId);
             }
           }
