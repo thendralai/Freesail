@@ -146,7 +146,6 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
         `[Session Context] The following message is from session "${this.sessionId}". ` +
         `When calling ANY tool (create_surface, update_components, update_data_model, delete_surface), ` +
         `you MUST use sessionId: "${this.sessionId}". Do NOT reuse a sessionId from a previous message.\n` +
-        `IMPORTANT: Do NOT create or modify the "__chat" surface — it is managed by the framework. ` +
         `Just reply normally in chat for standard conversation. ` +
         `Only create new surfaces when you think the user needs visual UI.\n\n` +
         `User: ${message}`;

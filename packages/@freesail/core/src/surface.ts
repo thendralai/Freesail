@@ -276,12 +276,13 @@ export class SurfaceManager {
     }
 
     if (path === '/' || path === '') {
-      // Root update
-      if (value === undefined) {
-        surface.dataModel = {};
-      } else {
-        surface.dataModel = (value as Record<string, unknown>) ?? {};
+      // Root update — preserve client-side __ prefixed keys (e.g. __componentState)
+      const reserved: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(surface.dataModel)) {
+        if (k.startsWith('__')) reserved[k] = v;
       }
+      const incoming = value === undefined ? {} : ((value as Record<string, unknown>) ?? {});
+      surface.dataModel = { ...incoming, ...reserved };
     } else {
       // Nested update using JSON pointer
       if (value === undefined) {

@@ -440,11 +440,12 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       description:
         'Update the data model of a surface. This changes the content displayed by ' +
         'components without changing the component structure. ' +
+        'Omit "path" or pass "/" to replace the entire data model for the surface. ' +
         'Components use data bindings like {"path": "/user/name"} to reference data.',
       inputSchema: {
         surfaceId: z.string().describe('The surface to update'),
         sessionId: z.string().describe('Target client session ID'),
-        path: z.string().describe('JSON pointer to the data location (e.g., "/user/name", "/projects"). Must be a specific sub-path — root path "/" is not allowed.'),
+        path: z.string().optional().describe('JSON pointer to the data location (e.g., "/user/name", "/projects"). If omitted or "/", the entire data model is replaced. Paths starting with "__" are reserved for client-side use.'),
         value: z.unknown().optional().describe('The value to set. Pass native objects/arrays/primitives — do NOT pass a JSON-encoded string (e.g. pass {"key":"val"}, not "{\"key\":\"val\"}"). If omitted, removes the key at path.'),
       },
     },
@@ -492,7 +493,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         version: A2UI_VERSION,
         updateDataModel: {
           surfaceId: surfaceId as SurfaceId,
-          path,
+          ...(path !== undefined ? { path } : {}),
           value,
         },
       };

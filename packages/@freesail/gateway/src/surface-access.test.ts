@@ -94,16 +94,16 @@ describe('validateDataModelPath', () => {
     expect(validateDataModelPath('/user/name')).toBeNull();
   });
 
-  it('rejects root path "/"', () => {
-    expect(validateDataModelPath('/')).not.toBeNull();
+  it('allows root path "/" (replaces entire data model)', () => {
+    expect(validateDataModelPath('/')).toBeNull();
   });
 
-  it('rejects empty string', () => {
-    expect(validateDataModelPath('')).not.toBeNull();
+  it('allows empty string (treated as root replacement)', () => {
+    expect(validateDataModelPath('')).toBeNull();
   });
 
-  it('rejects undefined', () => {
-    expect(validateDataModelPath(undefined)).not.toBeNull();
+  it('allows undefined path (treated as root replacement)', () => {
+    expect(validateDataModelPath(undefined)).toBeNull();
   });
 
   it('rejects paths starting with __', () => {

@@ -244,6 +244,25 @@ describe('SurfaceManager.updateDataModel', () => {
     expect(manager.getDataModel('s1')).toEqual({});
   });
 
+  it('preserves __ prefixed keys on root replacement', () => {
+    const surface = manager.getSurface('s1')!;
+    surface.dataModel['__componentState'] = { modal: { visible: true } };
+    manager.updateDataModel('s1', '/', { user: 'Alice' });
+    expect(manager.getDataModel('s1')).toMatchObject({
+      user: 'Alice',
+      __componentState: { modal: { visible: true } },
+    });
+  });
+
+  it('preserves __ prefixed keys when root is cleared with undefined', () => {
+    const surface = manager.getSurface('s1')!;
+    surface.dataModel['__componentState'] = { modal: { visible: false } };
+    manager.updateDataModel('s1', '/', undefined);
+    const dm = manager.getDataModel('s1');
+    expect(dm).toMatchObject({ __componentState: { modal: { visible: false } } });
+    expect(dm).not.toHaveProperty('user');
+  });
+
   it('emits dataModelUpdated event', () => {
     const handler = vi.fn();
     manager.on('dataModelUpdated', handler);

@@ -22,9 +22,9 @@ export class LangChainAdapter {
           // Block LLM from writing to client-managed surfaces (__chat, __system, etc.)
           // Agent code uses mcpClient.callTool() directly and bypasses this wrapper.
           const surfaceId = (args as any).surfaceId as string | undefined;
-          if (surfaceId?.startsWith('__')) {
+          /*if (surfaceId?.startsWith('__')) {
             return `Error: "${surfaceId}" is a client-managed surface. Agents may not call ${mcpTool.name} on it. Use a surface you created with create_surface instead.`;
-          }
+          }*/
 
           if (mcpTool.name === 'update_components') {
             const comps = (args as any).components;

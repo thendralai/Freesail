@@ -55,21 +55,16 @@ export function validateComponentIds(components: { id?: string }[]): string | nu
  * Validates a JSON pointer path for an agent `update_data_model` call.
  *
  * Rules:
- * 1. Path must be provided and non-empty.
- * 2. Root path '/' is forbidden — it would replace the entire data model
- *    and destroy client-side state (e.g. /__componentState).
- * 3. Paths starting with '__' are reserved for client-side internal state.
+ * 1. If path is omitted (undefined), empty (''), or '/', the entire data model
+ *    is replaced. This is permitted per the A2UI protocol. Client-side __ prefixed
+ *    keys are preserved by the SurfaceManager during root replacements.
+ * 2. Paths whose first segment starts with '__' are reserved for client-side
+ *    state and cannot be written directly by agents.
  *
  * @returns An error string if the path is invalid, null if permitted.
  */
 export function validateDataModelPath(path: string | undefined): string | null {
-  if (!path || path === '') {
-    return `A specific sub-path is required (e.g. '/projects'). Omitting the path or passing an empty string is not allowed.`;
-  }
-  if (path === '/') {
-    return `Writing to the root path '/' is not allowed. Use specific sub-paths instead (e.g. '/projects', '/user/name'). Writing to '/' would replace the entire data model and destroy client-side state.`;
-  }
-  if (path.replace(/^\/+/, '').startsWith('__')) {
+  if (path && path.replace(/^\/+/, '').startsWith('__')) {
     return `Data model paths starting with '__' are reserved for client-side use. Agents cannot write to '${path}'.`;
   }
   return null;
