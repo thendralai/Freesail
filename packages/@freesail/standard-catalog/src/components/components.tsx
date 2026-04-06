@@ -151,38 +151,33 @@ export function Text({ component }: FreesailComponentProps) {
     ? JSON.stringify(rawText)
     : String(rawText)).replace(/\\n/g, '\n');
 
-  const style: CSSProperties = {
+  const baseStyle: CSSProperties = {
     fontSize: (component['size'] as string) ?? '14px',
     fontWeight: (component['weight'] as CSSProperties['fontWeight']) ?? 'normal',
     color: getSemanticColor(component['color'] as string) ?? 'inherit',
-    whiteSpace: 'pre-line',
     margin: 0,
   };
 
   const variant = (component['variant'] as string) ?? 'body';
 
-  switch (variant) {
-    case 'h1':
-      return <h1 style={{ ...style, fontSize: '2em', fontWeight: 'bold' }}>{text}</h1>;
-    case 'h2':
-      return <h2 style={{ ...style, fontSize: '1.5em', fontWeight: 'bold' }}>{text}</h2>;
-    case 'h3':
-      return <h3 style={{ ...style, fontSize: '1.17em', fontWeight: 'bold' }}>{text}</h3>;
-    case 'caption':
-    case 'label':
-      return <label style={{ ...style, fontWeight: '500', fontSize: '12px' }}>{text}</label>;
-    default:
-      if (text.startsWith('# ')) {
-        return <h1 style={{ ...style, fontSize: '2em', fontWeight: 'bold' }}>{text.slice(2)}</h1>;
-      }
-      if (text.startsWith('## ')) {
-        return <h2 style={{ ...style, fontSize: '1.5em', fontWeight: 'bold' }}>{text.slice(3)}</h2>;
-      }
-      if (text.startsWith('### ')) {
-        return <h3 style={{ ...style, fontSize: '1.17em', fontWeight: 'bold' }}>{text.slice(4)}</h3>;
-      }
-      return <span style={style}>{text}</span>;
+  if (variant === 'caption' || variant === 'label') {
+    return <label style={{ ...baseStyle, fontWeight: '500', fontSize: '12px' }}>{text}</label>;
   }
+
+  return (
+    <div style={baseStyle}>
+      <ReactMarkdown
+        components={{
+          a: ({ href, children }) => {
+            const safe = href && !href.trimStart().toLowerCase().startsWith('javascript:') ? href : undefined;
+            return <a href={safe} target="_blank" rel="noopener noreferrer">{children}</a>;
+          },
+        }}
+      >
+        {variant === 'h1' ? `# ${text}` : variant === 'h2' ? `## ${text}` : variant === 'h3' ? `### ${text}` : text}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 export function Icon({ component }: FreesailComponentProps) {
@@ -500,7 +495,7 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
 
 export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
-  const variant = (component['variant'] as string) ?? 'checkbox';
+  const variant = (component['variant'] as string) ?? 'radio';
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
@@ -936,27 +931,6 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
 // Text Components
 // =============================================================================
 
-/**
- * Markdown - displays full markdown content.
- */
-export function Markdown({ component }: FreesailComponentProps) {
-  const rawText = component['text'] ?? '';
-  const text = typeof rawText === 'object' && rawText !== null 
-    ? JSON.stringify(rawText) 
-    : String(rawText);
-
-  const style: CSSProperties = {
-    fontSize: (component['size'] as string) ?? '14px',
-    color: getSemanticColor(component['color'] as string) ?? 'inherit',
-    lineHeight: 1.5,
-  };
-
-  return (
-    <div style={style}>
-      <ReactMarkdown>{text}</ReactMarkdown>
-    </div>
-  );
-}
 
 // =============================================================================
 // Interactive Components
@@ -1840,6 +1814,6 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 export const standardCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
   Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, Modal, Spacer,
   ChoicePickerSingleSelect, ChoicePickerMultiSelect,
-  GridLayout, Markdown, CheckBox, Image, Divider, List, Tab, TabGroup,
+  GridLayout, CheckBox, Image, Divider, List, Tab, TabGroup,
   Video, AudioPlayer, Slider, Dropdown, BarChart, LineChart, PieChart, Sparkline, StatCard,
 };

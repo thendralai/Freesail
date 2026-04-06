@@ -449,9 +449,9 @@
             },
             "variant": {
               "type": "string",
-              "description": "How the choice picker should be displayed - a group of checkboxes or chips.",
+              "description": "How the choice picker should be displayed - a group of radio buttons or chips.",
               "enum": [
-                "checkbox",
+                "radio",
                 "chips"
               ]
             },
@@ -1139,35 +1139,6 @@
             "value",
             "min",
             "max"
-          ]
-        }
-      ],
-      "unevaluatedProperties": false
-    },
-    "Markdown": {
-      "type": "object",
-      "allOf": [
-        {
-          "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
-          "type": "object",
-          "description": "Renders rich Markdown content. Use this for multi-paragraph text, formatted content, or when HTML-like structure is needed. Key properties: text (required, the markdown string to render). User-Writable: false.",
-          "properties": {
-            "component": {
-              "const": "Markdown"
-            },
-            "text": {
-              "$ref": "#/$defs/DynamicString",
-              "description": "The markdown content to display."
-            }
-          },
-          "required": [
-            "component",
-            "text"
           ]
         }
       ],
@@ -2864,9 +2835,6 @@
         },
         {
           "$ref": "#/components/Slider"
-        },
-        {
-          "$ref": "#/components/Markdown"
         },
         {
           "$ref": "#/components/GridLayout"
