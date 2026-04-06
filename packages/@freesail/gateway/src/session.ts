@@ -462,22 +462,34 @@ export class SessionManager {
    */
   getSessionSummaries(): Array<{
     id: string;
-    surfaces: string[];
-    catalogIds: string[];
+    surfaces: Array<{ surfaceId: string; surfaceCatalog: string | null; pendingActionCount: number }>;
+    capabilities: A2UIClientCapabilities | null;
     agentId: string | null;
-    actionCount: number;
     createdAt: number;
     lastActivity: number;
   }> {
-    return Array.from(this.sessions.values()).map(s => ({
-      id: s.id,
-      surfaces: Array.from(s.surfaces),
-      catalogIds: Array.from(s.catalogIds),
-      agentId: this.sessionToAgent.get(s.id) ?? null,
-      actionCount: this.actionQueue.get(s.id)?.length ?? 0,
-      createdAt: s.createdAt,
-      lastActivity: s.lastActivity,
-    }));
+    return Array.from(this.sessions.values()).map(s => {
+      const queue = this.actionQueue.get(s.id) ?? [];
+      const actionCountBySurface = new Map<string, number>();
+      for (const msg of queue) {
+        if ('action' in msg) {
+          const sid = msg.action.surfaceId;
+          actionCountBySurface.set(sid, (actionCountBySurface.get(sid) ?? 0) + 1);
+        }
+      }
+      return {
+        id: s.id,
+        surfaces: Array.from(s.surfaces).map(surfaceId => ({
+          surfaceId,
+          surfaceCatalog: this.surfaceToCatalog.get(surfaceId) ?? null,
+          pendingActionCount: actionCountBySurface.get(surfaceId) ?? 0,
+        })),
+        capabilities: s.capabilities,
+        agentId: this.sessionToAgent.get(s.id) ?? null,
+        createdAt: s.createdAt,
+        lastActivity: s.lastActivity,
+      };
+    });
   }
 
   /**

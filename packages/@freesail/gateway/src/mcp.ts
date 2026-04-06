@@ -673,8 +673,9 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
     'list_sessions',
     {
       description:
-        'List the client sessions owned by this agent, with their surfaces, ' +
-        'supported catalogs, and pending action counts.',
+        'List the client sessions owned by this agent. Each session includes: ' +
+        'surfaces (with surfaceId, surfaceCatalog, and pendingActionCount per surface), ' +
+        'capabilities (catalogs the client supports), agentId, createdAt, and lastActivity.',
       inputSchema: {},
     },
     async (_params, extra) => {

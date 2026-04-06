@@ -66,7 +66,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   });
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
       sessions: sessionManager.getSessionCount(),
@@ -169,6 +169,17 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         resolvedSessionId = sessionManager.enqueueActionBySurface(message);
       } else {
         sessionManager.enqueueAction(resolvedSessionId, message);
+      }
+
+      // Persist capabilities so the agent can see them via list_sessions
+      const capabilitiesHeader = req.headers['x-a2ui-capabilities'] as string | undefined;
+      if (capabilitiesHeader && resolvedSessionId) {
+        try {
+          const capabilities = JSON.parse(capabilitiesHeader);
+          sessionManager.setCapabilities(resolvedSessionId, capabilities);
+        } catch {
+          logger.warn(`[Express] Failed to parse X-A2UI-Capabilities header`);
+        }
       }
 
       // Notify callback
