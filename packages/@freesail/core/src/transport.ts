@@ -100,6 +100,12 @@ export class A2UITransport {
     new Map();
   private dataModelProviders: Map<SurfaceId, () => Record<string, unknown>> = new Map();
   private _sessionId: string | null = null;
+  /** Surface IDs whose /register-surface POST failed and need to be retried on reconnect. */
+  private pendingSurfaceRegistrations: Set<string> = new Set();
+  /** True while flushQueue() is running — prevents postMessage() failures from triggering re-entrant flushes. */
+  private isFlushingQueue = false;
+  /** Retry timer for re-attempting the queue when SSE stays alive but POST requests fail. */
+  private queueRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: TransportOptions) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
@@ -148,7 +154,10 @@ export class A2UITransport {
       this.eventSource.onopen = () => {
         this.setState('connected');
         this.currentReconnectDelay = this.options.reconnectDelay;
+        // Cancel any pending queue retry — onopen flushes everything directly.
+        this.clearQueueRetryTimer();
         this.flushQueue();
+        this.flushPendingSurfaceRegistrations();
       };
 
       this.eventSource.onmessage = (event) => {
@@ -169,6 +178,7 @@ export class A2UITransport {
    */
   disconnect(): void {
     this.clearReconnectTimer();
+    this.clearQueueRetryTimer();
 
     if (this.eventSource) {
       this.eventSource.close();
@@ -182,14 +192,14 @@ export class A2UITransport {
 
   /**
    * Send an upstream message to the server.
-   * If disconnected, the message is queued for later delivery.
+   * If disconnected, the message is queued for later delivery (dataModel is not queued).
    */
-  async send(message: UpstreamMessage): Promise<boolean> {
+  async send(message: UpstreamMessage, dataModel?: A2UIClientDataModel): Promise<boolean> {
     if (this.state !== 'connected') {
       return this.queueMessage(message);
     }
 
-    return this.postMessage(message);
+    return this.postMessage(message, dataModel);
   }
 
   /**
@@ -213,7 +223,7 @@ export class A2UITransport {
       },
     };
 
-    return this.postMessage(message, dataModel);
+    return this.send(message, dataModel);
   }
 
   /**
@@ -235,7 +245,7 @@ export class A2UITransport {
       },
     };
 
-    return this.postMessage(message);
+    return this.send(message);
   }
 
   /**
@@ -389,14 +399,30 @@ export class A2UITransport {
   private async registerSurfaceWithGateway(surfaceId: string): Promise<void> {
     try {
       const baseUrl = this.options.gateway;
-      await fetch(`${baseUrl}/register-surface`, {
+      const response = await fetch(`${baseUrl}/register-surface`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ surfaceId }),
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
       this.emit('error', error instanceof Error ? error : new Error(String(error)));
+      // Retry on next reconnect — without this mapping the gateway can't route
+      // upstream actions from this surface to the correct session.
+      this.pendingSurfaceRegistrations.add(surfaceId);
+      this.scheduleQueueRetry();
+    }
+  }
+
+  private flushPendingSurfaceRegistrations(): void {
+    if (this.pendingSurfaceRegistrations.size === 0) return;
+    const pending = new Set(this.pendingSurfaceRegistrations);
+    this.pendingSurfaceRegistrations.clear();
+    for (const surfaceId of pending) {
+      void this.registerSurfaceWithGateway(surfaceId);
     }
   }
 
@@ -450,25 +476,57 @@ export class A2UITransport {
   }
 
   private async flushQueue(): Promise<void> {
-    if (this.messageQueue.length === 0) return;
+    if (this.isFlushingQueue || this.messageQueue.length === 0) return;
 
+    this.isFlushingQueue = true;
     const messages = [...this.messageQueue];
     this.messageQueue = [];
 
     let flushedCount = 0;
 
-    for (const message of messages) {
-      const success = await this.postMessage(message);
-      if (success) {
-        flushedCount++;
-      } else {
-        // Re-queue failed messages
-        this.messageQueue.push(message);
+    try {
+      for (const message of messages) {
+        const success = await this.postMessage(message);
+        if (success) {
+          flushedCount++;
+        } else {
+          // Re-queue failed messages (postMessage won't re-queue when isFlushingQueue is true)
+          this.messageQueue.push(message);
+        }
       }
+    } finally {
+      this.isFlushingQueue = false;
     }
 
     if (flushedCount > 0) {
       this.emit('queueFlushed', flushedCount);
+    }
+
+    if (this.messageQueue.length > 0) {
+      // Some messages failed — retry after 1s.
+      // This handles the case where the SSE stays alive but POST requests fail,
+      // so onopen won't fire to trigger the next flush naturally.
+      this.scheduleQueueRetry();
+    }
+  }
+
+  private scheduleQueueRetry(): void {
+    if (this.queueRetryTimer) return; // already scheduled
+    this.queueRetryTimer = setTimeout(() => {
+      this.queueRetryTimer = null;
+      if (this.state === 'connected') {
+        this.flushPendingSurfaceRegistrations();
+        if (this.messageQueue.length > 0) {
+          void this.flushQueue();
+        }
+      }
+    }, 1000);
+  }
+
+  private clearQueueRetryTimer(): void {
+    if (this.queueRetryTimer) {
+      clearTimeout(this.queueRetryTimer);
+      this.queueRetryTimer = null;
     }
   }
 
@@ -519,6 +577,14 @@ export class A2UITransport {
         'error',
         error instanceof Error ? error : new Error(String(error))
       );
+      if (!this.isFlushingQueue) {
+        // Direct call (e.g. from sendAction) — re-queue and trigger an immediate flush
+        // so the message is retried without waiting for the next SSE reconnect.
+        // When called from within flushQueue() the flush loop already re-queues failures,
+        // so we skip this to avoid double-queuing and re-entrant loops.
+        this.queueMessage(message);
+        void this.flushQueue();
+      }
       return false;
     }
   }
