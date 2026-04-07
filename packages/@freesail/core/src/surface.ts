@@ -38,6 +38,21 @@ export interface Surface {
 }
 
 /**
+ * JSON-serializable snapshot of a surface for sessionStorage persistence.
+ * Components are stored as an array because Map is not JSON-serializable.
+ */
+export interface SerializedSurface {
+  id: string;
+  catalogId: string;
+  components: A2UIComponent[];
+  rootId: string | null;
+  dataModel: Record<string, unknown>;
+  sendDataModel: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
  * Configuration for creating a surface.
  */
 export interface CreateSurfaceOptions {
@@ -359,6 +374,86 @@ export class SurfaceManager {
     return () => {
       this.listeners.get(event)?.delete(callback as EventCallback<keyof SurfaceManagerEvents>);
     };
+  }
+
+  /**
+   * Return a JSON-serializable snapshot of all surfaces.
+   * Used to persist state to sessionStorage so it survives page refresh.
+   */
+  snapshot(): SerializedSurface[] {
+    return Array.from(this.surfaces.values()).map(s => ({
+      id: s.id as string,
+      catalogId: s.catalogId as string,
+      components: Array.from(s.components.values()),
+      rootId: s.rootId as string | null,
+      dataModel: s.dataModel,
+      sendDataModel: s.sendDataModel,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }));
+  }
+
+  /**
+   * Restore surfaces from a previously saved snapshot (e.g. from sessionStorage).
+   *
+   * If a surface already exists (e.g. created by client bootstrapping code that runs
+   * before the session reconnects), its state is overwritten with the snapshot so that
+   * conversation history and interaction state are recovered. Re-render events are
+   * emitted so React picks up the change.
+   *
+   * If a surface does not yet exist it is created from scratch and `surfaceCreated`
+   * is emitted as normal.
+   */
+  restore(snapshots: SerializedSurface[]): void {
+    for (const s of snapshots) {
+      const existing = this.surfaces.get(s.id as SurfaceId);
+
+      if (existing) {
+        // Surface was pre-created by client code with empty defaults — overwrite with
+        // the saved state to recover conversation history and interaction state.
+        existing.components = new Map(s.components.map(c => [c.id, c]));
+        existing.rootId = s.rootId as ComponentId | null;
+        existing.dataModel = s.dataModel;
+        existing.sendDataModel = s.sendDataModel;
+        existing.updatedAt = s.updatedAt;
+        // Emit update events so React re-renders with the restored state.
+        this.emit('componentsUpdated', existing.id, Array.from(existing.components.values()));
+        this.emit('dataModelUpdated', existing.id, '/', existing.dataModel);
+      } else {
+        // Surface doesn't exist yet — create it from scratch.
+        const surface: Surface = {
+          id: s.id as SurfaceId,
+          catalogId: s.catalogId as CatalogId,
+          components: new Map(s.components.map(c => [c.id, c])),
+          rootId: s.rootId as ComponentId | null,
+          dataModel: s.dataModel,
+          sendDataModel: s.sendDataModel,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        };
+
+        this.surfaces.set(surface.id, surface);
+        this.emit('surfaceCreated', surface);
+
+        // Start orphan-component timer for surfaces that already have components
+        // (mirrors the logic at the end of updateComponents).
+        // The orphan-surface timer (60s wait for first updateComponents) is intentionally
+        // not started because restored surfaces already have components.
+        if (surface.components.size > 0 && !this.orphanComponentTimers.has(surface.id)) {
+          const surfaceId = surface.id;
+          const timer = setInterval(() => {
+            const currentOrphans = new Set(this.getOrphanComponents(surfaceId));
+            const lastOrphans = this.lastOrphanSets.get(surfaceId) ?? new Set<ComponentId>();
+            const newOrphans = [...currentOrphans].filter(id => !lastOrphans.has(id)) as ComponentId[];
+            this.lastOrphanSets.set(surfaceId, currentOrphans);
+            if (newOrphans.length > 0) {
+              this.emit('orphanComponents', surfaceId, newOrphans);
+            }
+          }, this.orphanComponentCheckInterval);
+          this.orphanComponentTimers.set(surface.id, timer);
+        }
+      }
+    }
   }
 
   /**

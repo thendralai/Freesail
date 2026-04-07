@@ -74,6 +74,7 @@ export { A2UITransport, createTransport } from './transport.js';
 // Surface Manager
 export type {
   Surface,
+  SerializedSurface,
   CreateSurfaceOptions,
   SurfaceManagerEvents,
   SurfaceError,

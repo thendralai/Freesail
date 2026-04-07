@@ -23,6 +23,7 @@ import {
   isGetDataModelMessage,
   type SurfaceManager,
   type SurfaceError,
+  type SerializedSurface,
   type A2UITransport,
   type TransportOptions,
   type SurfaceId,
@@ -36,6 +37,14 @@ import {
 import { FreesailContext, type FreesailContextValue } from './context.js';
 import { registerCatalog, type FreesailComponent } from './registry.js';
 import type { CatalogDefinition } from './types.js';
+
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
 
 /**
  * Returned by a surface operation interceptor.
@@ -242,8 +251,41 @@ export function FreesailProvider({
       onConnectionChangeRef.current?.(connected);
     });
 
-    // When session starts, register catalog schemas with the gateway
-    newTransport.on('sessionStart', (_sessionId: string) => {
+    // Persist surface state to sessionStorage on every significant change so it
+    // survives page refresh. Debounced to avoid flooding on rapid dataModel updates.
+    const saveSurfaceState = debounce(() => {
+      const sid = newTransport.sessionId;
+      if (!sid) return;
+      try {
+        sessionStorage.setItem(
+          `freesail_surfaces_${sid}`,
+          JSON.stringify(surfaceManager.snapshot())
+        );
+      } catch {
+        // sessionStorage unavailable (SSR, quota exceeded) — fail silently
+      }
+    }, 300);
+
+    const unsubSaveCreated   = surfaceManager.on('surfaceCreated',    saveSurfaceState);
+    const unsubSaveUpdated   = surfaceManager.on('componentsUpdated', saveSurfaceState);
+    const unsubSaveDataModel = surfaceManager.on('dataModelUpdated',  saveSurfaceState);
+    const unsubSaveDeleted   = surfaceManager.on('surfaceDeleted',    saveSurfaceState);
+
+    // When session starts, restore surface state from sessionStorage (covers page refresh
+    // within the gateway's reconnect grace period), then register catalog schemas.
+    // Note: restore() overwrites surfaces that were pre-created by client bootstrapping
+    // code (e.g. ChatBootstrapper) so that saved state wins over empty initial defaults.
+    newTransport.on('sessionStart', (sessionId: string) => {
+      try {
+        const saved = sessionStorage.getItem(`freesail_surfaces_${sessionId}`);
+        if (saved) {
+          const snapshots = JSON.parse(saved) as SerializedSurface[];
+          surfaceManager.restore(snapshots);
+        }
+      } catch {
+        // Corrupt storage or SSR — start fresh
+      }
+
       const defs = catalogsRef.current;
       if (defs.length > 0) {
         const schemas = defs
@@ -281,6 +323,10 @@ export function FreesailProvider({
       unsubOrphan();
       unsubOrphanComponents();
       unsubError();
+      unsubSaveCreated();
+      unsubSaveUpdated();
+      unsubSaveDataModel();
+      unsubSaveDeleted();
       newTransport.disconnect();
       surfaceManager.dispose();
     };
