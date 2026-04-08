@@ -209,11 +209,11 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
 
     for (const catalog of catalogs) {
-      this.catalogStore.set(catalog.id, catalog);
+      this.catalogStore.set(catalog.catalogId, catalog);
       if (session) {
-        session.catalogIds.add(catalog.id);
+        session.catalogIds.add(catalog.catalogId);
       }
-      logger.info(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.id}) for session ${sessionId}`);
+      logger.info(`[SessionManager] Registered catalog: ${catalog.title} (${catalog.catalogId}) for session ${sessionId}`);
       prewarmCatalogDetailCache(catalog);
 
       const logDir = this.catalogLogDir ?? process.env['CATALOG_LOG_DIR'];

@@ -400,7 +400,7 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       logger.info(`[Express] Registered ${catalogs.length} catalog(s) from session ${sessionId}`);
       res.json({
         success: true,
-        registered: catalogs.map((c) => c.id),
+        registered: catalogs.map((c) => c.catalogId),
         errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {

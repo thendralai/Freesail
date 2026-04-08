@@ -37,7 +37,8 @@ function resolveRef(
 }
 
 import { z } from 'zod';
-import Ajv, { type ValidateFunction } from 'ajv';
+import Ajv, { type ValidateFunction, type ErrorObject } from 'ajv/dist/2019.js';
+import addFormats from 'ajv-formats';
 
 /**
  * Extracts the description from a component, searching through allOf entries if not at top level.
@@ -87,8 +88,7 @@ export interface CatalogComponent {
  * Full catalog schema.
  */
 export interface Catalog {
-  id: string; 
-  catalogId: string; 
+  catalogId: string;
   title: string;
   description?: string;
   $defs?: Record<string, unknown>;
@@ -1022,10 +1022,45 @@ function renderFunctionDetail(funcName: string, func: Catalog['functions'] exten
 }
 
 // Ajv singleton — compiled validators are cached per component type per catalog
-const ajv = new Ajv({ allErrors: true, strict: false });
+const ajv = addFormats(new Ajv({ allErrors: true, strict: false }));
 
 // Cache: "catalogId:componentType" → compiled validator
 const componentValidators = new Map<string, ValidateFunction>();
+// Cache: "catalogId:func:funcName" → compiled validator
+const functionValidators = new Map<string, ValidateFunction>();
+// Tracks which catalog IDs have been registered as AJV schemas
+const registeredCatalogs = new Set<string>();
+
+function ensureCatalogRegistered(catalog: Catalog): string {
+  const uri = catalog.catalogId;
+  if (!registeredCatalogs.has(uri)) {
+    // Strip $schema — AJV would treat it as an external meta-schema URI and throw
+    // when it can't resolve it. It plays no role in instance validation.
+    const { $schema: _, ...catalogDoc } = catalog as unknown as Record<string, unknown>;
+    ajv.addSchema(catalogDoc, uri);
+    registeredCatalogs.add(uri);
+  }
+  return uri;
+}
+
+function getFunctionValidator(catalog: Catalog, funcName: string): ValidateFunction | null {
+  const key = `${catalog.catalogId}:func:${funcName}`;
+  const cached = functionValidators.get(key);
+  if (cached) return cached;
+
+  if (!catalog.functions?.[funcName]) return null;
+
+  try {
+    const uri = ensureCatalogRegistered(catalog);
+    // $ref lets AJV resolve nested $defs (e.g. DynamicValue) within the registered catalog
+    const validator = ajv.compile({ $ref: `${uri}#/functions/${funcName}` });
+    functionValidators.set(key, validator);
+    return validator;
+  } catch (error) {
+    console.error(`[converter] Failed to compile function validator for ${funcName}:`, error);
+    return null;
+  }
+}
 
 function getComponentValidator(catalog: Catalog, componentType: string): ValidateFunction | null {
   const key = `${catalog.catalogId}:${componentType.toLowerCase()}`;
@@ -1037,12 +1072,107 @@ function getComponentValidator(catalog: Catalog, componentType: string): Validat
   );
   if (!entry) return null;
 
-  const [name, component] = entry;
-  const catalogDefs = (catalog.$defs ?? {}) as Record<string, unknown>;
-  const schema = componentToSchema(name, component, catalogDefs);
-  const validator = ajv.compile(schema);
-  componentValidators.set(key, validator);
-  return validator;
+  const [name] = entry;
+
+  try {
+    const uri = ensureCatalogRegistered(catalog);
+    const validator = ajv.compile({ $ref: `${uri}#/components/${name}` });
+    componentValidators.set(key, validator);
+    return validator;
+  } catch (error) {
+    console.error(`[converter] Failed to compile validator for ${componentType}:`, error);
+    return null;
+  }
+}
+
+function getAtPath(data: unknown, instancePath: string): unknown {
+  if (!instancePath) return data;
+  let cur: unknown = data;
+  for (const seg of instancePath.split('/').filter(Boolean)) {
+    if (cur === null || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string, unknown>)[seg];
+  }
+  return cur;
+}
+
+function isFunctionCall(value: unknown): value is { call: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'call' in value &&
+    typeof (value as Record<string, unknown>)['call'] === 'string'
+  );
+}
+
+function simplifyAjvErrors(
+  rawErrors: ErrorObject[],
+  data: Record<string, unknown>,
+  catalog: Catalog,
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  const add = (msg: string) => { if (!seen.has(msg)) { seen.add(msg); result.push(msg); } };
+
+  // First pass: find all instancePaths where a oneOf/anyOf error occurs on a FunctionCall value.
+  // All errors at these paths (and sub-paths) will be replaced with targeted per-function errors.
+  // We don't use schemaPath filtering because AJV collapses $ref chains in schemaPath, making
+  // it impossible to reliably detect branch sub-errors that way.
+  const functionCallPaths = new Map<string, string>(); // instancePath → funcName
+  for (const err of rawErrors) {
+    if (err.keyword === 'oneOf' || err.keyword === 'anyOf') {
+      const value = getAtPath(data, err.instancePath);
+      if (isFunctionCall(value)) {
+        functionCallPaths.set(err.instancePath, value.call);
+      }
+    }
+  }
+
+  // Second pass: emit focused errors for each FunctionCall path.
+  const emitted = new Set<string>();
+  for (const [instancePath, funcName] of functionCallPaths) {
+    if (emitted.has(instancePath)) continue;
+    emitted.add(instancePath);
+
+    const value = getAtPath(data, instancePath);
+    const funcValidator = getFunctionValidator(catalog, funcName);
+    if (!funcValidator) {
+      const path = instancePath.replace(/^\//, '').replace(/\//g, '.') || 'value';
+      add(`${path}: unknown function '${funcName}'`);
+      continue;
+    }
+    funcValidator(value);
+    const prefix = instancePath.replace(/^\//, '').replace(/\//g, '.');
+    for (const fe of funcValidator.errors ?? []) {
+      let path: string;
+      if (fe.instancePath) {
+        const sub = fe.instancePath.replace(/^\//, '').replace(/\//g, '.');
+        path = prefix ? `${prefix}.${sub}` : sub;
+      } else if (fe.keyword === 'required') {
+        const missing = (fe.params as Record<string, unknown>)['missingProperty'] as string;
+        path = prefix ? `${prefix}.${missing}` : missing;
+      } else {
+        path = prefix || 'value';
+      }
+      add(`${path}: ${fe.message}`);
+    }
+  }
+
+  // Third pass: emit all errors NOT at or under a FunctionCall path.
+  for (const err of rawErrors) {
+    const covered = [...functionCallPaths.keys()].some(
+      fcPath => err.instancePath === fcPath || err.instancePath.startsWith(fcPath + '/'),
+    );
+    if (covered) continue;
+
+    const field = err.instancePath
+      ? err.instancePath.replace(/^\//, '').replace(/\//g, '.')
+      : err.keyword === 'required'
+        ? (err.params as Record<string, unknown>)['missingProperty'] as string ?? 'field'
+        : 'field';
+    add(`${field}: ${err.message}`);
+  }
+
+  return result;
 }
 
 /**
@@ -1070,56 +1200,10 @@ export function validateComponent(
 
   const valid = validator(props);
   if (!valid) {
-    errors.push(
-      ...(validator.errors ?? []).map(err => {
-        const field = err.instancePath
-          ? err.instancePath.replace(/^\//, '')
-          : (err.params as any)?.missingProperty ?? 'field';
-        return `${field}: ${err.message}`;
-      })
-    );
+    errors.push(...simplifyAjvErrors(validator.errors ?? [], props, catalog));
   }
-
-  // Validate function calls reference known catalog functions
-  const funcErrors = validateFunctionCalls(catalog, props);
-  errors.push(...funcErrors);
 
   return { valid: errors.length === 0, errors };
-}
-
-/**
- * Recursively walks component property values and validates that any
- * `{call: "functionName"}` objects reference functions defined in the catalog.
- * Returns error strings for unknown function names.
- */
-function validateFunctionCalls(
-  catalog: Catalog,
-  props: Record<string, unknown>
-): string[] {
-  const knownFunctions = catalog.functions ? new Set(Object.keys(catalog.functions)) : new Set<string>();
-  const errors: string[] = [];
-
-  function walk(value: unknown, path: string): void {
-    if (value === null || value === undefined) return;
-
-    if (typeof value === 'object' && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>;
-      if (typeof obj['call'] === 'string') {
-        const fnName = obj['call'];
-        if (knownFunctions.size > 0 && !knownFunctions.has(fnName)) {
-          errors.push(`${path}: unknown function '${fnName}' (available: ${[...knownFunctions].join(', ')})`);
-        }
-      }
-      for (const [key, val] of Object.entries(obj)) {
-        walk(val, path ? `${path}.${key}` : key);
-      }
-    } else if (Array.isArray(value)) {
-      value.forEach((item, i) => walk(item, `${path}[${i}]`));
-    }
-  }
-
-  walk(props, '');
-  return errors;
 }
 
 // Zod schemas for runtime validation
@@ -1189,9 +1273,5 @@ export function parseCatalog(json: unknown): Catalog {
     throw new Error(`Invalid catalog: ${issues}`);
   }
 
-  const cat = result.data as Catalog;
-  if (!cat.id) {
-    cat.id = cat.catalogId || (cat as any).$id || 'unknown';
-  }
-  return cat;
+  return result.data as Catalog;
 }

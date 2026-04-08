@@ -2467,6 +2467,7 @@
       "required": [
         "call"
       ],
+      "additionalProperties": false,
       "oneOf": [
         {
           "$ref": "#/$defs/anyFunction"
