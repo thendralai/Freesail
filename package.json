@@ -1,8 +1,8 @@
 {
   "name": "freesail-dev",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
-  "description": "A2UI based Agent-driven UI SDK",
+  "description": "Freesail - Agent-driven UI SDK",
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",
     "sync": "node scripts/sync-versions.js",
@@ -12,12 +12,13 @@
     "build:catalogs": "npm run build -w @freesail/standard-catalog && npm run build -w @freesail/chat-catalog && npm run build -w @freesail-community/weather-catalog",
     "build": "npm run sync && npm run build:core && npm run build:cli && npm run build:catalogs && npm run build:sdk",
     "clean:publish": "rm -rf publish && mkdir publish",
-    "pack:all": "npm run clean:publish && npm run pack:workspaces",
-    "pack:workspaces": "npm pack --workspaces --pack-destination=./publish"
+    "pack:all": "npm run clean:publish && npm run pack:packages",
+    "pack:packages": "npm pack --workspaces --pack-destination=./publish"
   },
   "keywords": [
     "ai",
-    "agent-driven-ui",
+    "agent-driven ui",
+    "generative ui",
     "a2ui",
     "agent"
   ],
@@ -34,7 +35,7 @@
     "example/react-app"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -46,6 +47,6 @@
   },
   "dependencies": {
     "@langchain/google-genai": "^2.1.20",
-    "vite": "7.3.1"
+    "vite": "^8.0.7"
   }
 }

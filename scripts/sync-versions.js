@@ -7,7 +7,7 @@ const rootPkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 const newVersion = rootPkg.version;
 
 // 2. Find ALL package.json files in your workspaces
-const packageFiles = globSync('packages/**/package.json', {
+const packageFiles = globSync(['packages/**/package.json', 'example/**/package.json'], {
   ignore: ['**/node_modules/**']
 });
 

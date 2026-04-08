@@ -56,13 +56,5 @@ export default defineConfig({
       { find: '@freesail/core', replacement: path.resolve(__dirname, '../../packages/@freesail/core/src') },
     ]
   },
-  optimizeDeps: {
-    exclude: [
-      '@freesail/react',
-      '@freesail/core',
-      '@freesail/standard-catalog',
-      '@freesail/chat-catalog',
-      '@freesail-community/weather-catalog',
-    ]
-  }
+
 });
