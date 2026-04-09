@@ -70,9 +70,19 @@ export interface FreesailProviderProps {
    *
    * Set explicitly when the gateway is on a different origin:
    *   gateway="https://gateway.example.com"
-   * In that case, configure corsOrigins in the gateway config to allow this origin.
    */
   gateway?: string;
+  /**
+   * Optional name to scope this provider's session within the same gateway.
+   * Only needed when two providers on the same page connect to the same gateway
+   * (e.g. two independent same-origin shells embedded in a portal).
+   *
+   * Defaults to a key derived from the current pathname, which is correct for
+   * the typical case of one provider per page or one provider in the app shell.
+   *
+   * Analogous to <input name="..."> — a stable, developer-assigned identity.
+   */
+  name?: string;
   /**
    * Array of catalogs to register.
    * Each definition bundles a namespace, schema, and component map.
@@ -80,7 +90,7 @@ export interface FreesailProviderProps {
    */
   catalogs?: CatalogDefinition[];
   /** Additional transport options */
-  transportOptions?: Partial<Omit<TransportOptions, 'gateway' | 'capabilities'>>;
+  transportOptions?: Partial<Omit<TransportOptions, 'gateway' | 'capabilities' | 'name'>>;
   /** Callback when connection state changes */
   onConnectionChange?: (connected: boolean) => void;
   /** Callback when an error occurs */
@@ -114,6 +124,9 @@ export interface FreesailProviderProps {
   ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
 }
 
+/** Tracks derived sessionStorage keys of currently mounted providers to detect duplicates. */
+const mountedProviderKeys = new Set<string>();
+
 /**
  * Root provider component for Freesail.
  *
@@ -123,6 +136,7 @@ export interface FreesailProviderProps {
 export function FreesailProvider({
   children,
   gateway = '',
+  name,
   catalogs = [],
   transportOptions,
   onConnectionChange,
@@ -176,8 +190,30 @@ export function FreesailProvider({
 
   // Initialize transport
   useEffect(() => {
+    // Warn if two providers on the same page share the same derived sessionStorage key —
+    // this likely means they will compete for the same session.
+    // Import deriveStorageKey logic inline via the transport's own key derivation:
+    // We reconstruct the key the same way transport.ts does to detect the collision.
+    const hostname = gateway
+      ? (() => { try { return new URL(gateway, window.location.href).hostname; } catch { return window.location.hostname; } })()
+      : window.location.hostname;
+    const hostSlug = hostname.replace(/[^a-zA-Z0-9]/g, '_');
+    const scope = name
+      ? name
+      : (window.location.pathname.replace(/\/$/, '').replace(/\//g, '_') || '_');
+    const providerKey = `freesail_session_${hostSlug}_${scope}`;
+
+    if (mountedProviderKeys.has(providerKey)) {
+      console.warn(
+        `[FreesailProvider] Two providers share the same session key "${providerKey}". ` +
+        `Use the 'name' prop to distinguish them.`
+      );
+    }
+    mountedProviderKeys.add(providerKey);
+
     const newTransport = createTransport({
       gateway,
+      name,
       capabilities,
       ...transportOptions,
     });
@@ -319,6 +355,7 @@ export function FreesailProvider({
 
     // Cleanup
     return () => {
+      mountedProviderKeys.delete(providerKey);
       unsubSurfaceDeleted();
       unsubOrphan();
       unsubOrphanComponents();

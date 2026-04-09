@@ -87,7 +87,6 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
   "sessionTimeout": 1800,
   "reconnectGracePeriod": 180,
   "bodyLimit": "5mb",
-  "corsOrigins": ["https://app.example.com"],
   "catalogLogDir": "/var/log/freesail/catalogs",
   "log": {
     "level": "info",
@@ -105,30 +104,18 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
 
 All fields are optional.
 
-### `corsOrigins`
-
-Required only when the browser app and the gateway are on **different origins** (no shared-origin reverse proxy). Accepts a single origin string or an array for multi-app deployments:
-
-```json
-{ "corsOrigins": "https://app.example.com" }
-{ "corsOrigins": ["https://app1.example.com", "https://app2.example.com"] }
-```
-
-Omit when the gateway is behind nginx on the same domain as the UI — no CORS headers are needed in that case.
-
 ---
 
 ## Security
 
-### Session Identity
+### Session Identity and CSRF Protection
 
-The gateway issues each browser session an **HttpOnly `SameSite=Strict` cookie** (`freesail_session`). This means:
+The gateway separates two distinct concerns:
 
-- The session identifier never appears in URLs, request headers, or JavaScript — it is managed entirely by the browser.
-- CSRF is blocked by `SameSite=Strict`.
-- XSS cannot steal the session identifier.
+- **CSRF protection** — an `HttpOnly; SameSite=Strict` cookie (`freesail-gateway-token`) is set on every SSE connection. Its presence is validated on all write endpoints (`/message`, `/register-surface`, `/register-catalogs`). `SameSite=Strict` ensures cross-site requests cannot include it, blocking CSRF attacks.
+- **Session identity** — the session ID is stored in `sessionStorage` by the client (tab-scoped) and sent as the `X-Freesail-Session` header on all requests. This ensures each browser tab maintains its own independent session.
 
-No application code is required to handle session identity — the cookie is set automatically on the first SSE connection and refreshed on reconnect.
+No application code is required to handle sessions — `FreesailProvider` manages this automatically.
 
 ### User Context Propagation
 

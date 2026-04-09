@@ -626,6 +626,14 @@ export class SessionManager {
   }
 
   /**
+   * Returns true if the session exists and has a live SSE connection (not suspended).
+   * A suspended session has a pending reconnect timer — its SSE response has already ended.
+   */
+  isSessionActive(id: string): boolean {
+    return this.sessions.has(id) && !this.pendingReconnects.has(id);
+  }
+
+  /**
    * Resume a suspended session by swapping in a new SSE response.
    * Cancels the grace period timer and resets lastActivity.
    * Returns true if the session was found and resumed, false otherwise.

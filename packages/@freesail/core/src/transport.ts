@@ -31,6 +31,12 @@ export type ConnectionState =
 export interface TransportOptions {
   /** Base gateway URL (e.g. 'http://localhost:3001'). SSE and POST endpoints are derived automatically. */
   gateway: string;
+  /**
+   * Optional name to scope the sessionStorage key for this provider instance.
+   * Only needed when two providers on the same page connect to the same gateway.
+   * Defaults to a key derived from the gateway hostname and current pathname.
+   */
+  name?: string;
   /** Client capabilities to announce on connection */
   capabilities?: A2UIClientCapabilities;
   /** Auto-reconnect on disconnect (default: true) */
@@ -61,7 +67,7 @@ export interface TransportEvents {
 
 type EventCallback<K extends keyof TransportEvents> = TransportEvents[K];
 
-const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities'>> = {
+const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities' | 'name'>> = {
   autoReconnect: true,
   reconnectDelay: 1000,
   maxReconnectDelay: 30000,
@@ -69,6 +75,24 @@ const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities
   maxQueueSize: 100,
   requestTimeout: 30000,
 };
+
+/**
+ * Derive a sessionStorage key scoped to the gateway hostname and provider name/pathname.
+ * Ensures cross-origin MFE providers never collide (different hostnames → different keys),
+ * and same-gateway same-page providers are differentiated via the `name` option.
+ */
+function deriveStorageKey(gateway: string, name?: string): string {
+  const hostname = gateway
+    ? new URL(gateway, typeof window !== 'undefined' ? window.location.href : 'http://localhost').hostname
+    : (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+  const hostSlug = hostname.replace(/[^a-zA-Z0-9]/g, '_');
+  const scope = name
+    ? name
+    : (typeof window !== 'undefined'
+        ? (window.location.pathname.replace(/\/$/, '').replace(/\//g, '_') || '_')
+        : '_');
+  return `freesail_session_${hostSlug}_${scope}`;
+}
 
 /**
  * A2UI Transport Layer
@@ -84,7 +108,7 @@ const DEFAULT_OPTIONS: Required<Omit<TransportOptions, 'gateway' | 'capabilities
  * - Client capabilities handshake
  */
 export class A2UITransport {
-  private options: Required<Omit<TransportOptions, 'capabilities'>> & { capabilities?: A2UIClientCapabilities };
+  private options: Required<Omit<TransportOptions, 'capabilities' | 'name'>> & { capabilities?: A2UIClientCapabilities; name?: string };
 
   private get sseUrl(): string {
     return `${this.options.gateway}/sse`;
@@ -100,6 +124,8 @@ export class A2UITransport {
     new Map();
   private dataModelProviders: Map<SurfaceId, () => Record<string, unknown>> = new Map();
   private _sessionId: string | null = null;
+  /** sessionStorage key used to persist and restore the session ID across page refreshes. */
+  private readonly storageKey: string;
   /** Surface IDs whose /register-surface POST failed and need to be retried on reconnect. */
   private pendingSurfaceRegistrations: Set<string> = new Set();
   /** True while flushQueue() is running — prevents postMessage() failures from triggering re-entrant flushes. */
@@ -111,6 +137,7 @@ export class A2UITransport {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.parser = new A2UIParser();
     this.currentReconnectDelay = this.options.reconnectDelay;
+    this.storageKey = deriveStorageKey(options.gateway, options.name);
   }
 
   /**
@@ -149,7 +176,20 @@ export class A2UITransport {
     this.setState('connecting');
 
     try {
-      this.eventSource = new EventSource(this.sseUrl, { withCredentials: true });
+      // Restore session ID from sessionStorage so the gateway can resume the session
+      // on page refresh. EventSource doesn't support custom headers, so the session ID
+      // is passed as a query parameter. The gateway uses this for session identity only —
+      // CSRF protection comes from the freesail-gateway-token cookie.
+      const storedSessionId = typeof sessionStorage !== 'undefined'
+        ? sessionStorage.getItem(this.storageKey)
+        : null;
+      if (storedSessionId && !this._sessionId) {
+        this._sessionId = storedSessionId;
+      }
+      const sseUrl = this._sessionId
+        ? `${this.sseUrl}?sessionId=${encodeURIComponent(this._sessionId)}`
+        : this.sseUrl;
+      this.eventSource = new EventSource(sseUrl, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         this.setState('connected');
@@ -175,8 +215,13 @@ export class A2UITransport {
 
   /**
    * Disconnect from the SSE stream.
+   *
+   * @param clearSession - When true, removes the stored session ID from sessionStorage so the
+   *   next connect() starts a fresh session. Use this for explicit user-initiated disconnects
+   *   (e.g. logout). Defaults to false so that component unmount on page refresh/navigation
+   *   does NOT clear the stored session — the gateway can then resume it within the grace period.
    */
-  disconnect(): void {
+  disconnect(clearSession = false): void {
     this.clearReconnectTimer();
     this.clearQueueRetryTimer();
 
@@ -185,8 +230,12 @@ export class A2UITransport {
       this.eventSource = null;
     }
 
-    // Clear session ID on deliberate disconnect so a future connect() starts a fresh session.
+    // Reset in-memory session ID. Only remove the persisted sessionStorage entry when explicitly
+    // requested — otherwise a page refresh would lose the session resume capability.
     this._sessionId = null;
+    if (clearSession && typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(this.storageKey);
+    }
     this.setState('disconnected');
   }
 
@@ -280,9 +329,14 @@ export class A2UITransport {
         this.options.requestTimeout
       );
 
+      const catalogHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (this._sessionId) {
+        catalogHeaders['X-Freesail-Session'] = this._sessionId;
+      }
+
       const response = await fetch(`${baseUrl}/register-catalogs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: catalogHeaders,
         credentials: 'include',
         body: JSON.stringify({ catalogs }),
         signal: controller.signal,
@@ -365,6 +419,10 @@ export class A2UITransport {
       const parsed = JSON.parse(data);
       if (parsed && typeof parsed === 'object' && parsed.connected && parsed.sessionId) {
         this._sessionId = parsed.sessionId as string;
+        // Persist the server-assigned canonical session ID so it survives page refresh.
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(this.storageKey, this._sessionId);
+        }
         this.emit('sessionStart', this._sessionId);
         return;
       }
@@ -399,9 +457,13 @@ export class A2UITransport {
   private async registerSurfaceWithGateway(surfaceId: string): Promise<void> {
     try {
       const baseUrl = this.options.gateway;
+      const surfaceHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (this._sessionId) {
+        surfaceHeaders['X-Freesail-Session'] = this._sessionId;
+      }
       const response = await fetch(`${baseUrl}/register-surface`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: surfaceHeaders,
         credentials: 'include',
         body: JSON.stringify({ surfaceId }),
       });
@@ -545,6 +607,11 @@ export class A2UITransport {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
+
+      // Session identity header — used by the gateway to route the request to the correct session.
+      if (this._sessionId) {
+        headers['X-Freesail-Session'] = this._sessionId;
+      }
 
       // Add capabilities if configured
       if (this.options.capabilities) {

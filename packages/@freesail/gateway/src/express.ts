@@ -53,13 +53,6 @@ export interface ExpressServerOptions {
   onCatalogsRegistered?: (catalogs: Catalog[]) => void;
   /** URL to forward upstream actions to (e.g. agent webhook) */
   webhookUrl?: string;
-  /**
-   * Allowed CORS origin(s). If omitted, no CORS headers are sent (correct for nginx deployments
-   * where the gateway is not directly exposed). Accepts a single origin string or an array for
-   * multi-app deployments. The matched request Origin is echoed back, which is required for
-   * credentialed requests (cookies).
-   */
-  corsOrigin?: string | string[];
   /** JSON body size limit (default: '5mb') */
   bodyLimit?: string;
 }
@@ -73,7 +66,6 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     onUpstreamMessage,
     onCatalogsRegistered,
     webhookUrl,
-    corsOrigin,
     bodyLimit = '5mb',
   } = options;
 
@@ -81,25 +73,6 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
   // Middleware
   app.use(express.json({ limit: bodyLimit }));
-
-  // CORS headers — only applied when corsOrigin is configured
-  if (corsOrigin) {
-    const allowedOrigins = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
-    app.use((req, res, next) => {
-      const requestOrigin = req.headers['origin'];
-      if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
-        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-A2UI-Capabilities');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-      }
-      if (req.method === 'OPTIONS') {
-        res.status(204).end();
-        return;
-      }
-      next();
-    });
-  }
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -118,18 +91,34 @@ export function createExpressServer(options: ExpressServerOptions): Express {
       end: () => res.end(),
     };
 
-    // Attempt to resume an existing session — cookie takes priority over query param (legacy fallback)
-    const cookieSessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
-    const requestedSessionId = cookieSessionId ?? (req.query['sessionId'] as string | undefined);
+    // Session identity comes from X-Freesail-Session header (set by transport from sessionStorage).
+    // The freesail-gateway-token cookie is for CSRF protection only — not session identity.
+    const requestedSessionId = (req.headers['x-freesail-session'] as string | undefined)
+      ?? (req.query['sessionId'] as string | undefined); // query param used by EventSource (no custom headers)
     const userContext = parseUserContext(req.headers['x-user-context'] as string | undefined);
     let sessionId: string;
     let resumed = false;
 
-    if (requestedSessionId && sessionManager.resumeSession(requestedSessionId, newResponse, userContext)) {
-      sessionId = requestedSessionId;
-      resumed = true;
-      logger.info(`[Express] Session resumed: ${sessionId}`);
+    if (requestedSessionId) {
+      if (sessionManager.isSessionActive(requestedSessionId)) {
+        // Session is actively connected — this is a duplicate tab (browser copied sessionStorage).
+        // Create a fresh session instead of hijacking the live connection.
+        logger.info(`[Express] Duplicate tab detected for session ${requestedSessionId}, creating new session`);
+        sessionId = generateSessionId();
+        sessionManager.createSession(sessionId, newResponse, undefined, userContext);
+      } else if (sessionManager.resumeSession(requestedSessionId, newResponse, userContext)) {
+        // Session is suspended (within grace period) — legitimate page refresh, resume it.
+        sessionId = requestedSessionId;
+        resumed = true;
+        logger.info(`[Express] Session resumed: ${sessionId}`);
+      } else {
+        // Session not found (expired or unknown) — create a new one.
+        sessionId = generateSessionId();
+        sessionManager.createSession(sessionId, newResponse, undefined, userContext);
+        logger.info(`[Express] Client connected (session not found): ${sessionId}`);
+      }
     } else {
+      // No session ID provided — brand new tab.
       sessionId = generateSessionId();
       sessionManager.createSession(sessionId, newResponse, undefined, userContext);
       logger.info(`[Express] Client connected: ${sessionId}`);
@@ -139,8 +128,10 @@ export function createExpressServer(options: ExpressServerOptions): Express {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    // freesail-gateway-token: CSRF protection only (SameSite=Strict prevents cross-site inclusion).
+    // Its value is irrelevant — only its presence is validated on write endpoints.
     const secure = process.env['NODE_ENV'] === 'production' ? '; Secure' : '';
-    res.setHeader('Set-Cookie', `freesail_session=${sessionId}; HttpOnly${secure}; SameSite=Strict; Path=/`);
+    res.setHeader('Set-Cookie', `freesail-gateway-token=${randomUUID()}; HttpOnly${secure}; SameSite=Strict; Path=/`);
     res.flushHeaders();
 
     // Send initial connection message
@@ -166,9 +157,15 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   // Endpoint for clients to send upstream messages
   app.post('/message', (req: Request, res: Response) => {
     try {
+      // CSRF gate: freesail-gateway-token cookie must be present (set by gateway on /sse connect).
+      // SameSite=Strict ensures cross-site requests cannot include it.
+      if (!parseCookie(req.headers['cookie'] ?? '')['freesail-gateway-token']) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
       const message = req.body as UpstreamMessage;
-      const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session']
-        ?? (req.headers['x-a2ui-session'] as string | undefined);
+      const sessionId = (req.headers['x-freesail-session'] as string | undefined);
 
       if (!message) {
         res.status(400).json({ error: 'Missing message body' });
@@ -261,8 +258,14 @@ export function createExpressServer(options: ExpressServerOptions): Express {
 
   // Register surface with session
   app.post('/register-surface', (req: Request, res: Response) => {
+    // CSRF gate
+    if (!parseCookie(req.headers['cookie'] ?? '')['freesail-gateway-token']) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
     const { surfaceId } = req.body as { surfaceId: string };
-    const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
+    const sessionId = req.headers['x-freesail-session'] as string | undefined;
 
     if (!sessionId || !surfaceId) {
       res.status(400).json({ error: 'Missing sessionId or surfaceId' });
@@ -352,8 +355,14 @@ export function createExpressServer(options: ExpressServerOptions): Express {
   // Register catalogs endpoint - clients send their catalog schemas on connection
   app.post('/register-catalogs', (req: Request, res: Response) => {
     try {
+      // CSRF gate
+      if (!parseCookie(req.headers['cookie'] ?? '')['freesail-gateway-token']) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
       const { catalogs: rawCatalogs } = req.body as { catalogs: unknown[] };
-      const sessionId = parseCookie(req.headers['cookie'] ?? '')['freesail_session'];
+      const sessionId = req.headers['x-freesail-session'] as string | undefined;
 
       if (!sessionId) {
         res.status(400).json({ error: 'Missing sessionId' });
