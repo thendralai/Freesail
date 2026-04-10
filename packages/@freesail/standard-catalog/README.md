@@ -10,7 +10,7 @@ Freesail Standard UI Component Catalog — a collection of ready-to-use componen
 | `Row` | Horizontal flex container |
 | `Card` | Surfaced container with border and shadow |
 | `Text` | Text display with variant support (body, label, heading, etc.) |
-| `Icon` | Material symbol icon |
+| `Icon` | Material Symbols icon (font auto-injected) |
 | `Button` | Clickable button with action support |
 | `TextField` | Single or multi-line text input |
 | `DateTimeInput` | Date and/or time picker |
@@ -43,28 +43,17 @@ Freesail Standard UI Component Catalog — a collection of ready-to-use componen
 
 ## Setup
 
-### Icon component — required font
+### Icon component
 
-The `Icon` component uses [Material Symbols Outlined](https://fonts.google.com/icons) rendered via CSS font ligatures. You must load the font in your app's HTML, otherwise icons will appear as text.
+The `Icon` component uses [Material Symbols Outlined](https://fonts.google.com/icons) rendered via CSS font ligatures. The font stylesheet is automatically injected into `<head>` on first render — no manual setup required.
 
-Add the following `<link>` tag to the `<head>` of your `index.html`:
-
-```html
-<link
-  rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-/>
-```
-
-Icon names map to Material Symbols names and can be passed in camelCase or snake_case:
+Icon names are passed in camelCase and converted to the correct ligature name automatically:
 
 ```json
 { "component": "Icon", "id": "icon1", "name": "home" }
 { "component": "Icon", "id": "icon2", "name": "arrowBack", "size": "32px" }
 { "component": "Icon", "id": "icon3", "name": "favorite", "color": "error" }
 ```
-
-A small set of aliases is also supported for common names (e.g. `clock`, `email`, `database`).
 
 ### Markdown component — bundled dependency
 

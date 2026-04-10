@@ -180,11 +180,24 @@ export function Text({ component }: FreesailComponentProps) {
   );
 }
 
+const MATERIAL_SYMBOLS_HREF = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap';
+
+function ensureMaterialSymbols(): void {
+  if (!document.querySelector(`link[href="${MATERIAL_SYMBOLS_HREF}"]`)) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = MATERIAL_SYMBOLS_HREF;
+    document.head.appendChild(link);
+  }
+}
+
 export function Icon({ component }: FreesailComponentProps) {
   const rawName = component['name'];
   const name = (typeof rawName === 'string') ? rawName : 'help';
   const size = (component['size'] as string) ?? '24px';
   const color = getSemanticColor(component['color'] as string) ?? 'currentColor';
+
+  ensureMaterialSymbols();
 
   const toSnakeCase = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
 
@@ -1734,6 +1747,7 @@ export function Sparkline({ component }: FreesailComponentProps) {
  * StatCard - KPI / summary statistic card with trend indicator.
  */
 export function StatCard({ component, children }: FreesailComponentProps) {
+  ensureMaterialSymbols();
   const label = (component['label'] as string) ?? '';
   const value = (component['value'] as string) ?? '';
   const trend = component['trend'] as string | undefined;
@@ -1778,11 +1792,15 @@ export function StatCard({ component, children }: FreesailComponentProps) {
         color: trendColor,
         visibility: (trend || trendValue) ? 'visible' : 'hidden',
       }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill={trendColor} style={{ flexShrink: 0 }}>
-          {trend === 'up' && <path d="M5 17.59L12 4l7 13.59H5z" />}
-          {trend === 'down' && <path d="M5 6.41L12 20l7-13.59H5z" />}
-          {trend !== 'up' && trend !== 'down' && <path d="M6 4l14 8-14 8V4z" />}
-        </svg>
+        <span style={{
+          fontFamily: "'Material Symbols Outlined'",
+          fontSize: '16px',
+          lineHeight: 1,
+          color: trendColor,
+          flexShrink: 0,
+        }}>
+          {trend === 'up' ? 'arrow_upward' : trend === 'down' ? 'arrow_downward' : 'arrow_forward'}
+        </span>
         {trendValue && <span>{trendValue}</span>}
         {/* Reserve space when no trend data */}
         {!trendValue && <span>&nbsp;</span>}
