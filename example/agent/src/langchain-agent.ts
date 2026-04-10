@@ -96,6 +96,12 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
       return;
     }
 
+    // Log capabilities when they are set
+    if (action.name === '__capabilities_set') {
+      logger.info(`[${this.sessionId}] Capabilities: ${JSON.stringify(action.context['capabilities'])}`);
+      return;
+    }
+
     // All other UI actions are formatted into a natural-language message
     const contextStr =
       action.context && Object.keys(action.context).length > 0

@@ -188,22 +188,7 @@ export function Icon({ component }: FreesailComponentProps) {
 
   const toSnakeCase = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
 
-  const aliasMap: Record<string, string> = {
-    favoriteOff: 'favorite_border',
-    starOff: 'star_border',
-    clock: 'schedule',
-    database: 'storage',
-    bug: 'bug_report',
-    shield: 'security',
-    draft: 'drafts',
-    email: 'mail',
-    videoCamera: 'videocam',
-    table: 'table_chart',
-    tag: 'label',
-    task: 'task_alt',
-  };
-
-  const ligature = aliasMap[name] ?? toSnakeCase(name);
+  const ligature = toSnakeCase(name);
 
   const style: CSSProperties = {
     fontSize: size,

@@ -176,8 +176,22 @@ export class SessionManager {
   setCapabilities(sessionId: string, capabilities: A2UIClientCapabilities): boolean {
     const session = this.sessions.get(sessionId);
     if (!session) return false;
+    const changed = JSON.stringify(session.capabilities) !== JSON.stringify(capabilities);
     session.capabilities = capabilities;
     session.lastActivity = Date.now();
+    if (changed) {
+      const event: UpstreamMessage = {
+        version: A2UI_VERSION,
+        action: {
+          name: '__capabilities_set',
+          surfaceId: '__system' as SurfaceId,
+          sourceComponentId: '__gateway',
+          timestamp: new Date().toISOString(),
+          context: { sessionId, capabilities },
+        },
+      };
+      this.enqueueAction(sessionId, event);
+    }
     return true;
   }
 
