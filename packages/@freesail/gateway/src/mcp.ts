@@ -307,7 +307,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         surfaceId: z.string().describe('Unique identifier for this surface (e.g., "main", "sidebar")'),
         catalogId: z.string().describe('The catalog ID defining available components'),
         sessionId: z.string().describe('Target client session ID'),
-        sendDataModel: z.boolean().optional().describe('If true, client sends full data model with every action. Defaults to true.'),
+        sendDataModel: z.boolean().optional().describe('If true, client sends full data model with every action. Defaults to false. When false only the context relevant to the action is sent. You can also use the get_data_model tool to get the full data model on demand.'),
       },
     },
     async ({ surfaceId, catalogId, sessionId, sendDataModel }) => {
@@ -328,8 +328,8 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         };
       }
 
-      // Default sendDataModel to true for better UX with input components
-      const effectiveSendDataModel = sendDataModel ?? true;
+      // Default sendDataModel to false as per A2UI spec (and to save tokens). Agents can set it to true or use the get_data_model tool to get the full data model on demand.
+      const effectiveSendDataModel = sendDataModel ?? false;
 
       const message: DownstreamMessage = {
         version: A2UI_VERSION,
