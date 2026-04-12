@@ -283,14 +283,14 @@ function resolveDataBindings(
       }
     }
 
-    if (isFunctionCall(effectiveValue)) {
-      // Don't eagerly evaluate function calls inside `action` — they are
-      // deferred and executed by the component on user interaction (e.g. Button click).
-      if (key === 'action') {
-        resolved[key] = effectiveValue;
-      } else {
-        resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
-      }
+    if (key === 'action') {
+      // Don't eagerly resolve action objects — event context bindings must be
+      // resolved at dispatch time (via resolveActionContext) so they reflect the
+      // data model at the moment of user interaction, not at render time.
+      // Recursing here also pollutes the context with __raw* keys.
+      resolved[key] = effectiveValue;
+    } else if (isFunctionCall(effectiveValue)) {
+      resolved[key] = evaluateFunction(effectiveValue, dataModel, catalogId, scopeData);
     } else if (isDataBindingObject(effectiveValue)) {
       // Preserve the raw binding so components can find the path for two-way binding.
       // If inside a scoped template, convert relative paths to absolute paths

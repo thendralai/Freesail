@@ -192,6 +192,14 @@ export function FreesailProvider({
     return { catalogs: mergedCatalogs, ...additionalCapabilities };
   }, [mergedCatalogs, additionalCapabilities]);
 
+  // Propagate runtime capability changes to the transport.
+  // Skips the initial render — the transport creation effect already captures the initial value.
+  const isFirstCapabilitiesRender = useRef(true);
+  useEffect(() => {
+    if (isFirstCapabilitiesRender.current) { isFirstCapabilitiesRender.current = false; return; }
+    transport?.updateCapabilities(capabilities);
+  }, [capabilities, transport]);
+
   // Initialize transport
   useEffect(() => {
     // Warn if two providers on the same page share the same derived sessionStorage key —

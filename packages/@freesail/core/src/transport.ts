@@ -166,6 +166,15 @@ export class A2UITransport {
   }
 
   /**
+   * Update client capabilities at runtime.
+   * The new value will be included in the next upstream POST header,
+   * which the gateway uses to detect changes and notify the agent.
+   */
+  updateCapabilities(capabilities: A2UIClientCapabilities | undefined): void {
+    this.options.capabilities = capabilities;
+  }
+
+  /**
    * Connect to the SSE stream.
    */
   connect(): void {

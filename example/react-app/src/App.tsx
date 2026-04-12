@@ -63,6 +63,12 @@ const DEFAULT_CHAT_WIDTH = 380;
 
 function App() {
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'custom'>('light');
+  const [maxConcurrentSurfaces, setMaxConcurrentSurfaces] = useState(2);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMaxConcurrentSurfaces(3), 2 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, []);
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -99,6 +105,7 @@ function App() {
       <ReactUI.FreesailThemeProvider theme={activeTheme}>
         <ReactUI.FreesailProvider
           catalogs={ALL_CATALOGS}
+          additionalCapabilities={{ agentLimits: { maxConcurrentSurfaces: maxConcurrentSurfaces } }}
           onConnectionChange={(connected) => {
             console.log('Connection status:', connected);
           }}
@@ -106,8 +113,9 @@ function App() {
             console.error('Freesail error:', error);
           }}
           onBeforeCreateSurface={(_surfaceId, _catalogId, _sendDataModel, surfaceManager) => {
-            const surfaces = surfaceManager.getAllSurfaces();
-            if (surfaces.length >= 3) {
+            // Count agent created surfaces only (exclude __chat which is created natively)
+            const surfaces = surfaceManager.getAllSurfaces().filter(s => s.id !== '__chat');
+            if (surfaces.length > maxConcurrentSurfaces) {
               console.warn('Too many surfaces:', surfaces);
               return { allowed: false, message: 'Surface limit reached. Please remove a surface before adding another surface.' };
             }
