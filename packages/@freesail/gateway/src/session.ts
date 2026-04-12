@@ -423,6 +423,19 @@ export class SessionManager {
   }
 
   /**
+   * Returns true if the action queue for a session contains any pending
+   * actions or errors for a specific surface. Does not drain the queue.
+   */
+  hasPendingActionsForSurface(sessionId: string, surfaceId: string): boolean {
+    const queue = this.actionQueue.get(sessionId);
+    if (!queue) return false;
+    return queue.some(msg => {
+      const m = msg as any;
+      return m.action?.surfaceId === surfaceId || m.error?.surfaceId === surfaceId;
+    });
+  }
+
+  /**
    * Dequeue all pending actions across all sessions.
    * Returns only sessions that have pending actions.
    */

@@ -328,6 +328,17 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         };
       }
 
+      if (sessionManager.hasPendingActionsForSurface(sessionId, surfaceId)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({
+            success: false,
+            error: `There are pending actions or client errors for surface '${surfaceId}' that have not been read yet. ` +
+                   `Call get_pending_actions with sessionId "${sessionId}" to drain them before retrying.`,
+          }) }],
+          isError: true,
+        };
+      }
+
       // Default sendDataModel to false as per A2UI spec (and to save tokens). Agents can set it to true or use the get_data_model tool to get the full data model on demand.
       const effectiveSendDataModel = sendDataModel ?? false;
 
@@ -375,6 +386,17 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       if (accessError) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
+      if (sessionManager.hasPendingActionsForSurface(sessionId, surfaceId)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({
+            success: false,
+            error: `There are pending actions or client errors for surface '${surfaceId}' that have not been read yet. ` +
+                   `Call get_pending_actions with sessionId "${sessionId}" to drain them before retrying.`,
+          }) }],
           isError: true,
         };
       }
@@ -454,6 +476,17 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       if (accessError) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
+      if (sessionManager.hasPendingActionsForSurface(sessionId, surfaceId)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({
+            success: false,
+            error: `There are pending actions or client errors for surface '${surfaceId}' that have not been read yet. ` +
+                   `Call get_pending_actions with sessionId "${sessionId}" to drain them before retrying.`,
+          }) }],
           isError: true,
         };
       }
@@ -575,6 +608,17 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       if (accessError) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: accessError }) }],
+          isError: true,
+        };
+      }
+
+      if (sessionManager.hasPendingActionsForSurface(sessionId, surfaceId)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({
+            success: false,
+            error: `There are pending actions or client errors for surface '${surfaceId}' that have not been read yet. ` +
+                   `Call get_pending_actions with sessionId "${sessionId}" to drain them before retrying.`,
+          }) }],
           isError: true,
         };
       }

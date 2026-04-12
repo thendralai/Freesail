@@ -175,3 +175,9 @@ Then reference the field with a relative path: `{ "path": "label" }`.
 
 ### Tools and Resources
 Use the correct sessionId and surfaceId whereever applicable when calling tools and checking resources. All tools have description that detail their purpose and usage.
+
+## Useful tools
+### get_pending_actions
+Call this tool to check for any pending actions. This includes user actions, system notifications and error notifications from the front end.
+### get_data_model
+Retrieve the current data model for a surface from the client. Sends a request to the frontend which responds with the full data model regardless of the sendDataModel setting.

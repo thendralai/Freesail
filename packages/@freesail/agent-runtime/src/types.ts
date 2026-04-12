@@ -22,6 +22,15 @@ export interface ClientErrorEvent {
   path?: string;
 }
 
+/**
+ * A notification dispatched to the agent from the session queue.
+ * Discriminated by `type` — use a switch or type guard to handle each case.
+ * New notification types may be added in future versions.
+ */
+export type SessionNotification =
+  | { type: 'action'; event: ActionEvent }
+  | { type: 'error'; event: ClientErrorEvent };
+
 export interface FreesailAgent {
   /**
    * Called when a new session is established.
@@ -37,22 +46,12 @@ export interface FreesailAgent {
   onSessionDisconnected?(sessionId: string): Promise<void>;
 
   /**
-   * Called when the user sends a direct chat message.
-   * The agent already knows its session from the factory; sessionId is not repeated here.
+   * Called for every action or error notification from the session queue.
+   * If not implemented, the runtime will NOT drain the queue — messages stay
+   * in the gateway queue and the gateway gate will block write tools until
+   * the agent explicitly calls get_pending_actions.
    */
-  onChat?(message: string): Promise<void>;
-
-  /**
-   * Called when a generic UI action (button click, form submit, etc.) occurs.
-   * The agent already knows its session from the factory; sessionId is not repeated here.
-   */
-  onAction?(action: ActionEvent): Promise<void>;
-
-  /**
-   * Called when the frontend reports a client-side error (validation failure, runtime error, etc.).
-   * The agent already knows its session from the factory; sessionId is not repeated here.
-   */
-  onClientError?(error: ClientErrorEvent): Promise<void>;
+  onSessionNotification?(notification: SessionNotification): Promise<void>;
 }
 
 /**

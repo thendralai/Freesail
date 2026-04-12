@@ -105,22 +105,26 @@ export interface FreesailProviderProps {
   onBeforeCreateSurface?: (
     surfaceId: SurfaceId,
     catalogId: CatalogId,
-    sendDataModel: boolean | undefined
+    sendDataModel: boolean | undefined,
+    surfaceManager: SurfaceManager
   ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
   /** Called before honouring an agent updateComponents. Return allowed: false to block. */
   onBeforeUpdateComponents?: (
     surfaceId: SurfaceId,
-    components: A2UIComponent[]
+    components: A2UIComponent[],
+    surfaceManager: SurfaceManager
   ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
   /** Called before honouring an agent updateDataModel. Return allowed: false to block. */
   onBeforeUpdateDataModel?: (
     surfaceId: SurfaceId,
     path: JsonPointer | undefined,
-    value: unknown
+    value: unknown,
+    surfaceManager: SurfaceManager
   ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
   /** Called before honouring an agent deleteSurface. Return allowed: false to block. */
   onBeforeDeleteSurface?: (
-    surfaceId: SurfaceId
+    surfaceId: SurfaceId,
+    surfaceManager: SurfaceManager
   ) => SurfaceInterceptorResult | Promise<SurfaceInterceptorResult>;
 }
 
@@ -449,7 +453,7 @@ async function handleMessage(
   if (isCreateSurfaceMessage(message)) {
     const { surfaceId, catalogId, sendDataModel } = message.createSurface;
     if (interceptors.onBeforeCreateSurface) {
-      const { allowed, message: msg } = await interceptors.onBeforeCreateSurface(surfaceId, catalogId, sendDataModel);
+      const { allowed, message: msg } = await interceptors.onBeforeCreateSurface(surfaceId, catalogId, sendDataModel, manager);
       if (!allowed) {
         transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Create surface operation failed: ${msg}`);
         return;
@@ -462,7 +466,7 @@ async function handleMessage(
   } else if (isUpdateComponentsMessage(message)) {
     const { surfaceId, components } = message.updateComponents;
     if (interceptors.onBeforeUpdateComponents) {
-      const { allowed, message: msg } = await interceptors.onBeforeUpdateComponents(surfaceId, components);
+      const { allowed, message: msg } = await interceptors.onBeforeUpdateComponents(surfaceId, components, manager);
       if (!allowed) {
         const ids = components.map((c: A2UIComponent) => c.id).join(', ');
         transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Update components operation failed for components [${ids}]: ${msg}`);
@@ -476,7 +480,7 @@ async function handleMessage(
   } else if (isUpdateDataModelMessage(message)) {
     const { surfaceId, path, value } = message.updateDataModel;
     if (interceptors.onBeforeUpdateDataModel) {
-      const { allowed, message: msg } = await interceptors.onBeforeUpdateDataModel(surfaceId, path, value);
+      const { allowed, message: msg } = await interceptors.onBeforeUpdateDataModel(surfaceId, path, value, manager);
       if (!allowed) {
         const pathDisplay = path ?? '/';
         transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Update data model operation failed at paths [${pathDisplay}]: ${msg}`);
@@ -490,7 +494,7 @@ async function handleMessage(
   } else if (isDeleteSurfaceMessage(message)) {
     const { surfaceId } = message.deleteSurface;
     if (interceptors.onBeforeDeleteSurface) {
-      const { allowed, message: msg } = await interceptors.onBeforeDeleteSurface(surfaceId);
+      const { allowed, message: msg } = await interceptors.onBeforeDeleteSurface(surfaceId, manager);
       if (!allowed) {
         transport.sendError(surfaceId, 'CLIENT_SIDE_VALIDATION_FAILURE', `Delete surface operation failed: ${msg}`);
         return;

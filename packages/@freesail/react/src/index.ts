@@ -40,6 +40,7 @@ export type {
   CatalogId,
   A2UIComponent,
   Surface,
+  SurfaceManager,
 } from '@freesail/core';
 
 // Theme

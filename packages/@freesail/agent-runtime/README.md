@@ -27,7 +27,7 @@ The runtime uses **MCP resource subscriptions** for all session and action deliv
 ### 1. Implement `FreesailAgent`
 
 ```typescript
-import type { FreesailAgent, ActionEvent } from "@freesail/agentruntime";
+import type { FreesailAgent, SessionNotification } from "@freesail/agentruntime";
 
 class MyAgent implements FreesailAgent {
   private sessionId: string;
@@ -44,14 +44,19 @@ class MyAgent implements FreesailAgent {
     console.log(`Session ${sessionId} disconnected — cleaning up`);
   }
 
-  async onAction(action: ActionEvent) {
-    console.log(`Action "${action.name}" from surface "${action.surfaceId}"`);
+  async onSessionNotification(notification: SessionNotification) {
+    if (notification.type === 'error') {
+      console.error(`Client error on surface "${notification.event.surfaceId}": ${notification.event.message}`);
+      return;
+    }
+    const { event } = notification;
+    console.log(`Action "${event.name}" from surface "${event.surfaceId}"`);
     // Call your LLM, update the UI, etc.
   }
 }
 ```
 
-All four methods are **optional** — implement only what your agent needs.
+All three methods are **optional** — implement only what your agent needs.
 
 ### 2. Create the runtime
 
@@ -89,31 +94,42 @@ await runtime.start();
 interface FreesailAgent {
   onSessionConnected?(sessionId: string): Promise<void>;
   onSessionDisconnected?(sessionId: string): Promise<void>;
-  onChat?(message: string): Promise<void>;
-  onAction?(action: ActionEvent): Promise<void>;
+  onSessionNotification?(notification: SessionNotification): Promise<void>;
 }
 ```
 
-| Method                  | When called                                     | Notes                                                                       |
-| ----------------------- | ----------------------------------------------- | --------------------------------------------------------------------------- |
-| `onSessionConnected`    | A new client tab connects                       | Good place to send a welcome message, initialise in-memory state            |
-| `onSessionDisconnected` | The client tab closes                           | Called **after** all in-flight `onAction` promises settle (drain guarantee) |
-| `onChat`                | _(reserved)_                                    | Not currently dispatched by the runtime; route chat via `onAction`          |
-| `onAction`              | Any UI action (button click, form submit, etc.) | Fire-and-forget from the runtime; errors are caught and logged              |
+| Method                    | When called                                                          | Notes                                                                                        |
+| ------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `onSessionConnected`      | A new client tab connects                                            | Good place to send a welcome message, initialise in-memory state                             |
+| `onSessionDisconnected`   | The client tab closes                                                | Called **after** all in-flight notification promises settle (drain guarantee)                |
+| `onSessionNotification`   | Any UI action or client-side error arrives                           | **If not implemented, the queue is NOT drained** — messages stay in the gateway queue        |
 
-### `ActionEvent`
+### `SessionNotification`
 
-The payload passed to `onAction`:
+The discriminated union passed to `onSessionNotification`:
 
 ```typescript
+type SessionNotification =
+  | { type: 'action'; event: ActionEvent }
+  | { type: 'error'; event: ClientErrorEvent };
+
 interface ActionEvent {
-  name: string; // action name, e.g. "submit_form", "chat_send"
-  surfaceId: string; // which UI surface triggered it
-  sourceComponentId: string; // which component within the surface
-  context: Record<string, unknown>; // action-specific payload from the client
+  name: string;                          // action name, e.g. "submit_form", "chat_send"
+  surfaceId: string;                     // which UI surface triggered it
+  sourceComponentId: string;             // which component within the surface
+  context: Record<string, unknown>;      // action-specific payload from the client
   clientDataModel?: Record<string, unknown>; // full UI data model snapshot (if sent)
 }
+
+interface ClientErrorEvent {
+  code: string;    // e.g. "CLIENT_SIDE_VALIDATION_FAILURE"
+  message: string;
+  surfaceId: string;
+  path?: string;   // the component path that failed validation, if applicable
+}
 ```
+
+> **Queue drain behaviour**: The runtime only calls `readResource` on the session queue if `onSessionNotification` is implemented. If it is not, the queue stays intact and the gateway will block write tools (`create_surface`, `update_components`, etc.) until the agent explicitly calls `get_pending_actions`.
 
 ### `AgentRuntimeConfig`
 
@@ -134,12 +150,12 @@ sessions resource updated (session appears)
   → subscribe to mcp://freesail.dev/sessions/{sessionId}
   → onSessionConnected()
         ↓
-per-session resource updated (action arrives)
-  → readResource drains action queue
-  → onAction() (fire-and-forget, tracked per session)
+per-session resource updated (action or error arrives)
+  → readResource drains queue (only if onSessionNotification is implemented)
+  → onSessionNotification() (fire-and-forget, tracked per session)
         ↓
 sessions resource updated (session disappears)
-  → drain all in-flight onAction promises
+  → drain all in-flight onSessionNotification promises
   → onSessionDisconnected()
   → release_session(agentId, sessionId)
   → unsubscribe from mcp://freesail.dev/sessions/{sessionId}
@@ -149,7 +165,7 @@ sessions resource updated (session disappears)
 - **Push model**: session connects/disconnects and per-session actions are all delivered via MCP `ResourceUpdated` notifications — no polling.
 - **Session ownership**: the runtime calls `claim_session` when a session connects and `release_session` when it disconnects. This lets the gateway track which agent owns each session.
 - **Ordering**: lifecycle events for the same session are serialised via a per-session promise chain. Events across different sessions run concurrently.
-- **Drain on disconnect**: `onSessionDisconnected` is never called while an `onAction` LLM call is still running for that session. The runtime waits using `Promise.allSettled`.
+- **Drain on disconnect**: `onSessionDisconnected` is never called while an in-flight `onSessionNotification` promise is still running for that session. The runtime waits using `Promise.allSettled`.
 - **Clean shutdown**: call `await runtime.stop()` before closing the MCP client to unsubscribe from all active resource subscriptions.
 - **Missed connect**: if the agent process restarts while sessions are active, `start()` reads the sessions list and picks up existing sessions. `onSessionConnected` is called for each recovered session.
 
@@ -244,8 +260,10 @@ Converts a raw `ActionEvent` into a natural-language string suitable for passing
 ```typescript
 import { formatAction } from '@freesail/agentruntime';
 
-async onAction(action: ActionEvent) {
-  const message = formatAction(this.sessionId, action, action.clientDataModel);
+async onSessionNotification(notification: SessionNotification) {
+  if (notification.type !== 'action') return;
+  const { event } = notification;
+  const message = formatAction(this.sessionId, event, event.clientDataModel);
   const reply = await this.llm.chat(message);
   // ...
 }
@@ -274,7 +292,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import {
   FreesailAgentRuntime,
   FreesailAgent,
-  ActionEvent,
+  SessionNotification,
   SharedCache,
   fetchFreesailSystemPrompt,
   formatAction,
@@ -310,14 +328,19 @@ class MySessionAgent implements FreesailAgent {
     this.history = []; // GC large allocations explicitly
   }
 
-  async onAction(action: ActionEvent) {
+  async onSessionNotification(notification: SessionNotification) {
+    if (notification.type === 'error') {
+      // Surface the client error to the LLM so it can react
+      const { event } = notification;
+      const message = `[System Error] Client error on surface "${event.surfaceId}": ${event.code} — ${event.message}`;
+      // ... enqueue message for your LLM
+      return;
+    }
+
+    const { event } = notification;
     const systemPrompt = await cache.getSystemPrompt();
     const tools = await cache.getTools();
-    const userMessage = formatAction(
-      this.sessionId,
-      action,
-      action.clientDataModel,
-    );
+    const userMessage = formatAction(this.sessionId, event, event.clientDataModel);
 
     // Call your LLM with systemPrompt, tools, history, userMessage ...
   }

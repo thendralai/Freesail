@@ -82,7 +82,13 @@ Each `onBefore*` prop lets you validate or block agent operations before they ar
 <FreesailProvider
   gateway="http://localhost:3001"
   catalogs={[...]}
-  onBeforeUpdateComponents={(surfaceId, components) => {
+  onBeforeCreateSurface={(_surfaceId, _catalogId, _sendDataModel, surfaceManager) => {
+    if (surfaceManager.getAllSurfaces().length >= 3) {
+      return { allowed: false, message: 'Surface limit reached. Please remove a surface first.' };
+    }
+    return { allowed: true, message: '' };
+  }}
+  onBeforeUpdateComponents={(surfaceId, components, surfaceManager) => {
     if (components.length > 50) {
       return { allowed: false, message: 'Too many components' };
     }

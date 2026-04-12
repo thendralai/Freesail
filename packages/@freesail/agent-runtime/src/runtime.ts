@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { logger } from "@freesail/logger";
-import { FreesailAgent, AgentFactory, ActionEvent, ClientErrorEvent } from "./types.js";
+import { FreesailAgent, AgentFactory, ActionEvent, ClientErrorEvent, SessionNotification } from "./types.js";
 
 const SESSIONS_URI = "mcp://freesail.dev/sessions";
 
@@ -172,29 +172,12 @@ export class FreesailAgentRuntime {
    * Dispatch an action to an agent as fire-and-forget, but track the promise
    * so the disconnect handler can drain it before tearing down the agent.
    */
-  private dispatchAction(sessionId: string, agent: FreesailAgent, actionEvent: ActionEvent): void {
-    if (!this.inFlightActions.has(sessionId)) {
-      this.inFlightActions.set(sessionId, new Set());
-    }
-    const pending = this.inFlightActions.get(sessionId)!;
+  private dispatchNotification(sessionId: string, agent: FreesailAgent, notification: SessionNotification): void {
+    const pending = this.inFlightActions.get(sessionId) ?? new Set();
+    this.inFlightActions.set(sessionId, pending);
 
-    const p = (agent.onAction?.(actionEvent) ?? Promise.resolve()).catch((err) =>
-      logger.error(`[AgentRuntime] onAction failed (session=${sessionId}):`, err)
-    );
-
-    pending.add(p);
-    // Clean up the set entry once the promise resolves
-    p.finally(() => pending.delete(p));
-  }
-
-  private dispatchError(sessionId: string, agent: FreesailAgent, errorEvent: ClientErrorEvent): void {
-    if (!this.inFlightActions.has(sessionId)) {
-      this.inFlightActions.set(sessionId, new Set());
-    }
-    const pending = this.inFlightActions.get(sessionId)!;
-
-    const p = (agent.onClientError?.(errorEvent) ?? Promise.resolve()).catch((err) =>
-      logger.error(`[AgentRuntime] onClientError failed (session=${sessionId}):`, err)
+    const p = agent.onSessionNotification!(notification).catch((err) =>
+      logger.error(`[AgentRuntime] onSessionNotification failed (session=${sessionId}):`, err)
     );
 
     pending.add(p);
@@ -353,6 +336,9 @@ export class FreesailAgentRuntime {
    * sessions list subscription in handleSessionsUpdate.
    */
   private async handleSessionActions(sessionId: string): Promise<void> {
+    const agent = this.activeAgents.get(sessionId);
+    if (!agent?.onSessionNotification) return; // queue untouched if not handled
+
     try {
       const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
       const result = await this.mcpClient.readResource({ uri: sessionUri });
@@ -381,17 +367,16 @@ export class FreesailAgentRuntime {
       if (!Array.isArray(messages) || messages.length === 0) return;
 
       for (const msg of messages) {
-        const agent = this.activeAgents.get(sessionId);
-        if (!agent) continue;
-
         if (msg.error) {
-          const errorEvent: ClientErrorEvent = {
-            code: msg.error.code,
-            message: msg.error.message,
-            surfaceId: msg.error.surfaceId,
-            path: msg.error.path,
-          };
-          this.dispatchError(sessionId, agent, errorEvent);
+          this.dispatchNotification(sessionId, agent, {
+            type: 'error',
+            event: {
+              code: msg.error.code,
+              message: msg.error.message,
+              surfaceId: msg.error.surfaceId,
+              path: msg.error.path,
+            } as ClientErrorEvent,
+          });
           continue;
         }
 
@@ -405,20 +390,18 @@ export class FreesailAgentRuntime {
         }
         if (rawAction.name.startsWith("__session_")) continue;
 
-        logger.debug(
-          `[AgentRuntime] Routing Action: ${rawAction.name} (session=${sessionId})`,
-        );
+        logger.debug(`[AgentRuntime] Routing Action: ${rawAction.name} (session=${sessionId})`);
 
-        const actionEvent: ActionEvent = {
-          name: rawAction.name,
-          surfaceId: rawAction.surfaceId,
-          sourceComponentId: rawAction.sourceComponentId,
-          context: rawAction.context,
-          clientDataModel: msg.dataModel?.dataModel,
-        };
-
-        // Fire-and-forget, but tracked so disconnect can drain in-flight calls
-        this.dispatchAction(sessionId, agent, actionEvent);
+        this.dispatchNotification(sessionId, agent, {
+          type: 'action',
+          event: {
+            name: rawAction.name,
+            surfaceId: rawAction.surfaceId,
+            sourceComponentId: rawAction.sourceComponentId,
+            context: rawAction.context,
+            clientDataModel: msg.dataModel?.dataModel,
+          } as ActionEvent,
+        });
       }
     } catch (error) {
       logger.error(`[AgentRuntime] Error handling session actions (session=${sessionId}):`, error);

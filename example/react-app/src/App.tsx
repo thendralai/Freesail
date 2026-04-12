@@ -105,6 +105,14 @@ function App() {
           onError={(error) => {
             console.error('Freesail error:', error);
           }}
+          onBeforeCreateSurface={(_surfaceId, _catalogId, _sendDataModel, surfaceManager) => {
+            const surfaces = surfaceManager.getAllSurfaces();
+            if (surfaces.length >= 3) {
+              console.warn('Too many surfaces:', surfaces);
+              return { allowed: false, message: 'Surface limit reached. Please remove a surface before adding another surface.' };
+            }
+            return { allowed: true, message: '' };
+          }}
         >
           <ChatBootstrapper />
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, userSelect: isDragging.current ? 'none' : 'auto' }}>
