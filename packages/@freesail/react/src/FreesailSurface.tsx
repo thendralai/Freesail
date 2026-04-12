@@ -178,12 +178,17 @@ function renderComponent(
     } else if (typeof childList === 'object' && 'componentId' in childList) {
       // Template for dynamic children
       const template = childList;
-      const listData = getDataAtPath(dataModel, template.path);
+      // Resolve relative paths against the current scope's base path so nested
+      // templates (e.g. skills inside a developer iteration) work correctly.
+      const resolvedTemplatePath = !template.path.startsWith('/') && scopeBasePath
+        ? `${scopeBasePath}/${template.path}`
+        : template.path;
+      const listData = getDataAtPath(dataModel, resolvedTemplatePath);
 
       if (Array.isArray(listData)) {
         children = listData.map((itemData, index) => {
           // Build the absolute path for this item in the data model
-          const itemBasePath = `${template.path}/${index}`;
+          const itemBasePath = `${resolvedTemplatePath}/${index}`;
           return renderComponent(
             template.componentId,
             components,
@@ -324,12 +329,12 @@ function resolveDataBindings(
             if (isDataBindingObject(item)) {
               return resolveSingleBinding(item, dataModel, scopeData);
             }
-            return resolveDataBindings(item as any, dataModel, catalogId, scopeData, undefined, _depth + 1);
+            return resolveDataBindings(item as any, dataModel, catalogId, scopeData, scopeBasePath, _depth + 1);
           }
           return item;
         });
       } else {
-        resolved[key] = resolveDataBindings(value as any, dataModel, catalogId, scopeData, undefined, _depth + 1);
+        resolved[key] = resolveDataBindings(value as any, dataModel, catalogId, scopeData, scopeBasePath, _depth + 1);
       }
     } else {
       resolved[key] = value;
