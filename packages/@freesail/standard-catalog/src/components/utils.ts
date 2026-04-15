@@ -25,13 +25,14 @@ export function getSemanticColor(color: string | undefined): string | undefined 
   return semanticMap[color] || color;
 }
 
-export function getSemanticBackground(bg: string | undefined): string | undefined {
-  if (!bg) return undefined;
+export function getSemanticBackground(value: string | undefined): string | undefined {
+  if (!value) return undefined;
 
   const semanticMap: Record<string, string> = {
-    bgRoot: 'var(--freesail-bg-root, #f8fafc)',
-    bgSurface: 'var(--freesail-bg-surface, #ffffff)',
+    bg: 'var(--freesail-bg, #f8fafc)',
+    bgRaised: 'var(--freesail-bg-raised, #ffffff)',
     bgMuted: 'var(--freesail-bg-muted, #f1f5f9)',
+    bgOverlay: 'var(--freesail-bg-overlay, rgba(0,0,0,0.5))',
     primary: 'var(--freesail-primary, #2563eb)',
     error: 'var(--freesail-error, #ef4444)',
     success: 'var(--freesail-success, #22c55e)',
@@ -39,7 +40,7 @@ export function getSemanticBackground(bg: string | undefined): string | undefine
     info: 'var(--freesail-info, #3b82f6)',
   };
 
-  return semanticMap[bg] || bg;
+  return semanticMap[value] || value;
 }
 
 export function getContrastTextColor(
@@ -48,7 +49,7 @@ export function getContrastTextColor(
 ): string {
   if (!rawBackground) return fallback;
 
-  const semanticBgTokens = ['bgRoot', 'bgSurface', 'bgMuted'];
+  const semanticBgTokens = ['bg', 'bgRaised', 'bgMuted'];
   if (semanticBgTokens.includes(rawBackground)) {
     return 'var(--freesail-text-main, #0f172a)';
   }

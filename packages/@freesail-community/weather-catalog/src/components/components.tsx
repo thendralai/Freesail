@@ -225,7 +225,7 @@ export function ForecastPanel({ component, children }: FreesailComponentProps) {
   const title = (component['title'] as string) ?? 'Forecast';
 
   const panelStyle: CSSProperties = {
-    background: 'var(--freesail-bg-surface, #ffffff)',
+    background: 'var(--freesail-bg-raised, #ffffff)',
     borderRadius: '12px',
     padding: '16px 20px',
     boxShadow: 'var(--freesail-shadow-md)',
@@ -403,7 +403,7 @@ export function HumidityGauge({ component }: FreesailComponentProps) {
     width: `${clamped}%`,
     height: '100%',
     borderRadius: '3px',
-    background: clamped > 70 ? 'var(--freesail-primary-hover, #1d4ed8)' : clamped > 40 ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-border-focus, #94a3b8)',
+    background: clamped > 70 ? 'var(--freesail-primary-hover, #1d4ed8)' : clamped > 40 ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-border, #94a3b8)',
     transition: 'width 0.3s ease',
   };
 
@@ -483,9 +483,9 @@ export function UVIndex({ component }: FreesailComponentProps) {
 
 const SEVERITY_STYLES: Record<string, { bg: string; border: string; icon: string }> = {
   info: { bg: 'var(--freesail-bg-muted, #f8fafc)', border: 'var(--freesail-info, #3b82f6)', icon: 'ℹ️' },
-  advisory: { bg: 'var(--freesail-warning-bg, #fffbeb)', border: 'var(--freesail-warning, #f59e0b)', icon: '⚠️' },
+  advisory: { bg: 'color-mix(in srgb, var(--freesail-warning, #f59e0b) 12%, var(--freesail-bg, #f8fafc))', border: 'var(--freesail-warning, #f59e0b)', icon: '⚠️' },
   watch: { bg: '#fff8e1', border: 'var(--freesail-warning, #f59e0b)', icon: '👁️' },
-  warning: { bg: 'var(--freesail-error-subtle, #fef2f2)', border: 'var(--freesail-error, #ef4444)', icon: '🚨' },
+  warning: { bg: 'color-mix(in srgb, var(--freesail-error, #ef4444) 10%, var(--freesail-bg, #f8fafc))', border: 'var(--freesail-error, #ef4444)', icon: '🚨' },
 };
 
 /**

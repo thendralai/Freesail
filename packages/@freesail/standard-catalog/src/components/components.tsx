@@ -56,7 +56,7 @@ export function Card({ component, children }: FreesailComponentProps) {
     borderRadius: (component['borderRadius'] as string) ?? 'var(--freesail-radius-md)',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     boxShadow: 'var(--freesail-shadow-sm)',
-    background: getSemanticBackground(component['background'] as string) ?? 'var(--freesail-bg-surface, #ffffff)',
+    background: getSemanticBackground(component['background'] as string) ?? 'var(--freesail-bg-raised, #ffffff)',
     color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)',
     alignSelf: 'stretch',
     position: 'relative',
@@ -70,7 +70,7 @@ export function Card({ component, children }: FreesailComponentProps) {
     height: '22px',
     borderRadius: '4px',
     border: '1px solid var(--freesail-border, #e2e8f0)',
-    background: 'var(--freesail-bg-surface, #ffffff)',
+    background: 'var(--freesail-bg-raised, #ffffff)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -396,7 +396,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
     border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
     fontSize: '14px',
     boxSizing: 'border-box',
-    backgroundColor: 'var(--freesail-bg-root, #ffffff)',
+    backgroundColor: 'var(--freesail-bg, #ffffff)',
     color: 'var(--freesail-text-main, #0f172a)',
   };
 
@@ -482,7 +482,7 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
           borderRadius: 'var(--freesail-radius-md)',
           border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
           fontSize: '14px',
-          backgroundColor: 'var(--freesail-bg-root, #ffffff)',
+          backgroundColor: 'var(--freesail-bg, #ffffff)',
           color: 'var(--freesail-text-main, #0f172a)',
         }}
       />
@@ -725,7 +725,7 @@ export function Modal({ component, children, onAction, onFunctionCall }: Freesai
   };
 
   const modalContentStyle: CSSProperties = {
-    backgroundColor: 'var(--freesail-bg-surface, #ffffff)',
+    backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     color: 'var(--freesail-text-main, #0f172a)',
     padding: '1.5rem',
     borderRadius: 'var(--freesail-radius-lg)',
@@ -877,30 +877,28 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
 
   return (
     <>
-      {/* Make the Row wrapper and its flex div transparent to the grid */}
+      {/* Make the Row wrapper, data-attribute wrapper, and flex div transparent to the grid */}
       <style>{`
         .${gridClass} > .freesail-grid-row,
         .${gridClass} > .freesail-grid-row > div,
-        .${gridClass} > .freesail-grid-row [data-freesail-weight] {
+        .${gridClass} > .freesail-grid-row > div > div,
+        .${gridClass} > .freesail-grid-row [data-freesail-weight],
+        .${gridClass} > .freesail-grid-row [data-freesail-component] {
           display: contents !important;
         }
-        .${gridClass} > .freesail-grid-row > div > *,
-        .${gridClass} > .freesail-grid-row > div > [data-freesail-weight] > * {
+        .${gridClass} > .freesail-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
           padding: ${rowPadding};
           border-bottom: 1px solid var(--freesail-border, #e2e8f0);
         }
-        .${gridClass} > .freesail-grid-row > div > button,
-        .${gridClass} > .freesail-grid-row > div > [data-freesail-weight] > button {
+        .${gridClass} > .freesail-grid-row [data-freesail-component] > button {
           width: fit-content;
           align-self: center;
           justify-self: start;
         }
-        .${gridClass} > .freesail-grid-row:nth-child(odd) > div > *,
-        .${gridClass} > .freesail-grid-row:nth-child(odd) > div > [data-freesail-weight] > * {
-          background: var(--freesail-bg-surface, #ffffff);
+        .${gridClass} > .freesail-grid-row:nth-child(odd) [data-freesail-component] > *:not([data-freesail-component]) {
+          background: var(--freesail-bg-raised, #ffffff);
         }
-        .${gridClass} > .freesail-grid-row:nth-child(even) > div > *,
-        .${gridClass} > .freesail-grid-row:nth-child(even) > div > [data-freesail-weight] > * {
+        .${gridClass} > .freesail-grid-row:nth-child(even) [data-freesail-component] > *:not([data-freesail-component]) {
           background: var(--freesail-bg-muted, #f8fafc);
         }
       `}</style>
@@ -1386,7 +1384,7 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
       <select
         value={localValue}
         onChange={handleChange}
-        style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', fontSize: '14px', backgroundColor: 'var(--freesail-bg-root, #ffffff)', color: 'var(--freesail-text-main, #0f172a)' }}
+        style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', fontSize: '14px', backgroundColor: 'var(--freesail-bg, #ffffff)', color: 'var(--freesail-text-main, #0f172a)' }}
       >
         <option value="" disabled>{placeholder}</option>
         {options.map(opt => (
@@ -1763,7 +1761,7 @@ export function StatCard({ component, children }: FreesailComponentProps) {
     padding: '16px 20px',
     borderRadius: '12px',
     border: '1px solid var(--freesail-border, #e2e8f0)',
-    backgroundColor: 'var(--freesail-bg-card, #ffffff)',
+    backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     borderLeft: `4px solid ${accentColor}`,
     alignSelf: 'stretch',
   };

@@ -99,7 +99,7 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
     minHeight: 0,
     overflow: 'hidden',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    backgroundColor: background ?? 'var(--freesail-bg-root, #ffffff)',
+    backgroundColor: background ?? 'var(--freesail-bg, #ffffff)',
     color: color ?? (rawBg ? getContrastTextColor(rawBg) : undefined),
     borderRight: '1px solid var(--freesail-border, #e2e8f0)',
   };
@@ -329,7 +329,7 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
     borderTop: '1px solid var(--freesail-border, #e2e8f0)',
     display: 'flex',
     gap: '8px',
-    backgroundColor: background ?? 'var(--freesail-bg-root, #ffffff)'
+    backgroundColor: background ?? 'var(--freesail-bg, #ffffff)'
   };
 
   const inputStyle: CSSProperties = {
@@ -340,7 +340,7 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
     fontSize: '14px',
     outline: 'none',
     opacity: disabled ? 0.6 : 1,
-    backgroundColor: 'var(--freesail-bg-surface, #ffffff)',
+    backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     color: rawBg ? getContrastTextColor(rawBg, 'var(--freesail-text-main, #0f172a)') : 'var(--freesail-text-main, #0f172a)',
   };
 

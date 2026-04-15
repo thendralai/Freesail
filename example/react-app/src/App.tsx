@@ -50,7 +50,7 @@ const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
 const customThemeProps: Partial<ReactUI.FreesailThemeTokens> = {
   primary: '#e11d48', // Rose 600
   primaryHover: '#be123c', // Rose 700
-  bgSurface: '#fff1f2', // Rose 50
+  bgRaised: '#fff1f2', // Rose 50
   radiusMd: '0px', // Square corners for demonstration
 };
 
@@ -102,8 +102,8 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <ReactUI.FreesailThemeProvider theme={activeTheme}>
-        <ReactUI.FreesailProvider
+      <ReactUI.FreesailProvider
+          theme={activeTheme}
           catalogs={ALL_CATALOGS}
           additionalCapabilities={{ agentLimits: { maxConcurrentSurfaces: maxConcurrentSurfaces } }}
           onConnectionChange={(connected) => {
@@ -172,8 +172,7 @@ function App() {
               </main>
             </div>
           </div>
-        </ReactUI.FreesailProvider>
-      </ReactUI.FreesailThemeProvider>
+      </ReactUI.FreesailProvider>
     </div>
   );
 }
@@ -186,7 +185,7 @@ function ThemeButton({ active, onClick, children }: { active: boolean, onClick: 
         padding: '6px 12px',
         border: 'none',
         borderRadius: 'var(--freesail-radius-sm)',
-        background: active ? 'var(--freesail-bg-surface, #fff)' : 'transparent',
+        background: active ? 'var(--freesail-bg-raised, #fff)' : 'transparent',
         color: active ? 'var(--freesail-text-main, #000)' : 'var(--freesail-text-muted, #666)',
         boxShadow: active ? 'var(--freesail-shadow-sm)' : 'none',
         cursor: 'pointer',

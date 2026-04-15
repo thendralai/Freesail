@@ -24,6 +24,7 @@ import { registry, type FreesailComponentProps } from './registry.js';
 import { useFreesailContext } from './context.js';
 import { getDataAtPath } from './utils.js';
 import type { FunctionImplementation } from './types.js';
+import { type FreesailSurfaceTheme, surfaceThemeToCssVars } from './theme-utils.js';
 
 /**
  * Props for FreesailSurface.
@@ -119,7 +120,18 @@ export function FreesailSurface({
     return <div className={className} style={{ flex: 1, minHeight: 0 }}>{error}</div>;
   }
 
-  return <div className={className} data-freesail-surface={surfaceId} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{renderedTree}</div>;
+  const rootComponent = surface.components.get('root' as ComponentId);
+  const agentSurfaceTheme = rootComponent?.['theme'] as FreesailSurfaceTheme | undefined;
+  const agentCssVars = agentSurfaceTheme ? surfaceThemeToCssVars(agentSurfaceTheme) : {};
+
+  const surfaceStyle: React.CSSProperties = {
+    flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+    containerType: 'inline-size',
+    containerName: 'freesail-surface',
+    ...agentCssVars
+  };
+
+  return <div className={className} data-freesail-surface={surfaceId} style={surfaceStyle}>{renderedTree}</div>;
 }
 
 // =============================================================================
@@ -242,14 +254,26 @@ function renderComponent(
 
   try {
     const rendered = <Component key={keyOverride ?? componentId} {...props} />;
+
+    // --- AUTOMATIC DOM TAGGING (WRAPPER APPROACH) ---
+    // Use a wrapper div with display:contents so that data attributes
+    // stay on a real DOM element instead of leaking as props into
+    // functional components.
+    const taggedRendered = (
+      <div data-freesail-component={componentDef.component} data-freesail-id={componentId} style={{ display: 'contents' }}>
+        {rendered}
+      </div>
+    );
+    // --------------------------------------------------
+
     // Apply weight as flex when the component has a weight property.
     // Uses a data attribute so parent layouts (e.g. GridLayout) can override
     // with display:contents if needed.
     const weight = componentDef['weight'] as number | undefined;
     if (weight != null) {
-      return <div key={keyOverride ?? componentId} data-freesail-weight style={{ flex: `${weight} 1 auto`, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', alignSelf: 'stretch' }}>{rendered}</div>;
+      return <div key={keyOverride ?? componentId} data-freesail-weight style={{ flex: `${weight} 1 auto`, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', alignSelf: 'stretch' }}>{taggedRendered}</div>;
     }
-    return rendered;
+    return taggedRendered;
   } catch (err) {
     console.error(`[Freesail] Component render error (${componentDef.component}):`, err);
     return <UnknownComponent component={componentDef} />;

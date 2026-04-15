@@ -37,6 +37,8 @@ import {
 import { FreesailContext, type FreesailContextValue } from './context.js';
 import { registerCatalog, type FreesailComponent } from './registry.js';
 import type { CatalogDefinition } from './types.js';
+import { resolveTokens, tokensToCssVars, type FreesailThemeProp, type FreesailThemeMode } from './theme-utils.js';
+import { ThemeContext, type FreesailTheme } from './theme.js';
 
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -61,6 +63,8 @@ export type SurfaceInterceptorResult = { allowed: boolean; message: string };
 export interface FreesailProviderProps {
   /** Child components */
   children: ReactNode;
+  /** Theme to apply to Freesail surfaces. Defaults to light mode if undefined. */
+  theme?: FreesailThemeProp;
   /**
    * Base gateway URL. SSE and POST endpoints are derived automatically.
    *
@@ -139,6 +143,7 @@ const mountedProviderKeys = new Set<string>();
  */
 export function FreesailProvider({
   children,
+  theme,
   gateway = '',
   name,
   catalogs = [],
@@ -435,10 +440,20 @@ export function FreesailProvider({
     [surfaceManager, transport, sendAction, getSurface, isConnected]
   );
 
+  const resolvedTheme = useMemo(() => resolveTokens(theme) || resolveTokens('light'), [theme]);
+  const currentTheme = useMemo<FreesailTheme>(() => {
+    return { mode: (theme === 'dark' ? 'dark' : 'light') as FreesailThemeMode, tokens: resolvedTheme! };
+  }, [resolvedTheme, theme]);
+  const cssVars = useMemo(() => tokensToCssVars(resolvedTheme!, currentTheme.mode), [resolvedTheme, currentTheme.mode]);
+
   return (
-    <FreesailContext.Provider value={contextValue}>
-      {children}
-    </FreesailContext.Provider>
+    <ThemeContext.Provider value={currentTheme}>
+      <FreesailContext.Provider value={contextValue}>
+        <div style={{ display: 'contents', ...cssVars }}>
+          {children}
+        </div>
+      </FreesailContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 
