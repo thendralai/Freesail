@@ -1144,7 +1144,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "GridLayout": {
+    "Grid": {
       "type": "object",
       "allOf": [
         {
@@ -1155,26 +1155,35 @@
         },
         {
           "type": "object",
-          "description": "Displays tabular data with styled rows (alternating backgrounds, borders). Can also be used as a structured grid layout without headers. Follows A2UI composition: Grid provides the grid structure and optional header row, while the row content is composed using existing Row and Text components via the children template. Key properties: headers (optional, array of column header strings; determines column count), children (required, ChildList template pointing to a Row component and a data path), rowPadding (controls the padding of each cell; default '10px 16px'; use to add vertical spacing between rows, e.g. '14px 16px'). IMPORTANT: Row padding is controlled by rowPadding on the GridLayout, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a GridLayout, always set hideLabel: true on each one — the column headers already serve as labels, and showing them again inside each cell makes rows unnecessarily tall. User-Writable: false.",
+          "description": "A flexible grid component with two modes. TABULAR MODE (when headers is provided): displays data with a header row, styled alternating rows, and borders — collapses to a single column on narrow containers. Compose row content using Row and Text components via the children template. FLUID MODE (when headers is omitted): an auto-fill responsive grid that flows children into equal-width columns of at least minItemWidth each. Key properties: headers (optional, array of column header strings — determines tabular vs fluid mode), children (required, ChildList template or array of component IDs), rowPadding (tabular mode only, controls cell padding; default '10px 16px'), minItemWidth (fluid mode only, minimum column width; default '200px'), gap (fluid mode only, gap between items; default uses --freesail-space-sm). IMPORTANT: Row padding is controlled by rowPadding on the Grid, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a Grid table, always set hideLabel: true on each one. User-Writable: false.",
           "properties": {
             "component": {
-              "const": "GridLayout"
+              "const": "Grid"
             },
             "headers": {
               "type": "array",
               "items": {
                 "$ref": "#/$defs/DynamicString"
               },
-              "description": "The column header labels displayed in the header row."
+              "description": "Column header labels. When provided, the component renders in tabular mode with a header row. When omitted, renders in fluid auto-fill mode."
             },
             "children": {
-              "description": "Defines the row content. Use a template object { componentId, path } to generate rows from a data list. The componentId should reference a Row component containing Text components for each column.",
+              "description": "Defines the row/item content. Use a template object { componentId, path } to generate items from a data list, or an array of component IDs for static children.",
               "$ref": "#/$defs/ChildList"
             },
             "rowPadding": {
-              "description": "CSS padding applied to every cell in each data row. Use this to control row height and vertical spacing. Defaults to '10px 16px'. Example: '16px' for taller rows with more breathing room.",
+              "description": "(Tabular mode) CSS padding applied to every cell in each data row. Defaults to '10px 16px'.",
               "$ref": "#/$defs/DynamicString",
               "default": "10px 16px"
+            },
+            "minItemWidth": {
+              "description": "(Fluid mode) Minimum width of each auto-fill column. Defaults to '200px'. Use CSS length values e.g. '160px', '12rem'.",
+              "$ref": "#/$defs/DynamicString",
+              "default": "200px"
+            },
+            "gap": {
+              "description": "(Fluid mode) Gap between grid items. Defaults to var(--freesail-space-sm). Use CSS length or spacing token.",
+              "$ref": "#/$defs/DynamicString"
             }
           },
           "required": [
@@ -2838,7 +2847,7 @@
           "$ref": "#/components/Slider"
         },
         {
-          "$ref": "#/components/GridLayout"
+          "$ref": "#/components/Grid"
         },
         {
           "$ref": "#/components/BarChart"

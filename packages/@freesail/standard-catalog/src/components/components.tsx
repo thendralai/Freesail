@@ -2,7 +2,7 @@
  * @fileoverview Standard Catalog Components
  */
 
-import React, { useState, useEffect, type CSSProperties } from 'react';
+import React, { useState, useEffect, useId, useMemo, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import type { FreesailComponentProps } from '@freesail/react';
@@ -336,21 +336,23 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   };
 
   return (
-    <button
-      type="button"
-      style={style}
-      onClick={handleClick}
-      disabled={isDisabled}
-      title={validationError || undefined}
-      onMouseEnter={() => !isDisabled && setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); setIsActive(false); }}
-      onMouseDown={() => !isDisabled && setIsActive(true)}
-      onMouseUp={() => setIsActive(false)}
-      onFocus={() => !isDisabled && setIsHovered(true)}
-      onBlur={() => { setIsHovered(false); setIsActive(false); }}
-    >
-      {label}
-    </button>
+    <div style={{ display: 'contents' }}>
+      <button
+        type="button"
+        style={style}
+        onClick={handleClick}
+        disabled={isDisabled}
+        title={validationError || undefined}
+        onMouseEnter={() => !isDisabled && setIsHovered(true)}
+        onMouseLeave={() => { setIsHovered(false); setIsActive(false); }}
+        onMouseDown={() => !isDisabled && setIsActive(true)}
+        onMouseUp={() => setIsActive(false)}
+        onFocus={() => !isDisabled && setIsHovered(true)}
+        onBlur={() => { setIsHovered(false); setIsActive(false); }}
+      >
+        {label}
+      </button>
+    </div>
   );
 }
 
@@ -827,40 +829,113 @@ function isSafeUrl(url: string): boolean {
  * wrapper makes its children (Text components) become direct grid cells,
  * aligning them under each column header.
  */
-export function GridLayout({ component, children }: FreesailComponentProps) {
+/**
+ * Grid — dispatches to FluidGrid (auto-fill) or TabularGrid (with headers).
+ * GridLayout is kept as a backwards-compatible alias.
+ */
+export function Grid({ component, children }: FreesailComponentProps) {
+  const headers = component['headers'] as string[] | undefined;
+  return Array.isArray(headers) && headers.length > 0
+    ? <TabularGrid component={component}>{children}</TabularGrid>
+    : <FluidGrid component={component}>{children}</FluidGrid>;
+}
+
+
+// ---------------------------------------------------------------------------
+// FluidGrid — responsive auto-fill masonry-style grid (no headers)
+// ---------------------------------------------------------------------------
+function FluidGrid({ component, children }: FreesailComponentProps) {
+  const minItemWidth = sanitizeCssValue(
+    (component['minItemWidth'] as string) ?? '200px'
+  );
+  const gap = sanitizeCssValue(
+    (component['gap'] as string) ?? 'var(--freesail-space-sm, 8px)'
+  );
+  const style: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `repeat(auto-fill, minmax(min(${minItemWidth}, 100%), 1fr))`,
+    gap,
+    width: '100%',
+  };
+  return <div style={style}>{children}</div>;
+}
+
+// ---------------------------------------------------------------------------
+// TabularGrid — header row + data rows, collapses to single column < 480 cqi
+// ---------------------------------------------------------------------------
+function TabularGrid({ component, children }: FreesailComponentProps) {
+  const uid = useId().replace(/:/g, '');
+  const gridClass = `fs-grid-${uid}`;
+
   const headers = (component['headers'] as string[]) ?? [];
   const colCount = headers.length || 1;
   const childArray = Array.isArray(children) ? children : children ? [children] : [];
   const columnWeights = (component['columnWeights'] as number[]) ?? [];
-
-  // Unique class scoped to this grid instance for CSS targeting
-  const gridClass = `freesail-grid-${sanitizeCssIdent(String(component['id'] ?? 'default'))}`;
   const rowPadding = sanitizeCssValue((component['rowPadding'] as string) ?? '10px 16px');
 
-  // Build grid-template-columns from weights or fall back to equal sizing
-  let gridCols: string;
-  if (columnWeights.length > 0) {
-    gridCols = Array.from({ length: colCount }, (_, i) => {
-      const w = columnWeights[i] ?? 1;
-      return `minmax(min-content, ${w}fr)`;
-    }).join(' ');
-  } else {
-    gridCols = `repeat(${colCount}, minmax(min-content, 1fr))`;
-  }
+  // Build grid-template-columns from optional weights or fall back to equal sizing
+  const gridCols = useMemo(() => {
+    if (columnWeights.length > 0) {
+      return Array.from({ length: colCount }, (_, i) => {
+        const w = columnWeights[i] ?? 1;
+        return `minmax(min-content, ${w}fr)`;
+      }).join(' ');
+    }
+    return `repeat(${colCount}, minmax(min-content, 1fr))`;
+  }, [colCount, columnWeights.join(',')]);
+
+  const styleContent = useMemo(() => `
+    .${gridClass} {
+      display: grid;
+      grid-template-columns: ${gridCols};
+      min-width: 100%;
+      font-size: 14px;
+      color: var(--freesail-text-main, #0f172a);
+    }
+    /* All wrappers transparent — cover explicit depths + any intermediate layout div */
+    .${gridClass} > .fs-grid-row,
+    .${gridClass} > .fs-grid-row > div,
+    .${gridClass} > .fs-grid-row > div > div,
+    .${gridClass} > .fs-grid-row > div > div > div,
+    .${gridClass} > .fs-grid-row [data-freesail-weight],
+    .${gridClass} > .fs-grid-row [data-freesail-component],
+    .${gridClass} > .fs-grid-row [data-freesail-component] > div:has([data-freesail-component]) {
+      display: contents !important;
+    }
+    /* Leaf cell: flex-centered, full height, separator */
+    .${gridClass} > .fs-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      padding: ${rowPadding};
+      border-bottom: 1px solid var(--freesail-border, #e2e8f0);
+    }
+    /* Alternating row colors — !important overrides component inline background styles */
+    .${gridClass} > .fs-grid-row:nth-child(odd) [data-freesail-component] > *:not([data-freesail-component]) {
+      background: var(--freesail-bg-raised, #ffffff) !important;
+    }
+    .${gridClass} > .fs-grid-row:nth-child(even) [data-freesail-component] > *:not([data-freesail-component]) {
+      background: var(--freesail-bg-muted, #f8fafc) !important;
+    }
+    @container freesail-surface (max-width: 480px) {
+      .${gridClass} { grid-template-columns: 1fr; }
+      .${gridClass} > .fs-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
+        display: block;
+      }
+    }
+  `, [gridClass, gridCols, rowPadding]);
+
+
+
+
+
 
   const wrapperStyle: CSSProperties = {
     width: '100%',
     overflowX: 'auto',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     borderRadius: 'var(--freesail-radius-md, 8px)',
-  };
-
-  const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: gridCols,
-    minWidth: '100%',
-    fontSize: '14px',
-    color: 'var(--freesail-text-main, #0f172a)',
   };
 
   const headerCellStyle: CSSProperties = {
@@ -877,43 +952,19 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
 
   return (
     <>
-      {/* Make the Row wrapper, data-attribute wrapper, and flex div transparent to the grid */}
-      <style>{`
-        .${gridClass} > .freesail-grid-row,
-        .${gridClass} > .freesail-grid-row > div,
-        .${gridClass} > .freesail-grid-row > div > div,
-        .${gridClass} > .freesail-grid-row [data-freesail-weight],
-        .${gridClass} > .freesail-grid-row [data-freesail-component] {
-          display: contents !important;
-        }
-        .${gridClass} > .freesail-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
-          padding: ${rowPadding};
-          border-bottom: 1px solid var(--freesail-border, #e2e8f0);
-        }
-        .${gridClass} > .freesail-grid-row [data-freesail-component] > button {
-          width: fit-content;
-          align-self: center;
-          justify-self: start;
-        }
-        .${gridClass} > .freesail-grid-row:nth-child(odd) [data-freesail-component] > *:not([data-freesail-component]) {
-          background: var(--freesail-bg-raised, #ffffff);
-        }
-        .${gridClass} > .freesail-grid-row:nth-child(even) [data-freesail-component] > *:not([data-freesail-component]) {
-          background: var(--freesail-bg-muted, #f8fafc);
-        }
-      `}</style>
+      <style>{styleContent}</style>
       <div style={wrapperStyle}>
-        <div className={gridClass} style={gridStyle}>
+        <div className={gridClass}>
           {/* Header row */}
           {headers.map((header, i) => {
-            const headerText = typeof header === 'object' && header !== null && 'label' in header 
+            const headerText = typeof header === 'object' && header !== null && 'label' in header
               ? String((header as any).label)
               : String(header);
             return <div key={`h-${i}`} style={headerCellStyle}>{headerText}</div>;
           })}
-          {/* Data rows — each child is a Row component */}
+          {/* Data rows */}
           {childArray.map((child, i) => (
-            <div key={`r-${i}`} className="freesail-grid-row">
+            <div key={`r-${i}`} className="fs-grid-row">
               {child}
             </div>
           ))}
@@ -922,6 +973,7 @@ export function GridLayout({ component, children }: FreesailComponentProps) {
     </>
   );
 }
+
 
 // =============================================================================
 // Text Components
@@ -1815,6 +1867,6 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 export const standardCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
   Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, Modal, Spacer,
   ChoicePickerSingleSelect, ChoicePickerMultiSelect,
-  GridLayout, CheckBox, Image, Divider, List, Tab, TabGroup,
+  Grid, CheckBox, Image, Divider, List, Tab, TabGroup,
   Video, AudioPlayer, Slider, Dropdown, BarChart, LineChart, PieChart, Sparkline, StatCard,
 };
