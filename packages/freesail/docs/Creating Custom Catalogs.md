@@ -321,6 +321,123 @@ Validation checks:
 
 ---
 
+## Theme Token Reference
+
+All Freesail CSS custom properties are injected by `FreesailProvider` via the theme system. Use them in your component styles to automatically support light/dark mode and host-app theme overrides — never use hardcoded colours.
+
+### Background
+
+| CSS Custom Property | Token name | Light default | Dark default | Usage |
+|---|---|---|---|---|
+| `--freesail-bg` | `bg` | `#f8fafc` | `#020617` | Page / surface base background |
+| `--freesail-bg-raised` | `bgRaised` | `#ffffff` | `#0f172a` | Cards, modals, input fields, raised panels |
+| `--freesail-bg-muted` | `bgMuted` | `#f1f5f9` | `#1e293b` | Subtle fills, alternating rows, chips |
+| `--freesail-bg-overlay` | `bgOverlay` | `rgba(0,0,0,0.5)` | `rgba(0,0,0,0.7)` | Modal/drawer backdrop |
+
+### Text
+
+| CSS Custom Property | Token name | Light default | Dark default | Usage |
+|---|---|---|---|---|
+| `--freesail-text-main` | `textMain` | `#0f172a` | `#f8fafc` | Primary body text, headings |
+| `--freesail-text-muted` | `textMuted` | `#64748b` | `#94a3b8` | Secondary/helper text, labels |
+
+### Brand & Interactive
+
+| CSS Custom Property | Token name | Light default | Dark default | Usage |
+|---|---|---|---|---|
+| `--freesail-primary` | `primary` | `#2563eb` | `#3b82f6` | Buttons, links, active states |
+| `--freesail-primary-hover` | `primaryHover` | `#1d4ed8` | `#2563eb` | Hover state for primary elements |
+| `--freesail-primary-text` | `primaryText` | `#ffffff` | `#ffffff` | Text on primary-coloured backgrounds |
+
+### Semantic Status
+
+| CSS Custom Property | Token name | Light default | Dark default | Usage |
+|---|---|---|---|---|
+| `--freesail-error` | `error` | `#ef4444` | `#f87171` | Error states, destructive actions |
+| `--freesail-success` | `success` | `#22c55e` | `#4ade80` | Success states, confirmations |
+| `--freesail-warning` | `warning` | `#f59e0b` | `#fbbf24` | Warning states, advisories |
+| `--freesail-info` | `info` | `#3b82f6` | `#60a5fa` | Informational highlights |
+
+> **Subtle backgrounds for status colours.** There are no `--freesail-error-bg` / `--freesail-warning-bg` tokens. Derive subtle backgrounds using `color-mix`:
+> ```css
+> background: color-mix(in srgb, var(--freesail-error) 10%, var(--freesail-bg));
+> ```
+
+### Structure
+
+| CSS Custom Property | Token name | Light default | Dark default | Usage |
+|---|---|---|---|---|
+| `--freesail-border` | `border` | `#cbd5e1` | `#334155` | Dividers, input borders, separators |
+
+### Border Radius
+
+| CSS Custom Property | Token name | Default | Usage |
+|---|---|---|---|
+| `--freesail-radius-sm` | `radiusSm` | `0.25rem` | Chips, badges, small elements |
+| `--freesail-radius-md` | `radiusMd` | `0.5rem` | Buttons, inputs, cards |
+| `--freesail-radius-lg` | `radiusLg` | `0.75rem` | Modals, large panels |
+
+### Shadows
+
+| CSS Custom Property | Token name | Usage |
+|---|---|---|
+| `--freesail-shadow-sm` | `shadowSm` | Subtle elevation — cards, dropdowns |
+| `--freesail-shadow-md` | `shadowMd` | Moderate elevation — modals, popovers |
+
+### Fluid Spacing (container-relative)
+
+These values use `clamp()` with `cqi` units — they scale relative to the **container width**, not the viewport.
+
+| CSS Custom Property | Token name | Range |
+|---|---|---|
+| `--freesail-space-xs` | `spaceXs` | 2px – 4px |
+| `--freesail-space-sm` | `spaceSm` | 4px – 8px |
+| `--freesail-space-md` | `spaceMd` | 8px – 16px |
+| `--freesail-space-lg` | `spaceLg` | 16px – 24px |
+| `--freesail-space-xl` | `spaceXl` | 24px – 40px |
+
+### Fluid Typography
+
+| CSS Custom Property | Token name | Range |
+|---|---|---|
+| `--freesail-type-caption` | `typeCaption` | 10px – 12px |
+| `--freesail-type-label` | `typeLabel` | 11px – 13px |
+| `--freesail-type-body` | `typeBody` | 13px – 15px |
+| `--freesail-type-h5` | `typeH5` | 13px – 15px |
+| `--freesail-type-h4` | `typeH4` | 15px – 18px |
+| `--freesail-type-h3` | `typeH3` | 17px – 22px |
+| `--freesail-type-h2` | `typeH2` | 20px – 28px |
+| `--freesail-type-h1` | `typeH1` | 24px – 36px |
+
+### Fluid Icon Sizes
+
+| CSS Custom Property | Token name | Range |
+|---|---|---|
+| `--freesail-icon-sm` | `iconSm` | 14px – 16px |
+| `--freesail-icon-md` | `iconMd` | 18px – 20px |
+| `--freesail-icon-lg` | `iconLg` | 20px – 24px |
+| `--freesail-icon-xl` | `iconXl` | 28px – 32px |
+
+### Usage example
+
+```tsx
+const style: CSSProperties = {
+  padding: 'var(--freesail-space-md)',
+  backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
+  color: 'var(--freesail-text-main, #0f172a)',
+  border: '1px solid var(--freesail-border, #e2e8f0)',
+  borderRadius: 'var(--freesail-radius-md)',
+  boxShadow: 'var(--freesail-shadow-sm)',
+  fontSize: 'var(--freesail-type-body)',
+};
+```
+
+> **Always include a fallback.** When passing tokens via `var()`, add a hardcoded fallback value as the second argument. This ensures your component renders sensibly even outside a `FreesailProvider` — for example in a Storybook or test environment.
+
+---
+
+
+
 ## `CatalogDefinition` API Reference
 
 | Property | Type | Required | Description |

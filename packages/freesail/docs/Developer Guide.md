@@ -193,7 +193,7 @@ npm install freesail @freesail/catalogs
 
 ### Configure the FreesailProvider
 
-The `FreesailProvider` manages the connection to the gateway and registers available component catalogs.
+`FreesailProvider` manages the gateway connection, catalog registration, and theming in a single component.
 
 ```tsx
 import { ReactUI } from 'freesail';
@@ -207,15 +207,41 @@ const CATALOGS: ReactUI.CatalogDefinition[] = [
 function App() {
   return (
     <ReactUI.FreesailProvider
-      sseUrl="http://localhost:3001/sse"
-      postUrl="http://localhost:3001/message"
       catalogs={CATALOGS}
+      theme="light"           // 'light' | 'dark' | token overrides object
     >
       <MainLayout />
     </ReactUI.FreesailProvider>
   );
 }
 ```
+
+The gateway URL is derived automatically from the current host on port `3001`. Override it via the `VITE_GATEWAY_URL` or `VITE_GATEWAY_PORT` environment variables, or pass `sseUrl` / `postUrl` props directly.
+
+### Theming
+
+Freesail ships with built-in light and dark themes. The `theme` prop on `FreesailProvider` controls which set of CSS custom properties (`--freesail-*`) is applied:
+
+```tsx
+// Light (default)
+<ReactUI.FreesailProvider theme="light" catalogs={CATALOGS}>
+
+// Dark
+<ReactUI.FreesailProvider theme="dark" catalogs={CATALOGS}>
+
+// Custom overrides (extends light defaults)
+const myTheme: Partial<ReactUI.FreesailThemeTokens> = {
+  primary:      '#e11d48',  // Rose 600
+  primaryHover: '#be123c',  // Rose 700
+  bgRaised:     '#fff1f2',  // Rose 50
+  radiusMd:     '0px',      // Square corners
+};
+<ReactUI.FreesailProvider theme={myTheme} catalogs={CATALOGS}>
+```
+
+Token overrides merge on top of the light theme defaults. Specify only the tokens you want to change — all others keep their defaults.
+
+See the **Theme Token Reference** in [Creating Custom Catalogs.md](./Creating%20Custom%20Catalogs.md#theme-token-reference) for the full list of available `--freesail-*` CSS custom properties with their light/dark defaults.
 
 ### Adding Surfaces
 
