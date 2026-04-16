@@ -12,9 +12,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders text content. Key properties: text (required), variant (h1/h2/h3/h4/h5/caption/body), size (CSS font-size), weight (CSS font-weight), color (CSS color). User-Writable: false.",
           "properties": {
@@ -42,7 +39,7 @@
               "$ref": "#/$defs/DynamicString",
               "description": "CSS font-size for the text (e.g. '12px', '1.2rem', '2em'). Overrides the size implied by variant."
             },
-            "weight": {
+            "fontWeight": {
               "$ref": "#/$defs/DynamicString",
               "description": "CSS font-weight (e.g. 'normal', 'bold', '500', '700'). Overrides the weight implied by variant."
             },
@@ -64,9 +61,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -117,9 +111,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -180,9 +171,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls horizontal alignment of children; default is 'start'; set to 'stretch' for list layouts where children should fill the full width). User-Writable: false.",
           "properties": {
@@ -241,9 +229,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'), zoomable (boolean, adds a zoom toggle button). User-Writable: false.",
           "properties": {
@@ -254,14 +239,6 @@
               "description": "Padding inside the card.",
               "$ref": "#/$defs/DynamicString",
               "default": "16px"
-            },
-            "width": {
-              "description": "The width of the card.",
-              "$ref": "#/$defs/DynamicString"
-            },
-            "height": {
-              "description": "The height of the card.",
-              "$ref": "#/$defs/DynamicString"
             },
             "background": {
               "$ref": "#/$defs/DynamicString",
@@ -291,9 +268,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default false). To open the modal, use a Button whose action calls show with the modal's ID. Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false). User-Writable: false.",
           "properties": {
@@ -318,9 +292,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -370,9 +341,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -429,9 +397,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -505,9 +470,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "#/$defs/Checkable"
         },
         {
@@ -577,9 +539,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -675,38 +634,11 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "An empty space component used for layout and spacing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Spacer"
-            },
-            "width": {
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The width of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
-            },
-            "height": {
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The height of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
             }
           },
           "required": [
@@ -721,9 +653,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -775,9 +704,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs). User-Writable: false.",
           "properties": {
@@ -807,9 +733,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -845,9 +768,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -894,9 +814,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components. User-Writable: false.",
           "properties": {
@@ -924,9 +841,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -960,9 +874,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal). User-Writable: false.",
           "properties": {
@@ -991,9 +902,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -1068,9 +976,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "#/$defs/Checkable"
         },
         {
@@ -1103,9 +1008,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "#/$defs/Checkable"
@@ -1149,9 +1051,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -1199,9 +1098,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -1283,9 +1179,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a line chart from an array of data points. Supports optional area fill and data point dots. Good for showing trends over time. User-Writable: false.",
           "properties": {
@@ -1359,9 +1252,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a pie or donut chart from an array of segments. Each segment has a label and value. Colors are auto-assigned if not provided. User-Writable: false.",
           "properties": {
@@ -1428,9 +1318,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a compact inline sparkline chart from an array of numbers. Use inside StatCard or alongside text to show a quick trend. User-Writable: false.",
           "properties": {
@@ -1456,16 +1343,6 @@
               "$ref": "#/$defs/DynamicString",
               "description": "Line color (CSS).",
               "default": "#2563eb"
-            },
-            "width": {
-              "$ref": "#/$defs/DynamicNumber",
-              "description": "Sparkline width in pixels.",
-              "default": 120
-            },
-            "height": {
-              "$ref": "#/$defs/DynamicNumber",
-              "description": "Sparkline height in pixels.",
-              "default": 32
             }
           },
           "required": [
@@ -1481,9 +1358,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -2354,6 +2228,18 @@
           "$ref": "#/$defs/DynamicBoolean",
           "description": "Controls whether the component is rendered. Defaults to true. Use a function call to compute dynamically (e.g. show return date only when trip type is round-trip).",
           "default": true
+        },
+        "width": {
+          "type": "string",
+          "description": "The width of the component (e.g. '100%', '300px')."
+        },
+        "height": {
+          "type": "string",
+          "description": "The height of the component (e.g. '100%', '300px')."
+        },
+        "weight": {
+          "type": "number",
+          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
         }
       },
       "required": [
@@ -2768,15 +2654,6 @@
           ]
         }
       ]
-    },
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "weight": {
-          "type": "number",
-          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
-        }
-      }
     },
     "anyComponent": {
       "oneOf": [

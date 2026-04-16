@@ -12,19 +12,11 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Top-level wrapper for a chat interface. Provides layout structure (header, message area, input) for a complete chat experience. Key properties: height (CSS value, default 100%), title (optional header), children (required). User-Writable: false.",
           "properties": {
             "component": {
               "const": "ChatContainer"
-            },
-            "height": {
-              "type": "string",
-              "description": "Container height (CSS value)",
-              "default": "100%"
             },
             "title": {
               "$ref": "#/$defs/DynamicString",
@@ -48,9 +40,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -77,9 +66,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -122,9 +108,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Text input field with a send button for composing chat messages. Emits user input as an action. Key properties: placeholder (default 'Type a message...'), disabled (to block input while agent is processing). User-Writable: true.",
           "properties": {
@@ -156,9 +139,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Animated typing indicator shown while the agent is generating a response. Key properties: visible (show/hide, default false), text (label, default 'Thinking...'). User-Writable: false.",
           "properties": {
@@ -188,9 +168,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -479,18 +456,6 @@
           ],
           "additionalProperties": false
         }
-      ]
-    },
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "component": {
-          "type": "string",
-          "description": "The type of component."
-        }
-      },
-      "required": [
-        "component"
       ]
     },
     "anyComponent": {

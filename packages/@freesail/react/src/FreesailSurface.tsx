@@ -266,12 +266,34 @@ function renderComponent(
     );
     // --------------------------------------------------
 
-    // Apply weight as flex when the component has a weight property.
+    // Apply layout properties (weight, width, height) using a wrapper div.
     // Uses a data attribute so parent layouts (e.g. GridLayout) can override
     // with display:contents if needed.
     const weight = componentDef['weight'] as number | undefined;
-    if (weight != null) {
-      return <div key={keyOverride ?? componentId} data-freesail-weight style={{ flex: `${weight} 1 auto`, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', alignSelf: 'stretch' }}>{taggedRendered}</div>;
+    const width = resolvedProps['width'] as string | undefined;
+    const height = resolvedProps['height'] as string | undefined;
+
+    if (weight != null || width != null || height != null) {
+      const wrapperStyle: React.CSSProperties = {
+        flex: weight != null ? `${weight} 1 auto` : '0 0 auto',
+        minWidth: 0,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignSelf: weight != null ? 'stretch' : undefined,
+        width,
+        height,
+      };
+
+      return (
+        <div
+          key={keyOverride ?? componentId}
+          data-freesail-weight={weight != null ? true : undefined}
+          style={wrapperStyle}
+        >
+          {taggedRendered}
+        </div>
+      );
     }
     return taggedRendered;
   } catch (err) {

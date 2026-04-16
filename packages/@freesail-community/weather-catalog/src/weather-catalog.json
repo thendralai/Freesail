@@ -12,9 +12,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls vertical alignment). User-Writable: false.",
           "properties": {
@@ -71,9 +68,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -134,9 +128,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'), zoomable (boolean, adds a zoom toggle button). User-Writable: false.",
           "properties": {
@@ -147,14 +138,6 @@
               "description": "Padding inside the card.",
               "$ref": "#/$defs/DynamicString",
               "default": "16px"
-            },
-            "width": {
-              "description": "The width of the card.",
-              "$ref": "#/$defs/DynamicString"
-            },
-            "height": {
-              "description": "The height of the card.",
-              "$ref": "#/$defs/DynamicString"
             },
             "background": {
               "$ref": "#/$defs/DynamicString",
@@ -184,38 +167,11 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "An empty space component used for layout and spacing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Spacer"
-            },
-            "width": {
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The width of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
-            },
-            "height": {
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The height of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
             }
           },
           "required": [
@@ -230,9 +186,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -317,9 +270,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A single row in a weather forecast, showing the day's conditions. Key properties: day (required, e.g. 'Mon', 'Today'), high (required), low (required), condition (required), unit (C/F, default C), precipitation (chance percentage 0-100). User-Writable: false.",
           "properties": {
@@ -384,9 +334,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A container panel that groups ForecastRow children into a titled forecast list. Key properties: children (required, array of ForecastRow IDs or a template), title (default 'Forecast'). User-Writable: false.",
           "properties": {
@@ -416,9 +363,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -471,9 +415,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Displays a weather condition icon. Key properties: condition (required, e.g. sunny/cloudy/rainy/stormy/snowy/foggy/windy), size (sm/md/lg/xl, default md), animated (boolean, default false). User-Writable: false.",
           "properties": {
@@ -524,9 +465,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -583,9 +521,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A gauge that visualizes the current humidity level. Key properties: value (required, percentage 0-100), label (default 'Humidity'). User-Writable: false.",
           "properties": {
@@ -617,9 +552,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Displays the current UV index with a visual indicator. Key properties: value (required, 0-11+), label (default 'UV Index'). User-Writable: false.",
           "properties": {
@@ -649,9 +581,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -699,9 +628,6 @@
           "$ref": "#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Shows sunrise and sunset times with an optional sun position indicator. Key properties: sunrise (required, e.g. '6:32 AM'), sunset (required, e.g. '7:15 PM'), currentTime (for positioning the sun indicator). User-Writable: false.",
           "properties": {
@@ -735,9 +661,6 @@
       "allOf": [
         {
           "$ref": "#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -1058,18 +981,6 @@
             }
           ]
         }
-      ]
-    },
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "component": {
-          "type": "string",
-          "description": "The type of component."
-        }
-      },
-      "required": [
-        "component"
       ]
     },
     "ChildList": {

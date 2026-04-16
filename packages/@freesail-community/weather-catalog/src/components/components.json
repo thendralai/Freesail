@@ -7,9 +7,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A comprehensive weather summary card for a location. Key properties: location (required), temperature (required), condition (required, e.g. sunny/cloudy/rainy), unit (C/F, default C), humidity (0-100), windSpeed, windUnit (km/h/mph/m/s), feelsLike, background (CSS color override). User-Writable: false.",
           "properties": {
@@ -92,9 +89,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A single row in a weather forecast, showing the day's conditions. Key properties: day (required, e.g. 'Mon', 'Today'), high (required), low (required), condition (required), unit (C/F, default C), precipitation (chance percentage 0-100). User-Writable: false.",
           "properties": {
@@ -159,9 +153,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A container panel that groups ForecastRow children into a titled forecast list. Key properties: children (required, array of ForecastRow IDs or a template), title (default 'Forecast'). User-Writable: false.",
           "properties": {
@@ -191,9 +182,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -246,9 +234,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Displays a weather condition icon. Key properties: condition (required, e.g. sunny/cloudy/rainy/stormy/snowy/foggy/windy), size (sm/md/lg/xl, default md), animated (boolean, default false). User-Writable: false.",
           "properties": {
@@ -299,9 +284,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -358,9 +340,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A gauge that visualizes the current humidity level. Key properties: value (required, percentage 0-100), label (default 'Humidity'). User-Writable: false.",
           "properties": {
@@ -392,9 +371,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Displays the current UV index with a visual indicator. Key properties: value (required, 0-11+), label (default 'UV Index'). User-Writable: false.",
           "properties": {
@@ -424,9 +400,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -474,9 +447,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Shows sunrise and sunset times with an optional sun position indicator. Key properties: sunrise (required, e.g. '6:32 AM'), sunset (required, e.g. '7:15 PM'), currentTime (for positioning the sun indicator). User-Writable: false.",
           "properties": {
@@ -512,9 +482,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Displays the Air Quality Index (AQI) with an optional primary pollutant. Key properties: value (required, AQI 0-500), label (default 'Air Quality'), pollutant (e.g. 'PM2.5', 'O3'). User-Writable: false.",
           "properties": {
@@ -542,20 +509,6 @@
         }
       ],
       "unevaluatedProperties": false
-    }
-  },
-  "$defs": {
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "component": {
-          "type": "string",
-          "description": "The type of component."
-        }
-      },
-      "required": [
-        "component"
-      ]
     }
   }
 }

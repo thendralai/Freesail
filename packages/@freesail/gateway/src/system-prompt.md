@@ -40,7 +40,7 @@ Call `update_components` to create components.
 
 ### 6. Enhance with functions
 Use client-side functions within your components to perform supported operations locally in the client side, without round-trips.
-**Client-Side Validation**: Use any available logical functions in the catalog along with applicable component properties, to build validations that execute in the client side. 
+**Client-Side Validation**: Use any available logical functions in the catalog along with applicable component properties, to build validations that execute in the client side. If you are nesting functions, the nested functions should still follow the proper function call structure. Deviations will cause silent malfunctions.
 
 **Example: Validate 'name' is required**
 - In this example, the component `TextField` supports the `checks` property for client-side validation without round-trips to the agent. The `required` function is used in the checks property to validate if a value for the data model `/signup/firstName/` exists. If it does not exist then a message is displayed.
@@ -99,6 +99,10 @@ E.g. The below update_data_model tool call updates the value for the sections of
     }
   ]
 }
+
+## Useful tools
+- Call `get_pending_actions` tool between steps to check for any pending actions from the front end. This includes user actions, system notifications and error notifications from the front end.
+- Call `get_data_model` tool when you want to retrieve the full data model for a surface. The frontend will respond with the full data model regardless of the sendDataModel setting for the surface.
 
 ## Best Practices
 
@@ -176,8 +180,3 @@ Then reference the field with a relative path: `{ "path": "label" }`.
 ### Tools and Resources
 Use the correct sessionId and surfaceId whereever applicable when calling tools and checking resources. All tools have description that detail their purpose and usage.
 
-## Useful tools
-### get_pending_actions
-Call this tool to check for any pending actions. This includes user actions, system notifications and error notifications from the front end.
-### get_data_model
-Retrieve the current data model for a surface from the client. Sends a request to the frontend which responds with the full data model regardless of the sendDataModel setting.

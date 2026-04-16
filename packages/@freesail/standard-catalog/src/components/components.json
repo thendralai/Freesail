@@ -7,9 +7,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders text content. Key properties: text (required), variant (h1/h2/h3/h4/h5/caption/body), size (CSS font-size), weight (CSS font-weight), color (CSS color). User-Writable: false.",
           "properties": {
@@ -37,7 +34,7 @@
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "CSS font-size for the text (e.g. '12px', '1.2rem', '2em'). Overrides the size implied by variant."
             },
-            "weight": {
+            "fontWeight": {
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "CSS font-weight (e.g. 'normal', 'bold', '500', '700'). Overrides the weight implied by variant."
             },
@@ -59,9 +56,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -112,9 +106,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -175,9 +166,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column. Key properties: children (required), gap (spacing between children, default '8px'), padding, justify (start/center/end/spaceBetween/spaceAround/spaceEvenly/stretch), align (start/center/end/stretch; controls horizontal alignment of children; default is 'start'; set to 'stretch' for list layouts where children should fill the full width). User-Writable: false.",
           "properties": {
@@ -236,9 +224,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A styled container with border, shadow, and rounded corners. To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required, ID of the single child component), padding (default '16px'), width, height, background (CSS color value to fill the card, e.g. '#22c55e', 'red', 'rgba(0,0,0,0.5)'), zoomable (boolean, adds a zoom toggle button). User-Writable: false.",
           "properties": {
@@ -250,21 +235,13 @@
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "default": "16px"
             },
-            "width": {
-              "description": "The width of the card.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
-            },
-            "height": {
-              "description": "The height of the card.",
-              "$ref": "../common/common_types.json#/$defs/DynamicString"
-            },
             "background": {
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "A CSS color value for the card's background fill. Accepts any valid CSS color, e.g. hex ('#22c55e'), named ('red'), rgb/rgba, hsl. Defaults to the theme surface color."
             },
             "zoomable": {
               "type": "boolean",
-              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it zooms the card to 1.5× its original size for easier reading; clicking again restores it."
+              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it zooms the card to 1.5\u00d7 its original size for easier reading; clicking again restores it."
             },
             "child": {
               "$ref": "../common/common_types.json#/$defs/ComponentId",
@@ -284,9 +261,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -313,9 +287,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "../common/common_types.json#/$defs/Checkable"
@@ -367,14 +338,11 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "../common/common_types.json#/$defs/Checkable"
         },
         {
           "type": "object",
-          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label — use this when the TextField is inside a GridLayout where column headers already describe the field), min/max (numeric bounds, only used when variant is 'number'). User-Writable: true.",
+          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label \u2014 use this when the TextField is inside a GridLayout where column headers already describe the field), min/max (numeric bounds, only used when variant is 'number'). User-Writable: true.",
           "properties": {
             "component": {
               "const": "TextField"
@@ -399,7 +367,7 @@
             },
             "hideLabel": {
               "type": "boolean",
-              "description": "When true, hides the label above the input. Use this when the TextField is inside a GridLayout — the column headers already act as labels, so showing them again inside each cell is redundant and makes rows too tall.",
+              "description": "When true, hides the label above the input. Use this when the TextField is inside a GridLayout \u2014 the column headers already act as labels, so showing them again inside each cell is redundant and makes rows too tall.",
               "default": false
             },
             "min": {
@@ -424,9 +392,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "../common/common_types.json#/$defs/Checkable"
@@ -500,9 +465,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "../common/common_types.json#/$defs/Checkable"
         },
         {
@@ -572,9 +534,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "../common/common_types.json#/$defs/Checkable"
@@ -670,38 +629,11 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "An empty space component used for layout and spacing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Spacer"
-            },
-            "width": {
-              "oneOf": [
-                {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The width of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
-            },
-            "height": {
-              "oneOf": [
-                {
-                  "$ref": "../common/common_types.json#/$defs/DynamicString"
-                },
-                {
-                  "$ref": "../common/common_types.json#/$defs/DynamicNumber"
-                }
-              ],
-              "description": "The height of the spacer. If a number is provided, it is treated as pixels. Defaults to '16px'.",
-              "default": "16px"
             }
           },
           "required": [
@@ -716,9 +648,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -770,9 +699,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Plays a video. Key properties: url (required), embed (set to true for YouTube/Vimeo URLs). User-Writable: false.",
           "properties": {
@@ -802,9 +728,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -840,9 +763,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -889,9 +809,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A tabbed container that shows one Tab child at a time. Children must be Tab components. User-Writable: false.",
           "properties": {
@@ -919,9 +836,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -955,9 +869,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "A visual separator line. Key properties: axis (horizontal/vertical, default horizontal). User-Writable: false.",
           "properties": {
@@ -988,9 +899,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "../common/common_types.json#/$defs/Checkable"
         },
         {
@@ -1006,7 +914,7 @@
             },
             "hideLabel": {
               "type": "boolean",
-              "description": "When true, hides the label above the dropdown. Use this when the Dropdown is inside a GridLayout — the column headers already act as labels.",
+              "description": "When true, hides the label above the dropdown. Use this when the Dropdown is inside a GridLayout \u2014 the column headers already act as labels.",
               "default": false
             },
             "placeholder": {
@@ -1063,9 +971,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "$ref": "../common/common_types.json#/$defs/Checkable"
         },
         {
@@ -1098,9 +1003,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "$ref": "../common/common_types.json#/$defs/Checkable"
@@ -1146,11 +1048,8 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
-          "description": "A flexible grid component with two modes. TABULAR MODE (when headers is provided): displays data with a header row, styled alternating rows, and borders — collapses to a single column on narrow containers. Compose row content using Row and Text components via the children template. FLUID MODE (when headers is omitted): an auto-fill responsive grid that flows children into equal-width columns of at least minItemWidth each. Key properties: headers (optional, array of column header strings — determines tabular vs fluid mode), children (required, ChildList template or array of component IDs), rowPadding (tabular mode only, controls cell padding; default '10px 16px'), minItemWidth (fluid mode only, minimum column width; default '200px'), gap (fluid mode only, gap between items; default uses --freesail-space-sm). IMPORTANT: Row padding is controlled by rowPadding on the Grid, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a Grid table, always set hideLabel: true on each one. User-Writable: false.",
+          "description": "A flexible grid component with two modes. TABULAR MODE (when headers is provided): displays data with a header row, styled alternating rows, and borders \u2014 collapses to a single column on narrow containers. Compose row content using Row and Text components via the children template. FLUID MODE (when headers is omitted): an auto-fill responsive grid that flows children into equal-width columns of at least minItemWidth each. Key properties: headers (optional, array of column header strings \u2014 determines tabular vs fluid mode), children (required, ChildList template or array of component IDs), rowPadding (tabular mode only, controls cell padding; default '10px 16px'), minItemWidth (fluid mode only, minimum column width; default '200px'), gap (fluid mode only, gap between items; default uses --freesail-space-sm). IMPORTANT: Row padding is controlled by rowPadding on the Grid, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a Grid table, always set hideLabel: true on each one. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Grid"
@@ -1194,9 +1093,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -1278,9 +1174,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a line chart from an array of data points. Supports optional area fill and data point dots. Good for showing trends over time. User-Writable: false.",
           "properties": {
@@ -1354,9 +1247,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a pie or donut chart from an array of segments. Each segment has a label and value. Colors are auto-assigned if not provided. User-Writable: false.",
           "properties": {
@@ -1423,9 +1313,6 @@
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
         },
         {
-          "$ref": "#/$defs/CatalogComponentCommon"
-        },
-        {
           "type": "object",
           "description": "Renders a compact inline sparkline chart from an array of numbers. Use inside StatCard or alongside text to show a quick trend. User-Writable: false.",
           "properties": {
@@ -1451,16 +1338,6 @@
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "description": "Line color (CSS).",
               "default": "#2563eb"
-            },
-            "width": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Sparkline width in pixels.",
-              "default": 120
-            },
-            "height": {
-              "$ref": "../common/common_types.json#/$defs/DynamicNumber",
-              "description": "Sparkline height in pixels.",
-              "default": 32
             }
           },
           "required": [
@@ -1476,9 +1353,6 @@
       "allOf": [
         {
           "$ref": "../common/common_types.json#/$defs/ComponentCommon"
-        },
-        {
-          "$ref": "#/$defs/CatalogComponentCommon"
         },
         {
           "type": "object",
@@ -1529,17 +1403,6 @@
         }
       ],
       "unevaluatedProperties": false
-    }
-  },
-  "$defs": {
-    "CatalogComponentCommon": {
-      "type": "object",
-      "properties": {
-        "weight": {
-          "type": "number",
-          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
-        }
-      }
     }
   }
 }

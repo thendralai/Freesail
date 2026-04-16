@@ -26,6 +26,8 @@ export function Column({ component, children }: FreesailComponentProps) {
     gap: (component['gap'] as string) ?? '8px',
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
+    minWidth: 0,
+    minHeight: 0,
   };
 
   return <div style={style}>{children}</div>;
@@ -40,6 +42,8 @@ export function Row({ component, children }: FreesailComponentProps) {
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
     flexWrap: (component['wrap'] as CSSProperties['flexWrap']) ?? 'nowrap',
+    minWidth: 0,
+    minHeight: 0,
   };
 
   return <div style={style}>{children}</div>;
@@ -60,6 +64,8 @@ export function Card({ component, children }: FreesailComponentProps) {
     color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)',
     alignSelf: 'stretch',
     position: 'relative',
+    overflow: 'hidden',
+    minWidth: 0,
   };
 
   const zoomBtnStyle: CSSProperties = {
@@ -153,7 +159,7 @@ export function Text({ component }: FreesailComponentProps) {
 
   const baseStyle: CSSProperties = {
     fontSize: (component['size'] as string) ?? '14px',
-    fontWeight: (component['weight'] as CSSProperties['fontWeight']) ?? 'normal',
+    fontWeight: (component['fontWeight'] as CSSProperties['fontWeight']) ?? 'normal',
     color: getSemanticColor(component['color'] as string) ?? 'inherit',
     margin: 0,
   };
@@ -1062,9 +1068,13 @@ export function Image({ component }: FreesailComponentProps) {
     );
   }
 
+  const fit = (component['fit'] as React.CSSProperties['objectFit']) ?? 'contain';
+
   const style: CSSProperties = {
-    maxWidth: '100%',
-    height: 'auto',
+    width: '100%',
+    height: '100%',
+    objectFit: fit,
+    display: 'block',
     borderRadius: (component['borderRadius'] as string) ?? '0',
   };
 
@@ -1133,12 +1143,27 @@ export function TabGroup({ component, children }: FreesailComponentProps) {
   const [activeTab, setActiveTab] = useState(0);
   const childArray = React.Children.toArray(children);
 
-  // Extract tab titles from child Tab component props
-  const tabTitles: string[] = childArray.map((child) => {
-    if (React.isValidElement(child) && child.props?.component?.title) {
+  // Extract tab titles by traversing down the wrappers
+  const getComponentTitle = (child: React.ReactNode): string | undefined => {
+    if (!React.isValidElement(child)) return undefined;
+    if (child.props?.component && 'title' in child.props.component) {
       return String(child.props.component.title);
     }
-    return 'Tab';
+    if (child.props?.children) {
+      if (Array.isArray(child.props.children)) {
+        for (const c of child.props.children) {
+          const title = getComponentTitle(c);
+          if (title !== undefined) return title;
+        }
+      } else {
+        return getComponentTitle(child.props.children);
+      }
+    }
+    return undefined;
+  };
+
+  const tabTitles: string[] = childArray.map((child) => {
+    return getComponentTitle(child) ?? 'Tab';
   });
 
   const tabBarStyle: CSSProperties = {
@@ -1202,8 +1227,10 @@ export function Video({ component }: FreesailComponentProps) {
   const embed = Boolean(component['embed']);
 
   const style: CSSProperties = {
-    maxWidth: '100%',
-    height: 'auto',
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    display: 'block',
     borderRadius: '8px',
   };
 
@@ -1461,7 +1488,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   const orientation = (component['orientation'] as string) ?? 'vertical';
   const defaultColor = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showValues = component['showValues'] !== false;
-  const height = Number(component['height'] ?? 300);
+  const internalHeight = 300;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-muted, #64748b)', fontSize: '14px' }}>No chart data</div>;
@@ -1477,10 +1504,10 @@ export function BarChart({ component }: FreesailComponentProps) {
     const chartWidth = 300;
 
     return (
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
         <ChartTitle title={title} />
-        <svg width="100%" height={Math.min(svgHeight, height)} viewBox={`0 0 ${labelWidth + chartWidth + 60} ${svgHeight}`}
-          preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible' }}>
+        <svg width="100%" viewBox={`0 0 ${labelWidth + chartWidth + 60} ${svgHeight}`}
+          preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${labelWidth + chartWidth + 60} / ${svgHeight}` }}>
           {data.map((d, i) => {
             const y = i * (barHeight + gap);
             const barW = (d.value / maxVal) * chartWidth;
@@ -1513,7 +1540,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   const padding = { top: 16, right: 16, bottom: 40, left: 48 };
   const svgWidth = 500;
   const chartW = svgWidth - padding.left - padding.right;
-  const chartH = height - padding.top - padding.bottom;
+  const chartH = internalHeight - padding.top - padding.bottom;
   const barWidth = Math.min(40, (chartW / data.length) * 0.6);
   const step = chartW / data.length;
 
@@ -1523,10 +1550,10 @@ export function BarChart({ component }: FreesailComponentProps) {
     Math.round((maxVal / gridLines) * i));
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible' }}>
+      <svg width="100%" viewBox={`0 0 ${svgWidth} ${internalHeight}`}
+        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${internalHeight}` }}>
         {/* Grid lines */}
         {gridVals.map((v, i) => {
           const y = padding.top + chartH - (v / maxVal) * chartH;
@@ -1581,7 +1608,7 @@ export function LineChart({ component }: FreesailComponentProps) {
   const color = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showDots = component['showDots'] !== false;
   const showArea = component['showArea'] === true;
-  const height = Number(component['height'] ?? 300);
+  const internalHeight = 300;
 
   if (data.length < 2) {
     return <div style={{ color: 'var(--freesail-text-muted, #64748b)', fontSize: '14px' }}>Need at least 2 data points</div>;
@@ -1590,7 +1617,7 @@ export function LineChart({ component }: FreesailComponentProps) {
   const padding = { top: 16, right: 16, bottom: 40, left: 48 };
   const svgWidth = 500;
   const chartW = svgWidth - padding.left - padding.right;
-  const chartH = height - padding.top - padding.bottom;
+  const chartH = internalHeight - padding.top - padding.bottom;
 
   const maxVal = Math.max(...data.map(d => d.value), 1);
   const minVal = Math.min(...data.map(d => d.value), 0);
@@ -1612,10 +1639,10 @@ export function LineChart({ component }: FreesailComponentProps) {
     minVal + (range / gridLines) * i);
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible' }}>
+      <svg width="100%" viewBox={`0 0 ${svgWidth} ${internalHeight}`}
+        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${internalHeight}` }}>
         <defs>
           <linearGradient id={`area-grad-${color.replace(/[^a-zA-Z0-9]/g, '')}`}
             x1="0" y1="0" x2="0" y2="1">
@@ -1680,7 +1707,7 @@ export function PieChart({ component }: FreesailComponentProps) {
   const title = component['title'] as string | undefined;
   const data = parseData(component['data']);
   const donut = component['donut'] === true;
-  const size = Number(component['size'] ?? 250);
+  const size = 250;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-muted, #64748b)', fontSize: '14px' }}>No chart data</div>;
@@ -1729,10 +1756,10 @@ export function PieChart({ component }: FreesailComponentProps) {
   });
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', width: '100%' }}>
+        <svg width="100%" viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', aspectRatio: '1 / 1', flex: '1 1 200px' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill={seg.color} stroke="white" strokeWidth={2} />
           ))}
@@ -1762,8 +1789,8 @@ export function PieChart({ component }: FreesailComponentProps) {
 export function Sparkline({ component }: FreesailComponentProps) {
   const values = (component['values'] as number[]) ?? [];
   const color = getSemanticColor(component['color'] as string) ?? '#2563eb';
-  const width = Number(component['width'] ?? 120);
-  const height = Number(component['height'] ?? 32);
+  const width = 120;
+  const height = 32;
 
   if (!Array.isArray(values) || values.length < 2) {
     return <div style={{ width, height }} />;
@@ -1809,13 +1836,14 @@ export function StatCard({ component, children }: FreesailComponentProps) {
   
   const cardStyle: CSSProperties = {
     flex: '1 1 auto',
-    minWidth: '140px',
+    minWidth: 0,
     padding: '16px 20px',
     borderRadius: '12px',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     borderLeft: `4px solid ${accentColor}`,
     alignSelf: 'stretch',
+    overflow: 'hidden',
   };
 
   return (
@@ -1824,6 +1852,9 @@ export function StatCard({ component, children }: FreesailComponentProps) {
         fontSize: '13px',
         color: 'var(--freesail-text-muted, #64748b)',
         marginBottom: '4px',
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
+        overflow: 'hidden',
       }}>{label}</div>
       <div style={{
         fontSize: '28px',
@@ -1831,6 +1862,9 @@ export function StatCard({ component, children }: FreesailComponentProps) {
         color: 'var(--freesail-text-main, #0f172a)',
         lineHeight: 1.2,
         minHeight: '1.2em',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }}>{value || '\u00A0'}</div>
       <div style={{
         display: 'flex',

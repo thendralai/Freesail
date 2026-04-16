@@ -84,11 +84,13 @@ function App() {
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
+      document.body.style.userSelect = 'none';
       const newWidth = startWidth.current + (e.clientX - startX.current);
       setChatWidth(Math.max(MIN_CHAT_WIDTH, Math.min(MAX_CHAT_WIDTH, newWidth)));
     };
     const onMouseUp = () => {
       isDragging.current = false;
+      document.body.style.userSelect = '';
     };
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
@@ -123,7 +125,7 @@ function App() {
           }}
         >
           <ChatBootstrapper />
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, userSelect: isDragging.current ? 'none' : 'auto' }}>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {/* Chat Surface — rendered by the agent via A2UI */}
             <div style={{ width: `${chatWidth}px`, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
               <ReactUI.FreesailSurface surfaceId="__chat" />
@@ -270,18 +272,31 @@ function ChatBootstrapper() {
  */
 function ConnectionIndicator() {
   const { isConnected } = ReactUI.useConnectionStatus();
+  const color = isConnected ? '#06b09fff' : '#ef4444'; // Green for connected, Red for offline
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div
-        style={{
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: isConnected ? '#0f0' : '#f00',
-        }}
-      />
-      <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+    <div
+      aria-label={isConnected ? "Connected" : "Disconnected"}
+      style={{ display: 'flex', alignItems: 'center', gap: '8px', color }}
+    >
+      {isConnected ? (
+        // Wifi On Symbol
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+          <line x1="12" y1="20" x2="12.01" y2="20" />
+        </svg>
+      ) : (
+        // Wifi Off Symbol
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="2" y1="2" x2="22" y2="22" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+          <line x1="12" y1="20" x2="12.01" y2="20" />
+          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+        </svg>
+      )}
     </div>
   );
 }
