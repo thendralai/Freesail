@@ -24,7 +24,14 @@ import { registry, type FreesailComponentProps } from './registry.js';
 import { useFreesailContext } from './context.js';
 import { getDataAtPath } from './utils.js';
 import type { FunctionImplementation } from './types.js';
-import { type FreesailSurfaceTheme, surfaceThemeToCssVars } from './theme-utils.js';
+import {
+  type FreesailSurfaceTheme,
+  surfaceThemeToCssVars,
+  type FreesailThemeProp,
+  resolveTokens,
+  tokensToCssVars,
+  type FreesailThemeMode
+} from './theme-utils.js';
 
 /**
  * Props for FreesailSurface.
@@ -40,6 +47,8 @@ export interface FreesailSurfaceProps {
   error?: ReactNode;
   /** Empty state component (when surface exists but has no components) */
   empty?: ReactNode;
+  /** Optional theme override for this specific surface */
+  theme?: FreesailThemeProp;
 }
 
 /**
@@ -68,6 +77,7 @@ export function FreesailSurface({
   loading = <DefaultLoading />,
   error = <DefaultError />,
   empty = <DefaultLoading />,
+  theme
 }: FreesailSurfaceProps) {
   const surface = useSurface(surfaceId);
   const dispatch = useAction(surfaceId);
@@ -104,20 +114,31 @@ export function FreesailSurface({
     );
   }, [surface, dispatch, onDataChange]);
 
+  // Evaluate developer explicit theme injection
+  const developerThemeCssVars = useMemo(() => {
+    if (!theme) return {};
+    const tokens = resolveTokens(theme);
+    if (!tokens) return {};
+    const mode = typeof theme === 'string'
+      ? (theme as FreesailThemeMode)
+      : 'light';
+    return tokensToCssVars(tokens, mode);
+  }, [theme]);
+
   // Loading state - surface doesn't exist yet
   if (!surface) {
-    return <div className={className} style={{ flex: 1, minHeight: 0 }}>{loading}</div>;
+    return <div className={className} style={{ flex: 1, minHeight: 0, ...developerThemeCssVars }}>{loading}</div>;
   }
 
   // Empty state - surface exists but no components
   if (surface.components.size === 0 || !surface.rootId) {
-    return <div className={className} style={{ flex: 1, minHeight: 0 }}>{empty}</div>;
+    return <div className={className} style={{ flex: 1, minHeight: 0, ...developerThemeCssVars }}>{empty}</div>;
   }
 
   // Check if catalog is registered
   if (!registry.hasCatalog(surface.catalogId)) {
     console.error(`[Freesail] Catalog not registered: ${surface.catalogId}`);
-    return <div className={className} style={{ flex: 1, minHeight: 0 }}>{error}</div>;
+    return <div className={className} style={{ flex: 1, minHeight: 0, ...developerThemeCssVars }}>{error}</div>;
   }
 
   const rootComponent = surface.components.get('root' as ComponentId);
@@ -128,6 +149,7 @@ export function FreesailSurface({
     flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
     containerType: 'inline-size',
     containerName: 'freesail-surface',
+    ...developerThemeCssVars,
     ...agentCssVars
   };
 

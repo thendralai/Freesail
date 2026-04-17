@@ -128,7 +128,7 @@ function App() {
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {/* Chat Surface — rendered by the agent via A2UI */}
             <div style={{ width: `${chatWidth}px`, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-              <ReactUI.FreesailSurface surfaceId="__chat" />
+              <ReactUI.FreesailSurface surfaceId="__chat" theme="light"/>
             </div>
 
             {/* Drag Handle */}
