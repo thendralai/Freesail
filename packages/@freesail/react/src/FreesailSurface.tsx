@@ -272,10 +272,11 @@ function renderComponent(
     const weight = componentDef['weight'] as number | undefined;
     const width = resolvedProps['width'] as string | undefined;
     const height = resolvedProps['height'] as string | undefined;
+    const flexBasis = resolvedProps['flexBasis'] as string | undefined;
 
-    if (weight != null || width != null || height != null) {
+    if (weight != null || width != null || height != null || flexBasis != null) {
       const wrapperStyle: React.CSSProperties = {
-        flex: weight != null ? `${weight} 1 auto` : '0 0 auto',
+        flex: weight != null ? `${weight} 1 ${flexBasis ?? 'auto'}` : (flexBasis ? `0 1 ${flexBasis}` : '0 0 auto'),
         minWidth: 0,
         minHeight: 0,
         display: 'flex',

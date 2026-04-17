@@ -41,7 +41,7 @@ export function Row({ component, children }: FreesailComponentProps) {
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
-    flexWrap: (component['wrap'] as CSSProperties['flexWrap']) ?? 'nowrap',
+    flexWrap: (component['wrap'] as CSSProperties['flexWrap']) ?? 'wrap',
     minWidth: 0,
     minHeight: 0,
   };

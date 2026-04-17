@@ -53,6 +53,15 @@
                 "end",
                 "stretch"
               ]
+            },
+            "wrap": {
+              "type": "string",
+              "description": "Defines whether items should wrap to a new line if they exceed the container width.",
+              "enum": [
+                "nowrap",
+                "wrap",
+                "wrap-reverse"
+              ]
             }
           },
           "required": [

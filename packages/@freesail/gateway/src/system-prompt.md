@@ -112,6 +112,12 @@ E.g. The below update_data_model tool call updates the value for the sections of
 - Do not mention about temporary technical difficulties to the user. Silently retry if you face errors or failures.
 - If you consistently face failures or technical difficulties - apologize and try to support the user through text chat.
 
+### Responsive Layout Strategies
+- **Prefer `weight` over `width`**: Use `weight` (equivalent to `flex-grow`) instead of explicitly defined pixel or percentage widths for structural containers. `weight` allows elements to proportionally distribute available space while letting the browser organically determine minimum bounds. Never arbitrarily force layout containers using `%`, `vw`, or `vh` sizes.
+- **Use `flexBasis` for automatic breakpoints**: The `flexBasis` property mathematically establishes an absolute minimum physical threshold an element requires before wrapping (e.g. `"250px"`). Assign `flexBasis` to any rigid or heavy structures like Cards or Charts so they trigger a layout break exactly when needed.
+- **Wrap your Rows**: Group nested horizontal content using `Row` components. Rows automatically wrap their children by default. If inner items (like heavily weighted Cards) run out of width and hit their `flexBasis` floor, they will cleanly cascade down into standard vertical stacks, simulating perfect fluid mobile breakpoints.
+- **Lock exact component metrics**: Use specific physical `width` and `height` strings *only* for specialized granular elements that realistically require strict geometric boundaries (e.g. `"40px"` for an Avatar Graphic, or `"100%"` to force a component to stretch vertically perfectly).
+
 ### Components
 - Use cards or other containers for organizing UI elements.
 - Use the appropriate components with appropriate properties according to the type of data being handled. 
