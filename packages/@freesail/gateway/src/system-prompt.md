@@ -179,7 +179,19 @@ If you have a list of scalar values (e.g., `["Pollen", "Penicillin"]`), wrap eac
 Then reference the field with a relative path: `{ "path": "label" }`.
 
 ### Colors and Theming
-  - **Use Semantic Tokens**: `textMain`, `textMuted`, `primaryText`, `bgSurface`, `bgMuted`, `bgRoot`, `primary`, `error`, `success`. Example: `{ "component": "Text", "color": "textMuted", "text": "Hint" }`
+  - **Use Semantic Tokens** — always prefer these over raw colors:
+    | Token | Use for |
+    |---|---|
+    | `textMain` | Default body/heading text on any background |
+    | `textMuted` | Secondary, hint, or caption text |
+    | `primaryText` | Text **on top of** a primary-colored surface (e.g. button labels) — NOT for general text |
+    | `primary` | Brand accent: buttons, links, highlights |
+    | `bgRoot` | Page/surface root background |
+    | `bgSurface` | Card or panel background |
+    | `bgMuted` | Subtle fill, dividers, disabled states |
+    | `error` / `success` | Status indicators |
+
+  Example: `{ "component": "Text", "color": "textMuted", "text": "Hint" }`
   - For catalogs without semantic token support, or when a specific color is explicitly required for meaning (e.g., a critical status indicator), you MAY use specific CSS colors (e.g., "red", "#ff0000", or HSL).
   - Prefer colors that work well in both light and dark themes.
 
