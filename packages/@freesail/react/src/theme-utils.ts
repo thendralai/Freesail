@@ -9,12 +9,12 @@ export interface FreesailThemeTokens {
   bgMuted: string;
   bgOverlay: string;
   // Text
-  textMain: string;
-  textMuted: string;
+  textForeground: string;
+  textSecondary: string;
   // Brand
   primary: string;
   primaryHover: string;
-  primaryText: string;
+  primaryForeground: string;
   // Semantic Status
   error: string;
   success: string;
@@ -56,11 +56,11 @@ export const defaultLightTokens: FreesailThemeTokens = {
   bgRaised: '#ffffff',
   bgMuted: '#f1f5f9',
   bgOverlay: 'rgba(0, 0, 0, 0.5)',
-  textMain: '#0f172a',
-  textMuted: '#64748b',
+  textForeground: '#0f172a',
+  textSecondary: '#64748b',
   primary: '#2563eb',
   primaryHover: '#1d4ed8',
-  primaryText: '#ffffff',
+  primaryForeground: '#ffffff',
   error: '#ef4444',
   success: '#22c55e',
   warning: '#f59e0b',
@@ -91,15 +91,15 @@ export const defaultLightTokens: FreesailThemeTokens = {
 };
 
 export const defaultDarkTokens: FreesailThemeTokens = {
-  bg: '#020617',
+  bg: '#121212',
   bgRaised: '#0f172a',
   bgMuted: '#1e293b',
   bgOverlay: 'rgba(0, 0, 0, 0.7)',
-  textMain: '#f8fafc',
-  textMuted: '#94a3b8',
+  textForeground: '#f8fafc',
+  textSecondary: '#94a3b8',
   primary: '#3b82f6',
   primaryHover: '#2563eb',
-  primaryText: '#ffffff',
+  primaryForeground: '#ffffff',
   error: '#f87171',
   success: '#4ade80',
   warning: '#fbbf24',
@@ -136,12 +136,12 @@ export const defaultDarkTokens: FreesailThemeTokens = {
 export interface FreesailSurfaceTheme {
   primary?: string;
   primaryHover?: string;
-  primaryText?: string;
+  primaryForeground?: string;
   bg?: string;
   bgRaised?: string;
   bgMuted?: string;
-  textMain?: string;
-  textMuted?: string;
+  textForeground?: string;
+  textSecondary?: string;
   border?: string;
 }
 
@@ -160,11 +160,11 @@ export function tokensToCssVars(tokens: FreesailThemeTokens, mode: FreesailTheme
     '--freesail-bg-raised': tokens.bgRaised,
     '--freesail-bg-muted': tokens.bgMuted,
     '--freesail-bg-overlay': tokens.bgOverlay,
-    '--freesail-text-main': tokens.textMain,
-    '--freesail-text-muted': tokens.textMuted,
+    '--freesail-text-foreground': tokens.textForeground,
+    '--freesail-text-secondary': tokens.textSecondary,
     '--freesail-primary': tokens.primary,
     '--freesail-primary-hover': tokens.primaryHover,
-    '--freesail-primary-text': tokens.primaryText,
+    '--freesail-primary-foreground': tokens.primaryForeground,
     '--freesail-error': tokens.error,
     '--freesail-success': tokens.success,
     '--freesail-warning': tokens.warning,
@@ -200,12 +200,12 @@ export function surfaceThemeToCssVars(theme: FreesailSurfaceTheme): CSSPropertie
   const vars: Record<string, string> = {};
   if (theme.primary)      vars['--freesail-primary']       = theme.primary;
   if (theme.primaryHover) vars['--freesail-primary-hover'] = theme.primaryHover;
-  if (theme.primaryText)  vars['--freesail-primary-text']  = theme.primaryText;
+  if (theme.primaryForeground)  vars['--freesail-primary-foreground']  = theme.primaryForeground;
   if (theme.bg)           vars['--freesail-bg']            = theme.bg;
   if (theme.bgRaised)     vars['--freesail-bg-raised']     = theme.bgRaised;
   if (theme.bgMuted)      vars['--freesail-bg-muted']      = theme.bgMuted;
-  if (theme.textMain)     vars['--freesail-text-main']     = theme.textMain;
-  if (theme.textMuted)    vars['--freesail-text-muted']    = theme.textMuted;
+  if (theme.textForeground)     vars['--freesail-text-foreground']     = theme.textForeground;
+  if (theme.textSecondary)    vars['--freesail-text-secondary']    = theme.textSecondary;
   if (theme.border)       vars['--freesail-border']        = theme.border;
   return vars as CSSProperties;
 }

@@ -813,7 +813,7 @@ function DefaultLoading() {
       )}
       <span style={{
         fontSize: '13px',
-        color: 'var(--freesail-text-muted, #64748b)',
+        color: 'var(--freesail-text-secondary, #64748b)',
         letterSpacing: '0.05em',
       }}>Preparing…</span>
     </div>

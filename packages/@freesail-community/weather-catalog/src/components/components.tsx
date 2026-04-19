@@ -180,7 +180,7 @@ export function ForecastRow({ component }: FreesailComponentProps) {
   const dayStyle: CSSProperties = {
     width: '80px',
     fontWeight: 500,
-    color: 'var(--freesail-text-main, #0f172a)',
+    color: 'var(--freesail-text-foreground, #0f172a)',
   };
 
   const tempRange: CSSProperties = {
@@ -201,14 +201,14 @@ export function ForecastRow({ component }: FreesailComponentProps) {
         </span>
       )}
       <div style={tempRange}>
-        <span style={{ color: 'var(--freesail-text-muted, #64748b)', fontSize: '13px' }}>{Math.round(low)}°</span>
+        <span style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '13px' }}>{Math.round(low)}°</span>
         <div style={{
           width: '60px',
           height: '4px',
           borderRadius: '2px',
           background: `linear-gradient(to right, #74b9ff, #e17055)`,
         }} />
-        <span style={{ fontWeight: 600, color: 'var(--freesail-text-main, #0f172a)' }}>{Math.round(high)}°{unit.replace('°', '')}</span>
+        <span style={{ fontWeight: 600, color: 'var(--freesail-text-foreground, #0f172a)' }}>{Math.round(high)}°{unit.replace('°', '')}</span>
       </div>
     </div>
   );
@@ -235,7 +235,7 @@ export function ForecastPanel({ component, children }: FreesailComponentProps) {
   const titleStyle: CSSProperties = {
     fontSize: '14px',
     fontWeight: 600,
-    color: 'var(--freesail-text-muted, #64748b)',
+    color: 'var(--freesail-text-secondary, #64748b)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     marginBottom: '8px',
@@ -260,7 +260,7 @@ export function TemperatureDisplay({ component }: FreesailComponentProps) {
   const value = Number(component['value'] ?? 0);
   const unit = (component['unit'] as string) ?? 'C';
   const size = String((component['size'] as string) ?? 'lg').toLowerCase();
-  const color = getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-main, #0f172a)';
+  const color = getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-foreground, #0f172a)';
 
   const sizeMap: Record<string, string> = {
     sm: '24px',
@@ -357,12 +357,12 @@ export function WindIndicator({ component }: FreesailComponentProps) {
     <div style={containerStyle}>
       <span style={{ fontSize: '20px' }}>💨</span>
       <div>
-        <div style={{ fontWeight: 600, color: 'var(--freesail-text-main, #0f172a)' }}>
+        <div style={{ fontWeight: 600, color: 'var(--freesail-text-foreground, #0f172a)' }}>
           {speed} {unit} {arrow && <span style={{ fontSize: '16px' }}>{arrow}</span>}
-          {direction && <span style={{ fontSize: '12px', color: 'var(--freesail-text-muted, #64748b)', marginLeft: '4px' }}>{direction}</span>}
+          {direction && <span style={{ fontSize: '12px', color: 'var(--freesail-text-secondary, #64748b)', marginLeft: '4px' }}>{direction}</span>}
         </div>
         {gustSpeed !== undefined && (
-          <div style={{ fontSize: '12px', color: 'var(--freesail-text-muted, #64748b)' }}>
+          <div style={{ fontSize: '12px', color: 'var(--freesail-text-secondary, #64748b)' }}>
             Gusts up to {gustSpeed} {unit}
           </div>
         )}
@@ -410,8 +410,8 @@ export function HumidityGauge({ component }: FreesailComponentProps) {
   return (
     <div style={containerStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)' }}>💧 {label}</span>
-        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-main, #0f172a)' }}>{clamped}%</span>
+        <span style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)' }}>💧 {label}</span>
+        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-foreground, #0f172a)' }}>{clamped}%</span>
       </div>
       <div style={barBg}>
         <div style={barFill} />
@@ -465,13 +465,13 @@ export function UVIndex({ component }: FreesailComponentProps) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)', marginBottom: '4px' }}>☀️ {label}</div>
+      <div style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)', marginBottom: '4px' }}>☀️ {label}</div>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <span style={dotStyle} />
-        <span style={{ fontWeight: 600, fontSize: '20px', color: 'var(--freesail-text-main, #0f172a)', marginRight: '8px' }}>
+        <span style={{ fontWeight: 600, fontSize: '20px', color: 'var(--freesail-text-foreground, #0f172a)', marginRight: '8px' }}>
           {value}
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)' }}>{uvLabel(value)}</span>
+        <span style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)' }}>{uvLabel(value)}</span>
       </div>
     </div>
   );
@@ -509,12 +509,12 @@ export function WeatherAlert({ component }: FreesailComponentProps) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-main, #0f172a)', marginBottom: message ? '4px' : 0 }}>
+      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-foreground, #0f172a)', marginBottom: message ? '4px' : 0 }}>
         {s.icon} {title}
       </div>
-      {message && <div style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)' }}>{message}</div>}
+      {message && <div style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)' }}>{message}</div>}
       {expires && (
-        <div style={{ fontSize: '11px', color: 'var(--freesail-text-muted, #64748b)', marginTop: '6px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--freesail-text-secondary, #64748b)', marginTop: '6px' }}>
           Expires: {expires}
         </div>
       )}
@@ -561,16 +561,16 @@ export function SunriseSunset({ component }: FreesailComponentProps) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)' }}>🌅 Sunrise & Sunset</div>
+      <div style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)' }}>🌅 Sunrise & Sunset</div>
       <div style={arcStyle} />
       <div style={rowStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: 'var(--freesail-text-muted, #64748b)' }}>Sunrise</div>
-          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-main, #0f172a)' }}>{sunrise}</div>
+          <div style={{ fontSize: '11px', color: 'var(--freesail-text-secondary, #64748b)' }}>Sunrise</div>
+          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-foreground, #0f172a)' }}>{sunrise}</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: 'var(--freesail-text-muted, #64748b)' }}>Sunset</div>
-          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-main, #0f172a)' }}>{sunset}</div>
+          <div style={{ fontSize: '11px', color: 'var(--freesail-text-secondary, #64748b)' }}>Sunset</div>
+          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--freesail-text-foreground, #0f172a)' }}>{sunset}</div>
         </div>
       </div>
     </div>
@@ -625,16 +625,16 @@ export function AirQuality({ component }: FreesailComponentProps) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)', marginBottom: '4px' }}>🌬️ {label}</div>
+      <div style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)', marginBottom: '4px' }}>🌬️ {label}</div>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <span style={dotStyle} />
-        <span style={{ fontWeight: 600, fontSize: '20px', color: 'var(--freesail-text-main, #0f172a)', marginRight: '8px' }}>
+        <span style={{ fontWeight: 600, fontSize: '20px', color: 'var(--freesail-text-foreground, #0f172a)', marginRight: '8px' }}>
           {value}
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--freesail-text-muted, #64748b)' }}>{aqiLabel(value)}</span>
+        <span style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)' }}>{aqiLabel(value)}</span>
       </div>
       {pollutant && (
-        <div style={{ fontSize: '11px', color: 'var(--freesail-text-muted, #64748b)', marginTop: '4px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--freesail-text-secondary, #64748b)', marginTop: '4px' }}>
           Primary: {pollutant}
         </div>
       )}

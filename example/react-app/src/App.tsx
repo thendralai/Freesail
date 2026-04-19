@@ -153,7 +153,7 @@ function App() {
               padding: '20px',
               overflow: 'auto',
               backgroundColor: 'var(--freesail-bg-muted, #f8fafc)',
-              color: 'var(--freesail-text-main, #0f172a)',
+              color: 'var(--freesail-text-foreground, #0f172a)',
             }}>
               <header style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -188,7 +188,7 @@ function ThemeButton({ active, onClick, children }: { active: boolean, onClick: 
         border: 'none',
         borderRadius: 'var(--freesail-radius-sm)',
         background: active ? 'var(--freesail-bg-raised, #fff)' : 'transparent',
-        color: active ? 'var(--freesail-text-main, #000)' : 'var(--freesail-text-muted, #666)',
+        color: active ? 'var(--freesail-text-foreground, #000)' : 'var(--freesail-text-secondary, #666)',
         boxShadow: active ? 'var(--freesail-shadow-sm)' : 'none',
         cursor: 'pointer',
         fontSize: '13px',

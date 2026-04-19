@@ -11,11 +11,11 @@ export function getSemanticColor(color: string | undefined): string | undefined 
   if (!color) return undefined;
 
   const semanticMap: Record<string, string> = {
-    textMain: 'var(--freesail-text-main, #0f172a)',
-    textMuted: 'var(--freesail-text-muted, #64748b)',
+    textForeground: 'var(--freesail-text-foreground, #0f172a)',
+    textSecondary: 'var(--freesail-text-secondary, #64748b)',
     primary: 'var(--freesail-primary, #2563eb)',
     primaryHover: 'var(--freesail-primary-hover, #1d4ed8)',
-    primaryText: 'var(--freesail-primary-text, #ffffff)',
+    primaryForeground: 'var(--freesail-primary-foreground, #ffffff)',
     error: 'var(--freesail-error, #ef4444)',
     success: 'var(--freesail-success, #22c55e)',
     warning: 'var(--freesail-warning, #f59e0b)',
@@ -51,7 +51,7 @@ export function getContrastTextColor(
 
   const semanticBgTokens = ['bg', 'bgRaised', 'bgMuted'];
   if (semanticBgTokens.includes(rawBackground)) {
-    return 'var(--freesail-text-main, #0f172a)';
+    return 'var(--freesail-text-foreground, #0f172a)';
   }
 
   const bg = rawBackground.trim();
