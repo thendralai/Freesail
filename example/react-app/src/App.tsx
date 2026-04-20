@@ -46,6 +46,20 @@ const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
   WeatherCatalog,
 ];
 
+const FONT_SCALES: Record<'normal' | 'large', Partial<ReactUI.FreesailThemeTokens>> = {
+  normal: {},
+  large: {
+    typeCaption: 'clamp(12px, 1.2cqi, 14px)',
+    typeLabel:   'clamp(13px, 1.4cqi, 16px)',
+    typeBody:    'clamp(15px, 1.8cqi, 18px)',
+    typeH5:      'clamp(15px, 1.8cqi, 18px)',
+    typeH4:      'clamp(18px, 2.4cqi, 22px)',
+    typeH3:      'clamp(20px, 3cqi, 26px)',
+    typeH2:      'clamp(24px, 3.5cqi, 32px)',
+    typeH1:      'clamp(28px, 4.5cqi, 42px)',
+  },
+};
+
 // A custom hot-pink theme just to show overrides working
 const customThemeProps: Partial<ReactUI.FreesailThemeTokens> = {
   primary: '#e11d48', // Rose 600
@@ -63,6 +77,7 @@ const DEFAULT_CHAT_WIDTH = 380;
 
 function App() {
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'custom'>('light');
+  const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal');
   const [maxConcurrentSurfaces, setMaxConcurrentSurfaces] = useState(2);
 
   useEffect(() => {
@@ -100,7 +115,10 @@ function App() {
     };
   }, []);
 
-  const activeTheme = themeMode === 'custom' ? customThemeProps : themeMode;
+  const baseTokens = themeMode === 'dark'   ? ReactUI.defaultDarkTokens
+                   : themeMode === 'custom' ? { ...ReactUI.defaultLightTokens, ...customThemeProps }
+                   :                          ReactUI.defaultLightTokens;
+  const activeTheme = { ...baseTokens, ...FONT_SCALES[fontSize] };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -128,7 +146,7 @@ function App() {
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {/* Chat Surface — rendered by the agent via A2UI */}
             <div style={{ width: `${chatWidth}px`, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-              <ReactUI.FreesailSurface surfaceId="__chat" theme="light"/>
+              <ReactUI.FreesailSurface surfaceId="__chat" theme={{ ...ReactUI.defaultLightTokens, ...FONT_SCALES[fontSize] }}/>
             </div>
 
             {/* Drag Handle */}
@@ -162,10 +180,16 @@ function App() {
                 </div>
                 
                 {/* Theme Switcher Controls */}
-                <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-border, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
-                  <ThemeButton active={themeMode === 'light'} onClick={() => setThemeMode('light')}>Light</ThemeButton>
-                  <ThemeButton active={themeMode === 'dark'} onClick={() => setThemeMode('dark')}>Dark</ThemeButton>
-                  <ThemeButton active={themeMode === 'custom'} onClick={() => setThemeMode('custom')}>Custom (Rose)</ThemeButton>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-border, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
+                    <ThemeButton active={themeMode === 'light'} onClick={() => setThemeMode('light')}>Light</ThemeButton>
+                    <ThemeButton active={themeMode === 'dark'} onClick={() => setThemeMode('dark')}>Dark</ThemeButton>
+                    <ThemeButton active={themeMode === 'custom'} onClick={() => setThemeMode('custom')}>Custom (Rose)</ThemeButton>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-border, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
+                    <ThemeButton active={fontSize === 'normal'} onClick={() => setFontSize('normal')}>A</ThemeButton>
+                    <ThemeButton active={fontSize === 'large'} onClick={() => setFontSize('large')}>A+</ThemeButton>
+                  </div>
                 </div>
               </header>
 
