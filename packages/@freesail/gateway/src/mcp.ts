@@ -355,7 +355,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: true };
       }
       return {
-        content: [{ type: 'text', text: JSON.stringify(result) }],
+        content: [{ type: 'text', text: JSON.stringify({ ...result, next: `Call update_components with surfaceId "${surfaceId}" to add components to the surface.` }) }],
       };
     }
   );
@@ -431,12 +431,15 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         if (errors.length > 0) {
           logger.warn(`[MCP] update_components validation failed for surface '${surfaceId}':`, errors);
           return {
-            content: [{ type: 'text', text: `Validation Failed:\n${errors.join('\n')}` }],
+            content: [{ type: 'text', text: `Validation failed for surface '${surfaceId}':\n${errors.join('\n')}\n\nCorrect the errors above and call update_components again.` }],
             isError: true,
           };
         }
       } else {
-        logger.warn(`[MCP] update_components: no catalog found for surface '${surfaceId}', skipping component validation`);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `No catalog found for surface '${surfaceId}'. Ensure the surface was created with a valid catalogId before calling update_components.` }) }],
+          isError: true,
+        };
       }
 
       const message: DownstreamMessage = {

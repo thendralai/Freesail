@@ -270,7 +270,7 @@
             },
             "zoomable": {
               "type": "boolean",
-              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it zooms the card to 1.5× its original size for easier reading; clicking again restores it."
+              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it."
             },
             "child": {
               "$ref": "#/$defs/ComponentId",

@@ -273,7 +273,7 @@ export function FreesailProvider({
         surfaceId,
         'surface_cleanup_reminder',
         '__system' as ComponentId,
-        { surfaceId, message: `Surface ${String(surfaceId)} has no components. Delete it if no longer needed. Ignore this message if you plan to use the surface.` }
+        { surfaceId, message: `Surface ${String(surfaceId)} has no components. You may have forgotten to call update_components, or a previous attempt to update components may have failed. Use the surface or delete it if it is no longer needed.` }
       );
     });
 

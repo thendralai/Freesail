@@ -46,18 +46,29 @@ const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
   WeatherCatalog,
 ];
 
+const TYPE_SCALE_KEYS: (keyof ReactUI.FreesailThemeTokens)[] = [
+  'typeCaption', 'typeLabel', 'typeBody', 'typeH5', 'typeH4', 'typeH3', 'typeH2', 'typeH1',
+];
+
+function bumpFontScale(tokens: ReactUI.FreesailThemeTokens, levels: number): Partial<ReactUI.FreesailThemeTokens> {
+  const factor = Math.pow(1.125, levels);
+  const result: Partial<ReactUI.FreesailThemeTokens> = {};
+  for (const key of TYPE_SCALE_KEYS) {
+    const val = tokens[key] as string;
+    const match = val.match(/clamp\((\d+(?:\.\d+)?)px,\s*([\d.]+)(cqi),\s*(\d+(?:\.\d+)?)px\)/);
+    if (match) {
+      const min = Math.round(parseFloat(match[1]) * factor);
+      const mid = Math.round(parseFloat(match[2]) * factor * 10) / 10;
+      const max = Math.round(parseFloat(match[4]) * factor);
+      result[key] = `clamp(${min}px, ${mid}${match[3]}, ${max}px)`;
+    }
+  }
+  return result;
+}
+
 const FONT_SCALES: Record<'normal' | 'large', Partial<ReactUI.FreesailThemeTokens>> = {
   normal: {},
-  large: {
-    typeCaption: 'clamp(12px, 1.2cqi, 14px)',
-    typeLabel:   'clamp(13px, 1.4cqi, 16px)',
-    typeBody:    'clamp(15px, 1.8cqi, 18px)',
-    typeH5:      'clamp(15px, 1.8cqi, 18px)',
-    typeH4:      'clamp(18px, 2.4cqi, 22px)',
-    typeH3:      'clamp(20px, 3cqi, 26px)',
-    typeH2:      'clamp(24px, 3.5cqi, 32px)',
-    typeH1:      'clamp(28px, 4.5cqi, 42px)',
-  },
+  large: bumpFontScale(ReactUI.defaultLightTokens, 2),
 };
 
 // A custom hot-pink theme just to show overrides working

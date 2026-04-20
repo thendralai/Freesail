@@ -124,7 +124,7 @@ export function Card({ component, children }: FreesailComponentProps) {
       <div
         style={{
           ...cardStyle,
-          width: '80vw',
+          width: '70vw',
           maxWidth: '1200px',
           height: 'auto',
           maxHeight: '90vh',
@@ -135,7 +135,9 @@ export function Card({ component, children }: FreesailComponentProps) {
         onClick={e => e.stopPropagation()}
       >
         {zoomBtn}
-        {children}
+        <div style={{ width: '100%', maxWidth: '600px' }}>
+          {children}
+        </div>
       </div>
     </div>,
     document.body
