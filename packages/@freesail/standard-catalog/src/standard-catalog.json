@@ -293,7 +293,7 @@
         },
         {
           "type": "object",
-          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default false). To open the modal, use a Button whose action calls show with the modal's ID. Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false). User-Writable: false.",
+          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default false). To open the modal, use a Button whose action calls show with the modal's ID. Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false). The Modal includes a 'X' button for closing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Modal"
