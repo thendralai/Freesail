@@ -23,7 +23,7 @@ export function Column({ component, children }: FreesailComponentProps) {
   const style: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: (component['gap'] as string) ?? '8px',
+    gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     minWidth: 0,
@@ -37,7 +37,7 @@ export function Row({ component, children }: FreesailComponentProps) {
   const style: CSSProperties = {
     display: 'flex',
     flexDirection: 'row',
-    gap: (component['gap'] as string) ?? '8px',
+    gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
@@ -57,7 +57,7 @@ export function Card({ component, children }: FreesailComponentProps) {
   const borderWeight = component['borderWeight'] !== undefined ? Number(component['borderWeight']) : 1;
 
   const cardStyle: CSSProperties = {
-    padding: (component['padding'] as string) ?? '1.5rem',
+    padding: (component['padding'] as string) ?? 'var(--freesail-space-lg)',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
     borderRadius: isFlat ? '0' : ((component['borderRadius'] as string) ?? 'var(--freesail-radius-md)'),
@@ -161,7 +161,7 @@ export function Text({ component }: FreesailComponentProps) {
     : String(rawText)).replace(/\\n/g, '\n');
 
   const baseStyle: CSSProperties = {
-    fontSize: (component['size'] as string) ?? '14px',
+    fontSize: (component['size'] as string) ?? 'var(--freesail-type-body)',
     fontWeight: (component['fontWeight'] as CSSProperties['fontWeight']) ?? 'normal',
     color: getSemanticColor(component['color'] as string) ?? 'inherit',
     margin: 0,
@@ -170,7 +170,7 @@ export function Text({ component }: FreesailComponentProps) {
   const variant = (component['variant'] as string) ?? 'body';
 
   if (variant === 'caption' || variant === 'label') {
-    return <label style={{ ...baseStyle, fontWeight: '500', fontSize: '12px' }}>{text}</label>;
+    return <label style={{ ...baseStyle, fontWeight: '500', fontSize: 'var(--freesail-type-caption)' }}>{text}</label>;
   }
 
   return (
@@ -200,10 +200,21 @@ function ensureMaterialSymbols(): void {
   }
 }
 
+const ICON_SIZE_TOKENS: Record<string, string> = {
+  sm: 'var(--freesail-icon-sm)',
+  md: 'var(--freesail-icon-md)',
+  lg: 'var(--freesail-icon-lg)',
+  xl: 'var(--freesail-icon-xl)',
+  '2xl': 'var(--freesail-icon-2xl)',
+  '3xl': 'var(--freesail-icon-3xl)',
+  '4xl': 'var(--freesail-icon-4xl)',
+};
+
 export function Icon({ component }: FreesailComponentProps) {
   const rawName = component['name'];
   const name = (typeof rawName === 'string') ? rawName : 'help';
-  const size = (component['size'] as string) ?? '24px';
+  const rawSize = (component['size'] as string) ?? 'lg';
+  const size = ICON_SIZE_TOKENS[rawSize] ?? rawSize;
   const color = getSemanticColor(component['color'] as string) ?? 'currentColor';
 
   ensureMaterialSymbols();
@@ -258,11 +269,11 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   const actionContext = eventAction?.event?.context ?? {};
 
   const baseStyle: CSSProperties = {
-    padding: '0.5rem 1rem',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-md)',
     border: 'none',
     cursor: isDisabled ? 'not-allowed' : 'pointer',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     fontWeight: '500',
     opacity: isDisabled ? 0.55 : 1,
     transition: 'background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease, opacity 0.15s ease',
@@ -272,7 +283,7 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '0.375rem',
+    gap: 'var(--freesail-space-xs)',
     lineHeight: 1,
     whiteSpace: 'nowrap',
   };
@@ -391,30 +402,30 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
   const containerStyle: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
-    marginBottom: hideLabel ? '0' : '8px',
+    gap: 'var(--freesail-space-xs)',
+    marginBottom: hideLabel ? '0' : 'var(--freesail-space-sm)',
   };
 
   const labelStyle: CSSProperties = {
-    fontSize: '13px',
+    fontSize: 'var(--freesail-type-label)',
     fontWeight: '500',
     color: 'var(--freesail-text-foreground, #0f172a)',
   };
 
   const inputStyle: CSSProperties = {
-    padding: '0.5rem 0.75rem',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-md)',
     border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     boxSizing: 'border-box',
     backgroundColor: 'var(--freesail-bg, #ffffff)',
     color: 'var(--freesail-text-foreground, #0f172a)',
   };
 
   const errorStyle: CSSProperties = {
-    fontSize: '12px',
+    fontSize: 'var(--freesail-type-caption)',
     color: 'var(--freesail-error, #ef4444)',
-    marginTop: '2px',
+    marginTop: 'var(--freesail-space-xs)',
   };
 
   return (
@@ -480,8 +491,8 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {label && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+      {label && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
       <input
         type={inputType}
         value={localValue}
@@ -489,15 +500,15 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
         min={min}
         max={max}
         style={{
-          padding: '0.5rem 0.75rem',
+          padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
           borderRadius: 'var(--freesail-radius-md)',
           border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
-          fontSize: '14px',
+          fontSize: 'var(--freesail-type-body)',
           backgroundColor: 'var(--freesail-bg, #ffffff)',
           color: 'var(--freesail-text-foreground, #0f172a)',
         }}
       />
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -540,9 +551,9 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
 
   if (variant === 'chips') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
+        {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--freesail-space-sm)' }}>
           {options.map((opt) => {
             const selected = localValue === opt.value;
             return (
@@ -553,7 +564,7 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
                 style={{
                   borderRadius: '9999px',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  fontSize: 'var(--freesail-type-body)',
                   border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
                   backgroundColor: 'transparent',
                   color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
@@ -565,28 +576,28 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
             );
           })}
         </div>
-        {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+        {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
+      {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
         {options.map((opt) => (
-          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
             <input
               type="radio"
               name={component.id}
               checked={localValue === opt.value}
               onChange={() => handleRadioChange(opt.value)}
             />
-            <span style={{ fontSize: '14px' }}>{opt.label}</span>
+            <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
           </label>
         ))}
       </div>
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -636,9 +647,9 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
 
   if (variant === 'chips') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
+        {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--freesail-space-sm)' }}>
           {options.map((opt) => {
             const selected = localValue.includes(opt.value);
             return (
@@ -649,7 +660,7 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
                 style={{
                   borderRadius: '9999px',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  fontSize: 'var(--freesail-type-body)',
                   border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
                   backgroundColor: 'transparent',
                   color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
@@ -661,27 +672,27 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
             );
           })}
         </div>
-        {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+        {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {label && <div style={{ fontSize: '14px', fontWeight: 500 }}>{label}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
+      {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
         {options.map((opt) => (
-          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={localValue.includes(opt.value)}
               onChange={(e) => handleCheckboxChange(opt.value, e.target.checked)}
             />
-            <span style={{ fontSize: '14px' }}>{opt.label}</span>
+            <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
           </label>
         ))}
       </div>
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -738,7 +749,7 @@ export function Modal({ component, children, onAction, onFunctionCall }: Freesai
   const modalContentStyle: CSSProperties = {
     backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     color: 'var(--freesail-text-foreground, #0f172a)',
-    padding: '1.5rem',
+    padding: 'var(--freesail-space-lg)',
     borderRadius: 'var(--freesail-radius-lg)',
     maxWidth: '90%',
     maxHeight: '90%',
@@ -749,11 +760,11 @@ export function Modal({ component, children, onAction, onFunctionCall }: Freesai
 
   const closeButtonStyle: CSSProperties = {
     position: 'absolute',
-    top: '8px', right: '8px',
+    top: 'var(--freesail-space-sm)', right: 'var(--freesail-space-sm)',
     cursor: 'pointer',
     border: 'none',
     background: 'none',
-    fontSize: '20px',
+    fontSize: 'var(--freesail-icon-lg)',
   };
 
   return (
@@ -796,10 +807,10 @@ function ChartTitle({ title }: { title?: string }) {
   if (!title) return null;
   return (
     <div style={{
-      fontSize: '14px',
+      fontSize: 'var(--freesail-type-body)',
       fontWeight: 600,
       color: 'var(--freesail-text-foreground, #0f172a)',
-      marginBottom: '12px',
+      marginBottom: 'var(--freesail-space-md)',
     }}>
       {title}
     </div>
@@ -898,7 +909,7 @@ function TabularGrid({ component, children }: FreesailComponentProps) {
       display: grid;
       grid-template-columns: ${gridCols};
       min-width: 100%;
-      font-size: 14px;
+      font-size: var(--freesail-type-body);
       color: var(--freesail-text-foreground, #0f172a);
     }
     /* All wrappers transparent — cover explicit depths + any intermediate layout div */
@@ -948,10 +959,10 @@ function TabularGrid({ component, children }: FreesailComponentProps) {
   };
 
   const headerCellStyle: CSSProperties = {
-    padding: '10px 16px',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     textAlign: 'left',
     fontWeight: 600,
-    fontSize: '12px',
+    fontSize: 'var(--freesail-type-caption)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     color: 'var(--freesail-text-secondary, #64748b)',
@@ -1010,12 +1021,12 @@ export function CheckBox({ component, onDataChange }: FreesailComponentProps) {
   const style: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: 'var(--freesail-space-sm)',
     cursor: 'pointer',
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
       <label style={style}>
         <input
           type="checkbox"
@@ -1030,7 +1041,7 @@ export function CheckBox({ component, onDataChange }: FreesailComponentProps) {
         />
         <span>{label}</span>
       </label>
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -1048,7 +1059,7 @@ export function Image({ component }: FreesailComponentProps) {
   const [error, setError] = useState(false);
 
   if (!isSafeUrl(src)) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Invalid image URL</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid image URL</div>;
   }
 
   if (error) {
@@ -1097,7 +1108,7 @@ export function Divider({ component }: FreesailComponentProps) {
           width: '1px',
           alignSelf: 'stretch',
           backgroundColor: color,
-          margin: '0 8px',
+          margin: '0 var(--freesail-space-sm)',
         }}
       />
     );
@@ -1106,7 +1117,7 @@ export function Divider({ component }: FreesailComponentProps) {
   const style: CSSProperties = {
     border: 'none',
     borderTop: `1px solid ${color}`,
-    margin: (component['margin'] as string) ?? '16px 0',
+    margin: (component['margin'] as string) ?? 'var(--freesail-space-md) 0',
     width: '100%',
   };
 
@@ -1122,7 +1133,7 @@ export function List({ component, children }: FreesailComponentProps) {
   const style: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: 'var(--freesail-space-sm)',
     maxHeight,
     overflowY: maxHeight !== 'auto' ? 'auto' : undefined,
   };
@@ -1171,11 +1182,11 @@ export function TabGroup({ component, children }: FreesailComponentProps) {
   const tabBarStyle: CSSProperties = {
     display: 'flex',
     borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
-    marginBottom: '1rem',
+    marginBottom: 'var(--freesail-space-md)',
   };
 
   const tabStyle = (active: boolean): CSSProperties => ({
-    padding: '0.5rem 1rem',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     cursor: 'pointer',
     borderBottom: active ? '2px solid var(--freesail-primary, #2563eb)' : '2px solid transparent',
     color: active ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-text-secondary, #64748b)',
@@ -1269,7 +1280,7 @@ export function Video({ component }: FreesailComponentProps) {
 
     // Generic iframe fallback for other embed URLs
     if (!isSafeUrl(url)) {
-      return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Invalid video URL</div>;
+      return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid video URL</div>;
     }
     return (
       <iframe
@@ -1283,7 +1294,7 @@ export function Video({ component }: FreesailComponentProps) {
 
   // Native <video> for direct file URLs (mp4, webm, etc.)
   if (!isSafeUrl(url)) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Invalid video URL</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid video URL</div>;
   }
   return <video src={url} controls style={style} />;
 }
@@ -1299,7 +1310,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
   const embed = Boolean(component['embed']);
 
   const descriptionEl = description ? (
-    <div style={{ fontSize: '14px', color: 'var(--freesail-text-secondary, #64748b)' }}>{description}</div>
+    <div style={{ fontSize: 'var(--freesail-type-body)', color: 'var(--freesail-text-secondary, #64748b)' }}>{description}</div>
   ) : null;
 
   if (embed) {
@@ -1310,7 +1321,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
     if (spotifyMatch) {
       const [, type, id] = spotifyMatch;
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)', width: '100%' }}>
           {descriptionEl}
           <iframe
             src={`https://open.spotify.com/embed/${type}/${id}`}
@@ -1324,7 +1335,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
     // Detect SoundCloud URLs
     if (url.includes('soundcloud.com')) {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)', width: '100%' }}>
           {descriptionEl}
           <iframe
             src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&show_artwork=true`}
@@ -1337,10 +1348,10 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
 
     // Generic iframe fallback for other embed URLs
     if (!isSafeUrl(url)) {
-      return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Invalid audio URL</div>;
+      return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid audio URL</div>;
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)', width: '100%' }}>
         {descriptionEl}
         <iframe
           src={url}
@@ -1354,7 +1365,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
 
   // Fallback: native <audio> for direct file URLs (mp3, wav, ogg, etc.)
   if (!isSafeUrl(url)) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Invalid audio URL</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid audio URL</div>;
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
@@ -1396,9 +1407,9 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {label && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+      {label && <label style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</label>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)' }}>
         <input
           type="range"
           min={min}
@@ -1407,9 +1418,9 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
           onChange={handleChange}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: '13px', color: 'var(--freesail-text-secondary, #64748b)', minWidth: '32px' }}>{localValue}</span>
+        <span style={{ fontSize: 'var(--freesail-type-label)', color: 'var(--freesail-text-secondary, #64748b)', minWidth: '32px' }}>{localValue}</span>
       </div>
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -1460,19 +1471,19 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {label && !hideLabel && <label style={{ fontSize: '14px', fontWeight: 500 }}>{label}</label>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+      {label && !hideLabel && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
       <select
         value={localValue}
         onChange={handleChange}
-        style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', fontSize: '14px', backgroundColor: 'var(--freesail-bg, #ffffff)', color: 'var(--freesail-text-foreground, #0f172a)' }}
+        style={{ padding: 'var(--freesail-space-sm) var(--freesail-space-md)', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', fontSize: 'var(--freesail-type-body)', backgroundColor: 'var(--freesail-bg, #ffffff)', color: 'var(--freesail-text-foreground, #0f172a)' }}
       >
         <option value="" disabled>{placeholder}</option>
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      {validationError && <div style={{ fontSize: '12px', color: 'var(--freesail-error, #ef4444)', marginTop: '2px' }}>{validationError}</div>}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -1493,7 +1504,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   const internalHeight = 300;
 
   if (data.length === 0) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>No chart data</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
   }
 
   const maxVal = Math.max(...data.map(d => d.value), 1);
@@ -1613,7 +1624,7 @@ export function LineChart({ component }: FreesailComponentProps) {
   const internalHeight = 300;
 
   if (data.length < 2) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>Need at least 2 data points</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Need at least 2 data points</div>;
   }
 
   const padding = { top: 16, right: 16, bottom: 40, left: 48 };
@@ -1712,7 +1723,7 @@ export function PieChart({ component }: FreesailComponentProps) {
   const size = 250;
 
   if (data.length === 0) {
-    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: '14px' }}>No chart data</div>;
+    return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
   }
 
   const total = data.reduce((sum, d) => sum + Math.abs(d.value), 0) || 1;
@@ -1760,15 +1771,15 @@ export function PieChart({ component }: FreesailComponentProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
         <svg width="100%" viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', aspectRatio: '1 / 1', flex: '1 1 200px' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill={seg.color} stroke="white" strokeWidth={2} />
           ))}
         </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
           {segments.map((seg, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', fontSize: 'var(--freesail-type-label)' }}>
               <div style={{
                 width: '12px', height: '12px', borderRadius: '2px',
                 backgroundColor: seg.color, flexShrink: 0,
@@ -1839,7 +1850,7 @@ export function StatCard({ component, children }: FreesailComponentProps) {
   const cardStyle: CSSProperties = {
     flex: '1 1 auto',
     minWidth: 0,
-    padding: '16px 20px',
+    padding: 'var(--freesail-space-md)',
     borderRadius: '12px',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
@@ -1851,15 +1862,15 @@ export function StatCard({ component, children }: FreesailComponentProps) {
   return (
     <div style={cardStyle}>
       <div style={{
-        fontSize: '13px',
+        fontSize: 'var(--freesail-type-label)',
         color: 'var(--freesail-text-secondary, #64748b)',
-        marginBottom: '4px',
+        marginBottom: 'var(--freesail-space-xs)',
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
         overflow: 'hidden',
       }}>{label}</div>
       <div style={{
-        fontSize: '28px',
+        fontSize: 'var(--freesail-type-h2)',
         fontWeight: 700,
         color: 'var(--freesail-text-foreground, #0f172a)',
         lineHeight: 1.2,
@@ -1871,16 +1882,16 @@ export function StatCard({ component, children }: FreesailComponentProps) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
-        marginTop: '6px',
-        fontSize: '14px',
+        gap: 'var(--freesail-space-xs)',
+        marginTop: 'var(--freesail-space-xs)',
+        fontSize: 'var(--freesail-type-body)',
         fontWeight: 600,
         color: trendColor,
         visibility: (trend || trendValue) ? 'visible' : 'hidden',
       }}>
         <span style={{
           fontFamily: "'Material Symbols Outlined'",
-          fontSize: '16px',
+          fontSize: 'var(--freesail-icon-sm)',
           lineHeight: 1,
           color: trendColor,
           flexShrink: 0,

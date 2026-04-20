@@ -49,6 +49,9 @@ export interface FreesailThemeTokens {
   iconMd: string;
   iconLg: string;
   iconXl: string;
+  icon2xl: string;
+  icon3xl: string;
+  icon4xl: string;
 }
 
 export const defaultLightTokens: FreesailThemeTokens = {
@@ -88,6 +91,9 @@ export const defaultLightTokens: FreesailThemeTokens = {
   iconMd: 'clamp(18px, 2cqi, 20px)',
   iconLg: 'clamp(20px, 2.5cqi, 24px)',
   iconXl: 'clamp(28px, 3.5cqi, 32px)',
+  icon2xl: 'clamp(36px, 5cqi, 48px)',
+  icon3xl: 'clamp(52px, 7cqi, 64px)',
+  icon4xl: 'clamp(72px, 10cqi, 96px)',
 };
 
 export const defaultDarkTokens: FreesailThemeTokens = {
@@ -127,6 +133,9 @@ export const defaultDarkTokens: FreesailThemeTokens = {
   iconMd: 'clamp(18px, 2cqi, 20px)',
   iconLg: 'clamp(20px, 2.5cqi, 24px)',
   iconXl: 'clamp(28px, 3.5cqi, 32px)',
+  icon2xl: 'clamp(36px, 5cqi, 48px)',
+  icon3xl: 'clamp(52px, 7cqi, 64px)',
+  icon4xl: 'clamp(72px, 10cqi, 96px)',
 };
 
 /**
@@ -192,6 +201,9 @@ export function tokensToCssVars(tokens: FreesailThemeTokens, mode: FreesailTheme
     '--freesail-icon-md': tokens.iconMd,
     '--freesail-icon-lg': tokens.iconLg,
     '--freesail-icon-xl': tokens.iconXl,
+    '--freesail-icon-2xl': tokens.icon2xl,
+    '--freesail-icon-3xl': tokens.icon3xl,
+    '--freesail-icon-4xl': tokens.icon4xl,
     colorScheme: mode,
   } as CSSProperties;
 }

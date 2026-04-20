@@ -35,11 +35,11 @@ function OptimisticUserMessage({ text }: { text: string }) {
   };
   const bubbleStyle: CSSProperties = {
     maxWidth: '85%',
-    padding: '10px 14px',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)',
     backgroundColor: 'var(--freesail-primary, #2563eb)',
     color: '#ffffff',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
@@ -115,10 +115,10 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
       <div style={style}>
         {title && (
           <div style={{
-            padding: '16px',
+            padding: 'var(--freesail-space-md)',
             borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
             fontWeight: 600,
-            fontSize: '16px',
+            fontSize: 'var(--freesail-type-h4)',
             color: 'var(--freesail-text-foreground, #0f172a)',
           }}>
             {title}
@@ -153,10 +153,10 @@ export function ChatMessageList({ children }: FreesailComponentProps) {
   }, [childCount, chatContext]);
 
   const style: CSSProperties = {
-    padding: '16px',
+    padding: 'var(--freesail-space-md)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: 'var(--freesail-space-md)',
   };
 
   const optimisticMessages = chatContext?.optimisticMessages ?? [];
@@ -172,9 +172,9 @@ export function ChatMessageList({ children }: FreesailComponentProps) {
           ))}
         </>
       ) : (
-        <div style={{ color: 'var(--freesail-text-secondary, #64748b)', textAlign: 'center', marginTop: '40px' }}>
+        <div style={{ color: 'var(--freesail-text-secondary, #64748b)', textAlign: 'center', marginTop: 'var(--freesail-space-xl)' }}>
           <p>Ask the agent anything!</p>
-          <p style={{ fontSize: '13px', marginTop: '8px' }}>
+          <p style={{ fontSize: 'var(--freesail-type-label)', marginTop: 'var(--freesail-space-sm)' }}>
             Try: &quot;Show me a welcome card&quot; or &quot;Create a counter&quot;
           </p>
         </div>
@@ -221,11 +221,11 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
 
   const bubbleStyle: CSSProperties = {
     maxWidth: '85%',
-    padding: '10px 14px',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: isUser ? 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)' : 'var(--freesail-radius-lg) var(--freesail-radius-lg) var(--freesail-radius-lg) 4px',
     backgroundColor: background ?? defaultBg,
     color: resolvedColor,
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     whiteSpace: isUser ? 'pre-wrap' : undefined,
     wordBreak: 'break-word',
@@ -233,11 +233,11 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
   };
 
   const timeStyle: CSSProperties = {
-    fontSize: '11px',
+    fontSize: 'var(--freesail-type-caption)',
     color: 'var(--freesail-text-secondary, #64748b)',
-    marginTop: '4px',
-    paddingLeft: isUser ? undefined : '4px',
-    paddingRight: isUser ? '4px' : undefined,
+    marginTop: 'var(--freesail-space-xs)',
+    paddingLeft: isUser ? undefined : 'var(--freesail-space-xs)',
+    paddingRight: isUser ? 'var(--freesail-space-xs)' : undefined,
   };
 
   return (
@@ -276,8 +276,7 @@ function formatTime(iso: string): string {
 function SendIcon() {
   return (
     <svg
-      width="18"
-      height="18"
+      style={{ width: 'var(--freesail-icon-md)', height: 'var(--freesail-icon-md)' }}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -325,19 +324,19 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
   const buttonColor = getSemanticBackground(rawButtonColor);
 
   const containerStyle: CSSProperties = {
-    padding: '16px',
+    padding: 'var(--freesail-space-md)',
     borderTop: '1px solid var(--freesail-border, #e2e8f0)',
     display: 'flex',
-    gap: '8px',
+    gap: 'var(--freesail-space-sm)',
     backgroundColor: background ?? 'var(--freesail-bg, #ffffff)'
   };
 
   const inputStyle: CSSProperties = {
     flex: 1,
-    padding: '10px 14px',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     borderRadius: '20px',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     outline: 'none',
     opacity: disabled ? 0.6 : 1,
     backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
@@ -413,15 +412,15 @@ export function ChatTypingIndicator({ component, scopeData }: FreesailComponentP
   const style: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 14px',
+    gap: 'var(--freesail-space-sm)',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     color: 'var(--freesail-text-secondary, #64748b)',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
   };
 
   const dotStyle: CSSProperties = {
     display: 'inline-flex',
-    gap: '4px',
+    gap: 'var(--freesail-space-xs)',
   };
 
   return (
@@ -519,7 +518,7 @@ export function AgentStream({ component }: FreesailComponentProps) {
 
   const bubbleStyle: CSSProperties = {
     maxWidth: '85%',
-    padding: '10px 14px',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) var(--freesail-radius-lg) 4px',
     backgroundColor: background ?? 'var(--freesail-bg-muted, #f8fafc)',
     color: rawColor
@@ -527,7 +526,7 @@ export function AgentStream({ component }: FreesailComponentProps) {
       : rawBg
         ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground, #0f172a)')
         : 'var(--freesail-text-foreground, #0f172a)',
-    fontSize: '14px',
+    fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     wordBreak: 'break-word',
     boxShadow: 'var(--freesail-shadow-sm)',
