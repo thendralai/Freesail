@@ -89,15 +89,13 @@ export function WeatherCard({ component }: FreesailComponentProps) {
 
   const containerStyle: CSSProperties = {
     background,
-    borderRadius: '16px',
+    borderRadius: 'var(--freesail-radius-lg, 16px)',
     padding: 'var(--freesail-space-lg)',
     color: textColor,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    width: '100%',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
     boxSizing: 'border-box',
-    minWidth: 0,
+    minWidth: '160px',
     boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-    contain: 'inline-size',
   };
 
   const topRow: CSSProperties = {
@@ -176,14 +174,18 @@ export function ForecastRow({ component }: FreesailComponentProps) {
     justifyContent: 'space-between',
     padding: 'var(--freesail-space-sm) 0',
     borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
     fontSize: 'var(--freesail-type-body)',
   };
 
   const dayStyle: CSSProperties = {
-    flex: '0 0 auto',
+    flex: '1 1 0',
+    minWidth: 0,
     fontWeight: 500,
     color: 'var(--freesail-text-foreground, #0f172a)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   };
 
   const tempRange: CSSProperties = {
@@ -207,6 +209,8 @@ export function ForecastRow({ component }: FreesailComponentProps) {
         <span style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-label)' }}>{Math.round(low)}°</span>
         <div style={{
           width: '60px',
+          flexShrink: 1,
+          minWidth: '20px',
           height: '4px',
           borderRadius: '2px',
           background: `linear-gradient(to right, #74b9ff, #e17055)`,
@@ -232,10 +236,9 @@ export function ForecastPanel({ component, children }: FreesailComponentProps) {
     borderRadius: 'var(--freesail-radius-md)',
     padding: 'var(--freesail-space-md)',
     boxShadow: 'var(--freesail-shadow-md)',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    width: '100%',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
     boxSizing: 'border-box',
-    minWidth: 0,
+    minWidth: '160px',
   };
 
   const titleStyle: CSSProperties = {
@@ -280,7 +283,7 @@ export function TemperatureDisplay({ component }: FreesailComponentProps) {
     fontWeight: 200,
     color,
     lineHeight: 1,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   const unitStyle: CSSProperties = {
@@ -352,8 +355,8 @@ export function WindIndicator({ component }: FreesailComponentProps) {
     gap: 'var(--freesail-space-sm)',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     background: 'var(--freesail-bg-muted, #f8fafc)',
-    borderRadius: '10px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    borderRadius: 'var(--freesail-radius-md)',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
     fontSize: 'var(--freesail-type-body)',
   };
 
@@ -392,8 +395,8 @@ export function HumidityGauge({ component }: FreesailComponentProps) {
   const containerStyle: CSSProperties = {
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     background: 'var(--freesail-bg-muted, #f8fafc)',
-    borderRadius: '10px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    borderRadius: 'var(--freesail-radius-md)',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   const barBg: CSSProperties = {
@@ -456,8 +459,8 @@ export function UVIndex({ component }: FreesailComponentProps) {
   const containerStyle: CSSProperties = {
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     background: 'var(--freesail-bg-muted, #f8fafc)',
-    borderRadius: '10px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    borderRadius: 'var(--freesail-radius-md)',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   const dotStyle: CSSProperties = {
@@ -510,7 +513,7 @@ export function WeatherAlert({ component }: FreesailComponentProps) {
     borderLeft: `4px solid ${s.border}`,
     borderRadius: 'var(--freesail-radius-md, 8px)',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   return (
@@ -542,8 +545,8 @@ export function SunriseSunset({ component }: FreesailComponentProps) {
   const containerStyle: CSSProperties = {
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     background: 'var(--freesail-bg-muted, #f8fafc)',
-    borderRadius: '10px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    borderRadius: 'var(--freesail-radius-md)',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   const rowStyle: CSSProperties = {
@@ -616,8 +619,8 @@ export function AirQuality({ component }: FreesailComponentProps) {
   const containerStyle: CSSProperties = {
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     background: 'var(--freesail-bg-muted, #f8fafc)',
-    borderRadius: '10px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    borderRadius: 'var(--freesail-radius-md)',
+    fontFamily: 'var(--freesail-font-family, system-ui, -apple-system, sans-serif)',
   };
 
   const dotStyle: CSSProperties = {
