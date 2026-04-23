@@ -135,9 +135,7 @@ export function Card({ component, children }: FreesailComponentProps) {
         onClick={e => e.stopPropagation()}
       >
         {zoomBtn}
-        <div style={{ width: '100%', maxWidth: '600px' }}>
-          {children}
-        </div>
+        {children}
       </div>
     </div>,
     document.body
@@ -1773,15 +1771,15 @@ export function PieChart({ component }: FreesailComponentProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0, contain: 'inline-size' }}>
       <ChartTitle title={title} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
         <svg viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ flex: '1 1 0', maxWidth: `${size}px`, minWidth: `${Math.round(size / 2)}px`, aspectRatio: '1 / 1', overflow: 'visible', display: 'block' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill={seg.color} stroke="white" strokeWidth={2} />
           ))}
         </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs, 4px)', flexShrink: 0 }}>
           {segments.map((seg, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', fontSize: 'var(--freesail-type-label)' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm, 6px)', fontSize: 'var(--freesail-type-label, 13px)', whiteSpace: 'nowrap' }}>
               <div style={{
                 width: '12px', height: '12px', borderRadius: '2px',
                 backgroundColor: seg.color, flexShrink: 0,
