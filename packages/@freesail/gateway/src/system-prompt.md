@@ -141,7 +141,11 @@ To embed data model values in text, use the `formatString` function with `${...}
 }
 ```
 
-Use absolute paths (`${/path}`) for root-level data model values, or relative paths (`${field}`) inside templates. Client-side functions can also be called inline: `${now()}`, `${upper(${/user/name})}`.
+Use absolute paths (`${/path}`) for root-level data model values, or relative paths (`${field}`) inside templates. `${...}` expressions are only evaluated inside the `value` of a `formatString` call — they have no effect as bare string prop values:
+```json
+{ "call": "formatString", "args": { "value": "Today is ${formatDate(${now()}, 'yyyy-MM-dd')}" } }
+```
+Data paths and nested function calls are both supported inside that string. All nested expressions must be wrapped in `${}`.
 
 ### Input Components
 Always give input components a `value` binding so the agent can read collected data:
@@ -154,6 +158,11 @@ Then reference the same path in a Button's action context to receive the data wh
 { "id": "submitBtn", "component": "Button", "label": "Submit", "action": { "event": { "name": "submit_form", "context": { "name": { "path": "/formData/name" } } } } }
 ```
 When the user clicks the button, the action context data bindings are resolved against the current data model, so the agent receives `context: { "name": "Alice" }`.
+
+Use a `LocalAction` (`functionCall`) when no agent round-trip is needed — the function executes entirely on the client:
+```json
+{ "id": "closeBtn", "component": "Button", "label": "Close", "action": { "call": "hide", "args": { "componentId": "myModal" } } }
+```
 
 ### Dynamic Lists (Templates)
 To render a list of items from the data model, use a template in the children property:

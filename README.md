@@ -78,7 +78,7 @@ A2UI (Agent-to-User Interface) is the JSON protocol for bi-directional communica
 
 ## 👥 Maintainers & Contributors
 
-Freesail is an open-source project created and maintained by **Thendral AI Ltd**.
+Freesail is an open-source project supported by **Thendral AI Ltd**.
 
 ## License
 
