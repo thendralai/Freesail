@@ -93,8 +93,11 @@ export function WeatherCard({ component }: FreesailComponentProps) {
     padding: 'var(--freesail-space-lg)',
     color: textColor,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    minWidth: '280px',
+    width: '100%',
+    boxSizing: 'border-box',
+    minWidth: 0,
     boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+    contain: 'inline-size',
   };
 
   const topRow: CSSProperties = {
@@ -178,7 +181,7 @@ export function ForecastRow({ component }: FreesailComponentProps) {
   };
 
   const dayStyle: CSSProperties = {
-    width: '80px',
+    flex: '0 0 auto',
     fontWeight: 500,
     color: 'var(--freesail-text-foreground, #0f172a)',
   };
@@ -187,7 +190,7 @@ export function ForecastRow({ component }: FreesailComponentProps) {
     display: 'flex',
     gap: 'var(--freesail-space-sm)',
     alignItems: 'center',
-    minWidth: '100px',
+    flex: '0 0 auto',
     justifyContent: 'flex-end',
   };
 
@@ -196,7 +199,7 @@ export function ForecastRow({ component }: FreesailComponentProps) {
       <span style={dayStyle}>{day}</span>
       <span style={{ fontSize: 'var(--freesail-icon-lg)' }}>{getConditionIcon(condition)}</span>
       {precipitation !== undefined && precipitation > 0 && (
-        <span style={{ color: 'var(--freesail-info, #3b82f6)', fontSize: 'var(--freesail-type-caption)', minWidth: '40px', textAlign: 'center' }}>
+        <span style={{ color: 'var(--freesail-info, #3b82f6)', fontSize: 'var(--freesail-type-caption)', textAlign: 'center' }}>
           {precipitation}%
         </span>
       )}
@@ -226,10 +229,13 @@ export function ForecastPanel({ component, children }: FreesailComponentProps) {
 
   const panelStyle: CSSProperties = {
     background: 'var(--freesail-bg-raised, #ffffff)',
-    borderRadius: '12px',
+    borderRadius: 'var(--freesail-radius-md)',
     padding: 'var(--freesail-space-md)',
     boxShadow: 'var(--freesail-shadow-md)',
     fontFamily: 'system-ui, -apple-system, sans-serif',
+    width: '100%',
+    boxSizing: 'border-box',
+    minWidth: 0,
   };
 
   const titleStyle: CSSProperties = {
