@@ -1722,7 +1722,7 @@ export function PieChart({ component }: FreesailComponentProps) {
   const title = component['title'] as string | undefined;
   const data = parseData(component['data']);
   const donut = component['donut'] === true;
-  const size = 250;
+  const size = (component['size'] as number) ?? 250;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
@@ -1771,15 +1771,15 @@ export function PieChart({ component }: FreesailComponentProps) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0, contain: 'inline-size' }}>
       <ChartTitle title={title} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
-        <svg width="100%" viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', aspectRatio: '1 / 1', flex: '1 1 200px' }}>
+        <svg viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ flex: '1 1 0', maxWidth: `${size}px`, minWidth: `${Math.round(size / 2)}px`, aspectRatio: '1 / 1', overflow: 'visible', display: 'block' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill={seg.color} stroke="white" strokeWidth={2} />
           ))}
         </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', flexShrink: 0 }}>
           {segments.map((seg, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', fontSize: 'var(--freesail-type-label)' }}>
               <div style={{
