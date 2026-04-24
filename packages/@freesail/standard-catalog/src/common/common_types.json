@@ -51,6 +51,14 @@
         "flexBasis": {
           "type": "string",
           "description": "The flex-basis of this component within a Row or Column. Defines the default size of an element before remaining space is distributed. Essential for fluid responsive breakpoints (e.g., '300px')."
+        },
+        "minWidth": {
+          "type": "string",
+          "description": "Hard minimum width floor. The component will not shrink below this value even after wrapping. Use independently from flexBasis to prevent overflow (e.g. flexBasis: '400px' sets the wrap point, minWidth: '200px' sets the floor after wrapping)."
+        },
+        "minHeight": {
+          "type": "string",
+          "description": "Hard minimum height floor. Ensures the component has a minimum visual presence even with sparse content (e.g. '300px' for a chart card)."
         }
       },
       "required": [

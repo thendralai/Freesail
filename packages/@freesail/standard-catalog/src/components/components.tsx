@@ -42,6 +42,7 @@ export function Row({ component, children }: FreesailComponentProps) {
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
     flexWrap: (component['wrap'] as CSSProperties['flexWrap']) ?? 'wrap',
+    width: '100%',
     minWidth: 0,
     minHeight: 0,
   };
@@ -68,7 +69,7 @@ export function Card({ component, children }: FreesailComponentProps) {
     alignSelf: 'stretch',
     position: 'relative',
     overflow: 'hidden',
-    minWidth: 0,
+    minWidth: (component['minWidth'] as string) ?? '180px',
   };
 
   const zoomBtnStyle: CSSProperties = {

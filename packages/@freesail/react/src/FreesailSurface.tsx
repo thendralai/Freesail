@@ -295,12 +295,14 @@ function renderComponent(
     const width = resolvedProps['width'] as string | undefined;
     const height = resolvedProps['height'] as string | undefined;
     const flexBasis = resolvedProps['flexBasis'] as string | undefined;
+    const minWidth = resolvedProps['minWidth'] as string | undefined;
+    const minHeight = resolvedProps['minHeight'] as string | undefined;
 
-    if (weight != null || width != null || height != null || flexBasis != null) {
+    if (weight != null || width != null || height != null || flexBasis != null || minWidth != null || minHeight != null) {
       const wrapperStyle: React.CSSProperties = {
         flex: weight != null ? `${weight} 1 ${flexBasis ?? 'auto'}` : (flexBasis ? `0 1 ${flexBasis}` : '0 0 auto'),
-        minWidth: 0,
-        minHeight: 0,
+        minWidth: minWidth ?? flexBasis ?? 'min-content',
+        minHeight: minHeight ?? 0,
         display: 'flex',
         flexDirection: 'column',
         alignSelf: weight != null ? 'stretch' : undefined,
