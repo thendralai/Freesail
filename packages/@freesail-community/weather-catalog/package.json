@@ -1,6 +1,6 @@
 {
   "name": "@freesail-community/weather-catalog",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "All community built UI component catalogs for Freesail A2UI SDK",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,11 +34,11 @@
     "ai agent"
   ],
   "peerDependencies": {
-    "@freesail/react": "^0.8.4",
+    "@freesail/react": "^0.8.5",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@freesail/react": "^0.8.4",
+    "@freesail/react": "^0.8.5",
     "@types/react": "^18.2.0",
     "react": "^18.2.0"
   },

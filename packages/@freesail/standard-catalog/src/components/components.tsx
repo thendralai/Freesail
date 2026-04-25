@@ -1770,7 +1770,7 @@ export function PieChart({ component }: FreesailComponentProps) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0, contain: 'inline-size' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
         <svg viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ flex: '1 1 0', maxWidth: `${size}px`, minWidth: `${Math.round(size / 2)}px`, aspectRatio: '1 / 1', overflow: 'visible', display: 'block' }}>

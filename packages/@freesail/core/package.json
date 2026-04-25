@@ -1,6 +1,6 @@
 {
   "name": "@freesail/core",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Core TypeScript logic for Freesail - protocol definitions, parser, transport",
   "type": "module",
   "main": "./dist/index.js",
