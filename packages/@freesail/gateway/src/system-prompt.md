@@ -19,28 +19,27 @@ Call `get_catalogs(sessionId)` to retrieve the catalogs the client supports. The
 ### 2. Plan ahead, Execute incrementally
 Plan the layout first. Decide which components and functions to use and in which order. Then execute below steps to update UI incrementally.
 
-### 3. Get Components/Functions
-Detailed information about the components and functions including their properties can be retrieved by calling the `get_component_details` and `get_function_details` tools. 
-
-### 4. Create Surface
+### 3. Create Surface
 Call `create_surface` with a unique surfaceId and the `catalogId` from step 1. 
 - You MUST CREATE a SURFACE before updating components or data in it.
 - Use meaningful and UNIQUE surfaceIds.
-- When managing multiple sessions or surfaces, ensure the sessionId and the surfaceId in the tool calls is for the intended surface.
-- Screen real estate is precious so remove unncessary surfaces before creating new surfaces.
+- Always ensure the sessionId and the surfaceId in the tool calls is for the intended surface.
+- Remove unncessary surfaces before creating new surfaces.
+
+### 4. Get Components and Functions Details
+You MUST retrieve detailed information about the components and functions you are planning to use by calling the `get_component_details` and `get_function_details` tools. 
 
 ### 5. Update Components
-Call `update_components` to create components. 
-- A flat array with parent-child componentId references is used to create the UI component tree.
+Call `update_components` to create components. Render the UI responsively by creating the component tree incrementally in multiple iterations.
 - Each component MUST have a unique alphanumeric identifier -`id` and its type - `component`.
 - One component MUST have id `"root"` — this is the root of the UI component tree. Every component in a surface MUST be a direct or indirect child of the root component. Orphan components will not be rendered.
-- Parent-child relationship in components MUST be established by specifying the id of the child component in one of the parent component properties(typically `child` or `children` properties). Parent component Id CANNOT be specified in the child component properties.
-- Render the UI responsively and incrementally by calling `update_components` in multiple iterations.
-- Components can reference dynamic data using data models. E.g., `{ "path": "/user/name" }` references the value at /user/name in the data model.
+- You must use a flat array with parent-child Id references to create the UI component tree.
+- You MUST establish parent-child relationships in the component tree top-down by passing the child component's ID to a parent property (usually `child` or `children` ). 
+- Components should reference dynamic data using data models. E.g., `{ "path": "/user/name" }` references the value at `/user/name` in the data model.
 
 ### 6. Enhance with functions
-Use client-side functions within your components to perform supported operations locally in the client side, without round-trips.
-**Client-Side Validation**: Use any available logical functions in the catalog along with applicable component properties, to build validations that execute in the client side. If you are nesting functions, the nested functions should still follow the proper function call structure. Deviations will cause silent malfunctions.
+Use client-side functions within your components to perform supported operations locally in the client side, without server round-trips.
+**Client-Side Validation**: Use any available logical functions in the catalog along with applicable component properties, to build validations that execute in the client side. If you are nesting functions, the nested functions should still follow the proper function call structure. Deviations may cause silent malfunctions.
 
 **Example: Validate 'name' is required**
 - In this example, the component `TextField` supports the `checks` property for client-side validation without round-trips to the agent. The `required` function is used in the checks property to validate if a value for the data model `/signup/firstName/` exists. If it does not exist then a message is displayed.
@@ -75,7 +74,7 @@ This value can be received by the agent when an Action is triggered at the clien
 
 ### 7. Update Data model
 Call `update_data_model` to populate/update dynamic data that components reference via bindings. 
-
+**Always check if the previous update_components completed successfully before calling update_data_model**
 E.g. The below update_data_model tool call updates the value for the sections of a piechart.
 
 {
@@ -208,4 +207,7 @@ Then reference the field with a relative path: `{ "path": "label" }`.
 
 ### Tools and Resources
 Use the correct sessionId and surfaceId whereever applicable when calling tools and checking resources. All tools have description that detail their purpose and usage.
+
+### Create Sophisticated UI
+Use colors, icons, alignments, height, width, flexbasis, weight and functions to create sophisticated and engaging UI.
 

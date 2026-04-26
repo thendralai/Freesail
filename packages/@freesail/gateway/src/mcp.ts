@@ -466,7 +466,8 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         'Update the data model of a surface. This changes the content displayed by ' +
         'components without changing the component structure. ' +
         'Omit "path" or pass "/" to replace the entire data model for the surface. ' +
-        'Components use data bindings like {"path": "/user/name"} to reference data.',
+        'Components use data bindings like {"path": "/user/name"} to reference data.' +
+        'Always check for any pending actions or errors for the surface before calling this tool.',
       inputSchema: {
         surfaceId: z.string().describe('The surface to update'),
         sessionId: z.string().describe('Target client session ID'),
