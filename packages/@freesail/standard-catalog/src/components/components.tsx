@@ -1502,7 +1502,6 @@ export function BarChart({ component }: FreesailComponentProps) {
   const orientation = (component['orientation'] as string) ?? 'vertical';
   const defaultColor = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showValues = component['showValues'] !== false;
-  const internalHeight = 300;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
@@ -1513,7 +1512,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   if (orientation === 'horizontal') {
     const barHeight = 28;
     const gap = 8;
-    const labelWidth = 100;
+    const labelWidth = Math.min(200, Math.max(80, Math.max(...data.map(d => d.label.length)) * 7));
     const svgHeight = data.length * (barHeight + gap) - gap;
     const chartWidth = 300;
 
@@ -1551,23 +1550,32 @@ export function BarChart({ component }: FreesailComponentProps) {
   }
 
   // Vertical orientation
-  const padding = { top: 16, right: 16, bottom: 40, left: 48 };
-  const svgWidth = 500;
-  const chartW = svgWidth - padding.left - padding.right;
-  const chartH = internalHeight - padding.top - padding.bottom;
-  const barWidth = Math.min(40, (chartW / data.length) * 0.6);
-  const step = chartW / data.length;
-
-  // Y-axis gridlines
   const gridLines = 4;
   const gridVals = Array.from({ length: gridLines + 1 }, (_, i) =>
     Math.round((maxVal / gridLines) * i));
+  const maxYLabelLen = Math.max(...gridVals.map(v => v.toLocaleString().length));
+  const yAxisLeftPad = Math.max(40, maxYLabelLen * 7 + 12);
+  const svgWidth = 500;
+  const chartWEst = svgWidth - yAxisLeftPad - 16;
+  const stepEst = chartWEst / data.length;
+  const maxXLabelLen = Math.max(...data.map(d => d.label.length));
+  const rotateLabels = maxXLabelLen * 7 > stepEst * 0.9;
+  const firstLabelBleed = rotateLabels ? Math.ceil((data[0]?.label.length ?? 0) * 4.95) : 0;
+  const leftPad = Math.max(yAxisLeftPad, firstLabelBleed);
+  const bottomPad = rotateLabels ? Math.min(120, Math.round(maxXLabelLen * 4.5) + 8) : 40;
+  const CHART_H = 244;
+  const svgHeight = 16 + CHART_H + bottomPad;
+  const padding = { top: 16, right: 16, bottom: bottomPad, left: leftPad };
+  const chartW = svgWidth - padding.left - padding.right;
+  const chartH = CHART_H;
+  const barWidth = Math.min(40, (chartW / data.length) * 0.6);
+  const step = chartW / data.length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" viewBox={`0 0 ${svgWidth} ${internalHeight}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${internalHeight}` }}>
+      <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${svgHeight}` }}>
         {/* Grid lines */}
         {gridVals.map((v, i) => {
           const y = padding.top + chartH - (v / maxVal) * chartH;
@@ -1589,6 +1597,7 @@ export function BarChart({ component }: FreesailComponentProps) {
           const barH = (d.value / maxVal) * chartH;
           const y = padding.top + chartH - barH;
           const fill = d.color ?? defaultColor;
+          const labelY = padding.top + chartH + 16;
           return (
             <g key={i}>
               <rect x={x} y={y} width={barWidth} height={barH} rx={3}
@@ -1600,11 +1609,18 @@ export function BarChart({ component }: FreesailComponentProps) {
                   {d.value.toLocaleString()}
                 </text>
               )}
-              <text x={x + barWidth / 2} y={padding.top + chartH + 16}
-                textAnchor="middle" fontSize="11"
-                fill="var(--freesail-text-secondary, #64748b)">
-                {d.label}
-              </text>
+              {rotateLabels ? (
+                <text x={x + barWidth / 2} y={labelY} textAnchor="end" fontSize="11"
+                  transform={`rotate(-45 ${x + barWidth / 2} ${labelY})`}
+                  fill="var(--freesail-text-secondary, #64748b)">
+                  {d.label}
+                </text>
+              ) : (
+                <text x={x + barWidth / 2} y={labelY} textAnchor="middle" fontSize="11"
+                  fill="var(--freesail-text-secondary, #64748b)">
+                  {d.label}
+                </text>
+              )}
             </g>
           );
         })}
@@ -1622,20 +1638,36 @@ export function LineChart({ component }: FreesailComponentProps) {
   const color = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showDots = component['showDots'] !== false;
   const showArea = component['showArea'] === true;
-  const internalHeight = 300;
 
   if (data.length < 2) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Need at least 2 data points</div>;
   }
 
-  const padding = { top: 16, right: 16, bottom: 40, left: 48 };
   const svgWidth = 500;
-  const chartW = svgWidth - padding.left - padding.right;
-  const chartH = internalHeight - padding.top - padding.bottom;
 
   const maxVal = Math.max(...data.map(d => d.value), 1);
   const minVal = Math.min(...data.map(d => d.value), 0);
   const range = maxVal - minVal || 1;
+
+  // Grid
+  const gridLines = 4;
+  const gridVals = Array.from({ length: gridLines + 1 }, (_, i) =>
+    minVal + (range / gridLines) * i);
+  const maxYLabelLen = Math.max(...gridVals.map(v => Math.round(v).toLocaleString().length));
+  const yAxisLeftPad = Math.max(40, maxYLabelLen * 7 + 12);
+  const chartWEst = svgWidth - yAxisLeftPad - 16;
+  const stepWEst = data.length > 1 ? chartWEst / (data.length - 1) : chartWEst;
+  const maxXLabelLen = Math.max(...data.map(d => d.label.length));
+  const rotateLabels = maxXLabelLen * 7 > stepWEst * 0.9;
+  const firstLabelBleed = rotateLabels ? Math.ceil((data[0]?.label.length ?? 0) * 4.95) : 0;
+  const leftPad = Math.max(yAxisLeftPad, firstLabelBleed);
+  const bottomPad = rotateLabels ? Math.min(120, Math.round(maxXLabelLen * 4.5) + 8) : 40;
+  const CHART_H = 244;
+  const svgHeight = 16 + CHART_H + bottomPad;
+  const padding = { top: 16, right: 16, bottom: bottomPad, left: leftPad };
+
+  const chartW = svgWidth - padding.left - padding.right;
+  const chartH = CHART_H;
 
   const points = data.map((d, i) => ({
     x: padding.left + (i / (data.length - 1)) * chartW,
@@ -1647,16 +1679,11 @@ export function LineChart({ component }: FreesailComponentProps) {
     ` L${points[points.length - 1]!.x},${padding.top + chartH}` +
     ` L${points[0]!.x},${padding.top + chartH} Z`;
 
-  // Grid
-  const gridLines = 4;
-  const gridVals = Array.from({ length: gridLines + 1 }, (_, i) =>
-    minVal + (range / gridLines) * i);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" viewBox={`0 0 ${svgWidth} ${internalHeight}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${internalHeight}` }}>
+      <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${svgHeight}` }}>
         <defs>
           <linearGradient id={`area-grad-${color.replace(/[^a-zA-Z0-9]/g, '')}`}
             x1="0" y1="0" x2="0" y2="1">
@@ -1701,9 +1728,15 @@ export function LineChart({ component }: FreesailComponentProps) {
           const x = padding.left + (i / (data.length - 1)) * chartW;
           // Show every label if ≤ 10 points, otherwise thin them out
           if (data.length > 10 && i % Math.ceil(data.length / 10) !== 0 && i !== data.length - 1) return null;
-          return (
-            <text key={`label-${i}`} x={x} y={padding.top + chartH + 16}
-              textAnchor="middle" fontSize="11"
+          const labelY = padding.top + chartH + 16;
+          return rotateLabels ? (
+            <text key={`label-${i}`} x={x} y={labelY} textAnchor="end" fontSize="11"
+              transform={`rotate(-45 ${x} ${labelY})`}
+              fill="var(--freesail-text-secondary, #64748b)">
+              {d.label}
+            </text>
+          ) : (
+            <text key={`label-${i}`} x={x} y={labelY} textAnchor="middle" fontSize="11"
               fill="var(--freesail-text-secondary, #64748b)">
               {d.label}
             </text>
