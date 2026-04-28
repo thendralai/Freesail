@@ -380,6 +380,22 @@
         }
       ]
     },
+    "Theme": {
+      "type": "object",
+      "description": "Design token overrides applied as CSS custom properties (--freesail-*) on this component's root element, cascading to all descendants. Accepts CSS color values (hex, rgb, named) or semantic token names.",
+      "properties": {
+        "bg":               { "type": "string", "description": "Base surface background color." },
+        "bgRaised":         { "type": "string", "description": "Raised or elevated surface background color." },
+        "bgMuted":          { "type": "string", "description": "Muted or subdued surface background color." },
+        "textForeground":   { "type": "string", "description": "Primary text color." },
+        "textSecondary":    { "type": "string", "description": "Secondary or de-emphasized text color." },
+        "primary":          { "type": "string", "description": "Brand accent color used for buttons, links, and interactive elements." },
+        "primaryHover":     { "type": "string", "description": "Brand accent color in hover or focus state." },
+        "primaryForeground":{ "type": "string", "description": "Text color on primary-colored backgrounds." },
+        "border":           { "type": "string", "description": "Border and divider color." }
+      },
+      "additionalProperties": false
+    },
     "anyFunction":{},
     "anyComponent":{}
   }

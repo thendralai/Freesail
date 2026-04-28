@@ -46,7 +46,7 @@
             },
             "align": {
               "type": "string",
-              "description": "Defines the alignment of children along the cross axis (vertically). This is similar to the CSS 'align-items' property, but uses camelCase values (e.g., 'start').",
+              "description": "Defines the alignment of children along the cross axis (vertically). Use 'center' to vertically center items of the same height. Use 'end' when mixing labeled inputs (TextField, Dropdown) with unlabeled components (Button) — aligns bottom edges so the button lines up with the input fields rather than the center of the label+input block.",
               "enum": [
                 "start",
                 "center",
@@ -62,6 +62,10 @@
                 "wrap",
                 "wrap-reverse"
               ]
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
             }
           },
           "required": [
@@ -120,6 +124,10 @@
                 "start",
                 "stretch"
               ]
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
             }
           },
           "required": [
@@ -163,10 +171,6 @@
               "$ref": "#/$defs/DynamicString",
               "default": "16px"
             },
-            "background": {
-              "$ref": "#/$defs/DynamicString",
-              "description": "A CSS color value for the card's background fill. Accepts any valid CSS color, e.g. hex ('#22c55e'), named ('red'), rgb/rgba, hsl. Overrides the variant default background."
-            },
             "zoomable": {
               "type": "boolean",
               "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it."
@@ -174,6 +178,10 @@
             "child": {
               "$ref": "#/$defs/ComponentId",
               "description": "The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID. Do NOT define the child component inline."
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides for this card and all content inside it. Token-to-element mapping: bgRaised → card background when variant is 'raised' (default); bg → card background when variant is 'flat'; textForeground → primary text color inside the card; textSecondary → secondary/muted text inside the card; border → card border color; primary → accent color for primary buttons or icons inside. Example: { \"bgRaised\": \"#1e3a5f\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
@@ -1035,6 +1043,49 @@
           "additionalProperties": false
         }
       ]
+    },
+    "Theme": {
+      "type": "object",
+      "description": "Design token overrides applied as CSS custom properties (--freesail-*) on this component's root element, cascading to all descendants. Accepts CSS color values (hex, rgb, named) or semantic token names.",
+      "properties": {
+        "bg": {
+          "type": "string",
+          "description": "Base surface background color."
+        },
+        "bgRaised": {
+          "type": "string",
+          "description": "Raised or elevated surface background color."
+        },
+        "bgMuted": {
+          "type": "string",
+          "description": "Muted or subdued surface background color."
+        },
+        "textForeground": {
+          "type": "string",
+          "description": "Primary text color."
+        },
+        "textSecondary": {
+          "type": "string",
+          "description": "Secondary or de-emphasized text color."
+        },
+        "primary": {
+          "type": "string",
+          "description": "Brand accent color used for buttons, links, and interactive elements."
+        },
+        "primaryHover": {
+          "type": "string",
+          "description": "Brand accent color in hover or focus state."
+        },
+        "primaryForeground": {
+          "type": "string",
+          "description": "Text color on primary-colored backgrounds."
+        },
+        "border": {
+          "type": "string",
+          "description": "Border and divider color."
+        }
+      },
+      "additionalProperties": false
     },
     "DynamicNumber": {
       "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.",

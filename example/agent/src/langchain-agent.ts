@@ -257,21 +257,27 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   ): Promise<any> {
     const stream = await modelWithTools.stream(messages);
     let finalChunk: any | null = null;
-    let accumulatedContent = '';
 
-    for await (const chunk of stream) {
-      if (typeof chunk.content === 'string' && chunk.content) {
-        onToken?.(chunk.content);
-        accumulatedContent += chunk.content;
-      } else if (Array.isArray(chunk.content)) {
-        for (const part of chunk.content) {
-          if (part.type === 'text' && part.text) {
-            onToken?.(part.text);
-            accumulatedContent += part.text;
+    try {
+      for await (const chunk of stream) {
+        if (typeof chunk.content === 'string' && chunk.content) {
+          onToken?.(chunk.content);
+        } else if (Array.isArray(chunk.content)) {
+          for (const part of chunk.content) {
+            if (part.type === 'text' && part.text) {
+              onToken?.(part.text);
+            }
           }
         }
+        finalChunk = finalChunk ? finalChunk.concat(chunk) : chunk;
       }
-      finalChunk = finalChunk ? finalChunk.concat(chunk) : chunk;
+    } catch (err) {
+      // Gemini sometimes emits a trailing finish-reason chunk with no candidate
+      // content, causing @langchain/google-genai to throw "Cannot read properties
+      // of undefined (reading 'parts')". Treat it as a clean stream end.
+      if (!(err instanceof TypeError && err.message.includes("'parts'"))) {
+        throw err;
+      }
     }
 
     return extractGeminiToolCalls(finalChunk);

@@ -147,7 +147,7 @@
             },
             "align": {
               "type": "string",
-              "description": "Defines the alignment of children along the cross axis (vertically). This is similar to the CSS 'align-items' property, but uses camelCase values (e.g., 'start').",
+              "description": "Defines the alignment of children along the cross axis (vertically). Use 'center' to vertically center items of the same height. Use 'end' when mixing labeled inputs (TextField, Dropdown) with unlabeled components (Button) — aligns bottom edges so the button lines up with the input fields rather than the center of the label+input block.",
               "enum": [
                 "start",
                 "center",
@@ -163,6 +163,10 @@
                 "wrap",
                 "wrap-reverse"
               ]
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
             }
           },
           "required": [
@@ -221,6 +225,10 @@
                 "start",
                 "stretch"
               ]
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
             }
           },
           "required": [
@@ -264,10 +272,6 @@
               "$ref": "#/$defs/DynamicString",
               "default": "16px"
             },
-            "background": {
-              "$ref": "#/$defs/DynamicString",
-              "description": "A CSS color value for the card's background fill. Accepts any valid CSS color, e.g. hex ('#22c55e'), named ('red'), rgb/rgba, hsl. Overrides the variant default background."
-            },
             "zoomable": {
               "type": "boolean",
               "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it."
@@ -275,6 +279,10 @@
             "child": {
               "$ref": "#/$defs/ComponentId",
               "description": "The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID. Do NOT define the child component inline."
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides for this card and all content inside it. Token-to-element mapping: bgRaised → card background when variant is 'raised' (default); bg → card background when variant is 'flat'; textForeground → primary text color inside the card; textSecondary → secondary/muted text inside the card; border → card border color; primary → accent color for primary buttons or icons inside. Example: { \"bgRaised\": \"#1e3a5f\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
@@ -301,6 +309,10 @@
             "child": {
               "$ref": "#/$defs/ComponentId",
               "description": "The ID of the component to be displayed inside the modal. Do NOT define the component inline."
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides scoped to the modal panel and all content inside it. Token-to-element mapping: bgRaised → modal panel background; textForeground → modal title and body text; border → modal border and internal dividers; primary → primary action button color inside the modal. Example: { \"bgRaised\": \"#0f172a\", \"textForeground\": \"#f8fafc\" }"
             }
           },
           "required": [
@@ -371,14 +383,18 @@
         },
         {
           "type": "object",
-          "description": "A text input field for user input. Key properties: label (required), value (data binding for the input's value), variant (shortText/longText/number/obscured), hideLabel (set to true to suppress the label — use this when the TextField is inside a Grid where column headers already describe the field), min/max (numeric bounds, only used when variant is 'number'). User-Writable: true.",
+          "description": "A text input field for user input. Key properties: value (data binding for the input's value), variant (shortText/longText/number/obscured), label (optional — shows above the input in stacked Column forms; omit for inline Row forms and use placeholder instead), placeholder (hint text inside the input), min/max (numeric bounds, only used when variant is 'number'). User-Writable: true.",
           "properties": {
             "component": {
               "const": "TextField"
             },
             "label": {
               "$ref": "#/$defs/DynamicString",
-              "description": "The text label for the input field."
+              "description": "Optional label shown above the input. Use in stacked Column forms where persistent field identification is needed. Omit in inline Row forms — use placeholder instead."
+            },
+            "placeholder": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Hint text shown inside the input when empty. Use as the primary affordance in inline Row forms. Independent of label."
             },
             "value": {
               "$ref": "#/$defs/DynamicString",
@@ -394,11 +410,6 @@
                 "obscured"
               ]
             },
-            "hideLabel": {
-              "type": "boolean",
-              "description": "When true, hides the label above the input. Use this when the TextField is inside a Grid — the column headers already act as labels, so showing them again inside each cell is redundant and makes rows too tall.",
-              "default": false
-            },
             "min": {
               "$ref": "#/$defs/DynamicNumber",
               "description": "Minimum allowed value. Only used when variant is 'number'."
@@ -410,7 +421,7 @@
           },
           "required": [
             "component",
-            "label"
+            "placeholder"
           ]
         }
       ],
@@ -939,16 +950,11 @@
             },
             "label": {
               "$ref": "#/$defs/DynamicString",
-              "description": "The label for the dropdown."
-            },
-            "hideLabel": {
-              "type": "boolean",
-              "description": "When true, hides the label above the dropdown. Use this when the Dropdown is inside a Grid — the column headers already act as labels.",
-              "default": false
+              "description": "Optional label shown above the dropdown. Use in stacked Column forms. Omit in inline Row forms or inside a TabularGrid — the context already communicates the field purpose."
             },
             "placeholder": {
               "$ref": "#/$defs/DynamicString",
-              "description": "Placeholder text shown when no option is selected."
+              "description": "Hint text shown as the first disabled option when nothing is selected. Defaults to 'Select an option'."
             },
             "options": {
               "description": "The list of available options to choose from. Can be a literal array or a data binding to a list in the data model.",
@@ -1070,7 +1076,7 @@
       ],
       "unevaluatedProperties": false
     },
-    "Grid": {
+    "FluidGrid": {
       "type": "object",
       "allOf": [
         {
@@ -1078,34 +1084,84 @@
         },
         {
           "type": "object",
-          "description": "A flexible grid component with two modes. TABULAR MODE (when headers is provided): displays tabular data with a header row, styled alternating rows, and borders — collapses to a single column on narrow containers. Compose row content using Row and Text components via the children template. FLUID MODE (when headers is omitted): an auto-fill responsive grid that flows children into equal-width columns of at least minItemWidth each. Key properties: headers (optional, array of column header strings — determines tabular vs fluid mode), children (required, ChildList template or array of component IDs), rowPadding (tabular mode only, controls cell padding; default '10px 16px'), minItemWidth (fluid mode only, minimum column width; default '200px'), gap (fluid mode only, gap between items; default uses --freesail-space-sm). IMPORTANT: Row padding is controlled by rowPadding on the Grid, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a Grid table, always set hideLabel: true on each one. User-Writable: false.",
+          "description": "A responsive auto-fill grid that flows children into equal-width columns. Each column is at least minItemWidth wide; the browser fills as many columns as fit. Use for card galleries, icon grids, and any layout where items should wrap responsively. Key properties: minItemWidth (minimum column width, default '200px'), gap (space between items). User-Writable: false.",
           "properties": {
             "component": {
-              "const": "Grid"
+              "const": "FluidGrid"
+            },
+            "children": {
+              "description": "Defines the item content. Use a template object { componentId, path } to generate items from a data list, or an array of component IDs for static children.",
+              "$ref": "#/$defs/ChildList"
+            },
+            "minItemWidth": {
+              "description": "Minimum width of each auto-fill column. Defaults to '200px'. Use CSS length values e.g. '160px', '12rem'.",
+              "$ref": "#/$defs/DynamicString",
+              "default": "200px"
+            },
+            "gap": {
+              "description": "Gap between grid items. Defaults to var(--freesail-space-sm, 8px). Use CSS length or spacing token.",
+              "$ref": "#/$defs/DynamicString"
+            }
+          },
+          "required": [
+            "component",
+            "children"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TabularGrid": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "description": "A fixed-column grid with optional header row and styled alternating rows. Use columns to set a fixed column count without headers (e.g. a chess board). Use headers to render a header row — its length takes precedence over columns. Collapses to a single column on narrow containers (< 480px). Compose row content using Row and Text components via the children template. IMPORTANT: Row padding is controlled by rowPadding on the TabularGrid, not by padding on the child Row components. IMPORTANT: When placing TextField or Dropdown components inside a TabularGrid, always set hideLabel: true on each one. User-Writable: false.",
+          "properties": {
+            "component": {
+              "const": "TabularGrid"
+            },
+            "columns": {
+              "type": "number",
+              "description": "Fixed column count. Required when headers is absent. Ignored when headers is provided (header length takes precedence)."
             },
             "headers": {
               "type": "array",
               "items": {
                 "$ref": "#/$defs/DynamicString"
               },
-              "description": "Column header labels. When provided, the component renders in tabular mode with a header row. When omitted, renders in fluid auto-fill mode."
+              "description": "Column header labels. When provided, renders a header row and its length sets the column count. Optional — omit when using columns instead."
             },
             "children": {
               "description": "Defines the row/item content. Use a template object { componentId, path } to generate items from a data list, or an array of component IDs for static children.",
               "$ref": "#/$defs/ChildList"
             },
+            "columnWeights": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "Fractional width weights per column. Length must match column count. Defaults to equal sizing."
+            },
+            "showGridLines": {
+              "type": "boolean",
+              "description": "When true (default), draws a 1px border-bottom separator between rows. Set to false for grids where per-cell backgrounds provide the visual structure (e.g. a chess board with per-cell background props).",
+              "default": true
+            },
+            "theme": {
+              "$ref": "#/$defs/Theme",
+              "description": "Theme token overrides for this grid and all descendants. Token-to-element mapping: bgMuted → header row background; bgRaised → odd data row background; bg → even data row background; textSecondary → header label text color; textForeground → data cell text color; border → row separators and outer border. Example: { \"bgMuted\": \"#1e3a5f\", \"bgRaised\": \"#1e3a5f\", \"bg\": \"#162d4a\", \"textForeground\": \"#ffffff\", \"border\": \"#2d5a8e\" }"
+            },
             "rowPadding": {
-              "description": "(Tabular mode) CSS padding applied to every cell in each data row. Defaults to '10px 16px'.",
+              "description": "CSS padding applied to every cell in each data row. Defaults to '10px 16px'.",
               "$ref": "#/$defs/DynamicString",
               "default": "10px 16px"
             },
-            "minItemWidth": {
-              "description": "(Fluid mode) Minimum width of each auto-fill column. Defaults to '200px'. Use CSS length values e.g. '160px', '12rem'.",
-              "$ref": "#/$defs/DynamicString",
-              "default": "200px"
-            },
             "gap": {
-              "description": "(Fluid mode) Gap between grid items. Defaults to var(--freesail-space-sm). Use CSS length or spacing token.",
+              "description": "Gap between grid items. Use CSS length or spacing token.",
               "$ref": "#/$defs/DynamicString"
             }
           },
@@ -2558,6 +2614,49 @@
         }
       ]
     },
+    "Theme": {
+      "type": "object",
+      "description": "Design token overrides applied as CSS custom properties (--freesail-*) on this component's root element, cascading to all descendants. Accepts CSS color values (hex, rgb, named) or semantic token names.",
+      "properties": {
+        "bg": {
+          "type": "string",
+          "description": "Base surface background color."
+        },
+        "bgRaised": {
+          "type": "string",
+          "description": "Raised or elevated surface background color."
+        },
+        "bgMuted": {
+          "type": "string",
+          "description": "Muted or subdued surface background color."
+        },
+        "textForeground": {
+          "type": "string",
+          "description": "Primary text color."
+        },
+        "textSecondary": {
+          "type": "string",
+          "description": "Secondary or de-emphasized text color."
+        },
+        "primary": {
+          "type": "string",
+          "description": "Brand accent color used for buttons, links, and interactive elements."
+        },
+        "primaryHover": {
+          "type": "string",
+          "description": "Brand accent color in hover or focus state."
+        },
+        "primaryForeground": {
+          "type": "string",
+          "description": "Text color on primary-colored backgrounds."
+        },
+        "border": {
+          "type": "string",
+          "description": "Border and divider color."
+        }
+      },
+      "additionalProperties": false
+    },
     "Checkable": {
       "description": "Properties for components that support client-side checks.",
       "type": "object",
@@ -2760,7 +2859,10 @@
           "$ref": "#/components/Slider"
         },
         {
-          "$ref": "#/components/Grid"
+          "$ref": "#/components/FluidGrid"
+        },
+        {
+          "$ref": "#/components/TabularGrid"
         },
         {
           "$ref": "#/components/BarChart"

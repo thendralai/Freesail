@@ -10,6 +10,7 @@ import type { FunctionCall } from '@freesail/core';
 import {
   getSemanticColor,
   getSemanticBackground,
+  applyComponentTheme,
   mapJustify,
   toInputFormat,
   validateChecks,
@@ -20,12 +21,16 @@ import {
 // =============================================================================
 
 export function Column({ component, children }: FreesailComponentProps) {
+  const theme = component['theme'] as Record<string, string> | undefined;
+  const themeVars = applyComponentTheme(theme);
   const style: CSSProperties = {
+    ...themeVars,
     display: 'flex',
     flexDirection: 'column',
     gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
+    background: theme?.['bg'] ? 'var(--freesail-bg)' : undefined,
     minWidth: 0,
     minHeight: 0,
   };
@@ -34,7 +39,10 @@ export function Column({ component, children }: FreesailComponentProps) {
 }
 
 export function Row({ component, children }: FreesailComponentProps) {
+  const theme = component['theme'] as Record<string, string> | undefined;
+  const themeVars = applyComponentTheme(theme);
   const style: CSSProperties = {
+    ...themeVars,
     display: 'flex',
     flexDirection: 'row',
     gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
@@ -42,6 +50,7 @@ export function Row({ component, children }: FreesailComponentProps) {
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
     flexWrap: (component['wrap'] as CSSProperties['flexWrap']) ?? 'wrap',
+    background: theme?.['bg'] ? 'var(--freesail-bg)' : undefined,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
@@ -56,16 +65,18 @@ export function Card({ component, children }: FreesailComponentProps) {
   const variant = (component['variant'] as string) ?? 'raised';
   const isFlat = variant === 'flat';
   const borderWeight = component['borderWeight'] !== undefined ? Number(component['borderWeight']) : 1;
+  const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
 
   const cardStyle: CSSProperties = {
+    ...themeVars,
     padding: (component['padding'] as string) ?? 'var(--freesail-space-lg)',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
     borderRadius: isFlat ? '0' : ((component['borderRadius'] as string) ?? 'var(--freesail-radius-md)'),
     border: borderWeight > 0 ? `${borderWeight}px solid var(--freesail-border, #e2e8f0)` : 'none',
     boxShadow: isFlat ? 'none' : 'var(--freesail-shadow-sm)',
-    background: getSemanticBackground(component['background'] as string) ?? (isFlat ? 'var(--freesail-bg, #f8fafc)' : 'var(--freesail-bg-raised, #ffffff)'),
-    color: getSemanticColor(component['color'] as string) ?? 'var(--freesail-text-foreground, #0f172a)',
+    background: isFlat ? 'var(--freesail-bg, #f8fafc)' : 'var(--freesail-bg-raised, #ffffff)',
+    color: 'var(--freesail-text-foreground, #0f172a)',
     alignSelf: 'stretch',
     position: 'relative',
     overflow: 'hidden',
@@ -378,10 +389,9 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
 }
 
 export function TextField({ component, onAction, onDataChange }: FreesailComponentProps) {
-  const label = (component['label'] as string) ?? '';
-  const hideLabel = (component['hideLabel'] as boolean) ?? false;
+  const label = component['label'] as string | undefined;
   const name = (component['name'] as string) ?? component.id;
-  const placeholder = (component['placeholder'] as string) ?? label;
+  const placeholder = (component['placeholder'] as string) ?? '';
   const variant = (component['variant'] as string) ?? 'shortText';
   const value = (component['value'] as string) ?? '';
   const min = component['min'] as number | undefined;
@@ -404,7 +414,6 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
     display: 'flex',
     flexDirection: 'column',
     gap: 'var(--freesail-space-xs)',
-    marginBottom: hideLabel ? '0' : 'var(--freesail-space-sm)',
   };
 
   const labelStyle: CSSProperties = {
@@ -431,7 +440,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
 
   return (
     <div style={containerStyle}>
-      {label && !hideLabel && <label style={labelStyle}>{label}</label>}
+      {label && <label style={labelStyle}>{label}</label>}
       {variant === 'longText' ? (
         <textarea
           placeholder={placeholder}
@@ -566,10 +575,10 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
                   borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: 'var(--freesail-type-body)',
-                  border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
-                  backgroundColor: 'transparent',
+                  border: `1px solid ${selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-border, #e2e8f0)'}`,
+                  backgroundColor: selected ? 'var(--freesail-bg-raised, #ffffff)' : 'transparent',
                   color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
-                  padding: selected ? '3px 11px' : '4px 12px',
+                  padding: '4px 12px',
                 }}
               >
                 {opt.label}
@@ -659,15 +668,21 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
                 type="button"
                 onClick={() => handleCheckboxChange(opt.value, !selected)}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                   borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: 'var(--freesail-type-body)',
-                  border: selected ? '2px solid var(--freesail-primary, #3b82f6)' : '1px solid var(--freesail-border, #e2e8f0)',
-                  backgroundColor: 'transparent',
+                  border: `1px solid ${selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-border, #e2e8f0)'}`,
+                  backgroundColor: selected ? 'var(--freesail-bg-raised, #ffffff)' : 'transparent',
                   color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
-                  padding: selected ? '3px 11px' : '4px 12px',
+                  padding: '4px 12px',
                 }}
               >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ visibility: selected ? 'visible' : 'hidden' }}>
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 {opt.label}
               </button>
             );
@@ -713,6 +728,7 @@ export function Spacer({ component }: FreesailComponentProps) {
 
 export function Modal({ component, children, onAction, onFunctionCall }: FreesailComponentProps) {
   const modalRef = React.useRef<HTMLDivElement>(null);
+  const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
 
   const handleClose = () => {
     if (onFunctionCall) {
@@ -748,6 +764,7 @@ export function Modal({ component, children, onAction, onFunctionCall }: Freesai
   };
 
   const modalContentStyle: CSSProperties = {
+    ...themeVars,
     backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
     color: 'var(--freesail-text-foreground, #0f172a)',
     padding: 'var(--freesail-space-lg)',
@@ -850,22 +867,10 @@ function isSafeUrl(url: string): boolean {
  * wrapper makes its children (Text components) become direct grid cells,
  * aligning them under each column header.
  */
-/**
- * Grid — dispatches to FluidGrid (auto-fill) or TabularGrid (with headers).
- * GridLayout is kept as a backwards-compatible alias.
- */
-export function Grid({ component, children }: FreesailComponentProps) {
-  const headers = component['headers'] as string[] | undefined;
-  return Array.isArray(headers) && headers.length > 0
-    ? <TabularGrid component={component}>{children}</TabularGrid>
-    : <FluidGrid component={component}>{children}</FluidGrid>;
-}
-
-
 // ---------------------------------------------------------------------------
 // FluidGrid — responsive auto-fill masonry-style grid (no headers)
 // ---------------------------------------------------------------------------
-function FluidGrid({ component, children }: FreesailComponentProps) {
+export function FluidGrid({ component, children }: FreesailComponentProps) {
   const minItemWidth = sanitizeCssValue(
     (component['minItemWidth'] as string) ?? '200px'
   );
@@ -884,12 +889,12 @@ function FluidGrid({ component, children }: FreesailComponentProps) {
 // ---------------------------------------------------------------------------
 // TabularGrid — header row + data rows, collapses to single column < 480 cqi
 // ---------------------------------------------------------------------------
-function TabularGrid({ component, children }: FreesailComponentProps) {
+export function TabularGrid({ component, children }: FreesailComponentProps) {
   const uid = useId().replace(/:/g, '');
   const gridClass = `fs-grid-${uid}`;
 
   const headers = (component['headers'] as string[]) ?? [];
-  const colCount = headers.length || 1;
+  const colCount = headers.length || (component['columns'] as number) || 1;
   const childArray = Array.isArray(children) ? children : children ? [children] : [];
   const columnWeights = (component['columnWeights'] as number[]) ?? [];
   const rowPadding = sanitizeCssValue((component['rowPadding'] as string) ?? '10px 16px');
@@ -904,6 +909,10 @@ function TabularGrid({ component, children }: FreesailComponentProps) {
     }
     return `repeat(${colCount}, minmax(min-content, 1fr))`;
   }, [colCount, columnWeights.join(',')]);
+
+  const hasHeaders = headers.length > 0;
+  const showGridLines = component['showGridLines'] !== false;
+  const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
 
   const styleContent = useMemo(() => `
     .${gridClass} {
@@ -923,36 +932,35 @@ function TabularGrid({ component, children }: FreesailComponentProps) {
     .${gridClass} > .fs-grid-row [data-freesail-component] > div:has([data-freesail-component]) {
       display: contents !important;
     }
-    /* Leaf cell: flex-centered, full height, separator */
+    /* Leaf cell: flex-centered, full height */
     .${gridClass} > .fs-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
       justify-content: flex-start !important;
       padding: ${rowPadding};
-      border-bottom: 1px solid var(--freesail-border, #e2e8f0);
+      ${showGridLines ? 'border-bottom: 1px solid var(--freesail-border, #e2e8f0);' : ''}
     }
-    /* Alternating row colors — !important overrides component inline background styles */
+    ${hasHeaders ? `
     .${gridClass} > .fs-grid-row:nth-child(odd) [data-freesail-component] > *:not([data-freesail-component]) {
       background: var(--freesail-bg-raised, #ffffff) !important;
     }
     .${gridClass} > .fs-grid-row:nth-child(even) [data-freesail-component] > *:not([data-freesail-component]) {
       background: var(--freesail-bg-muted, #f8fafc) !important;
-    }
+    }` : ''}
     @container freesail-surface (max-width: 480px) {
       .${gridClass} { grid-template-columns: 1fr; }
       .${gridClass} > .fs-grid-row [data-freesail-component] > *:not([data-freesail-component]) {
         display: block;
       }
     }
-  `, [gridClass, gridCols, rowPadding]);
-
-
+  `, [gridClass, gridCols, rowPadding, hasHeaders, showGridLines]);
 
 
 
 
   const wrapperStyle: CSSProperties = {
+    ...themeVars,
     width: '100%',
     overflowX: 'auto',
     border: '1px solid var(--freesail-border, #e2e8f0)',
@@ -977,12 +985,12 @@ function TabularGrid({ component, children }: FreesailComponentProps) {
       <div style={wrapperStyle}>
         <div className={gridClass}>
           {/* Header row */}
-          {headers.map((header, i) => {
+          {headers.length > 0 ? headers.map((header, i) => {
             const headerText = typeof header === 'object' && header !== null && 'label' in header
               ? String((header as any).label)
               : String(header);
             return <div key={`h-${i}`} style={headerCellStyle}>{headerText}</div>;
-          })}
+          }) : null}
           {/* Data rows */}
           {childArray.map((child, i) => (
             <div key={`r-${i}`} className="fs-grid-row">
@@ -1431,7 +1439,6 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
  */
 export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
   const label = component['label'] as string | undefined;
-  const hideLabel = (component['hideLabel'] as boolean) ?? false;
   const placeholder = (component['placeholder'] as string | undefined) ?? 'Select an option';
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
@@ -1473,7 +1480,7 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
-      {label && !hideLabel && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
+      {label && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
       <select
         value={localValue}
         onChange={handleChange}
@@ -1948,6 +1955,6 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 export const standardCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
   Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, Modal, Spacer,
   ChoicePickerSingleSelect, ChoicePickerMultiSelect,
-  Grid, CheckBox, Image, Divider, List, Tab, TabGroup,
+  FluidGrid, TabularGrid, CheckBox, Image, Divider, List, Tab, TabGroup,
   Video, AudioPlayer, Slider, Dropdown, BarChart, LineChart, PieChart, Sparkline, StatCard,
 };

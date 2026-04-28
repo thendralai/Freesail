@@ -43,6 +43,32 @@ export function getSemanticBackground(value: string | undefined): string | undef
   return semanticMap[value] || value;
 }
 
+const THEME_TOKEN_TO_CSS_VAR: Record<string, string> = {
+  bg:                  '--freesail-bg',
+  bgRaised:            '--freesail-bg-raised',
+  bgMuted:             '--freesail-bg-muted',
+  textForeground:      '--freesail-text-foreground',
+  textSecondary:       '--freesail-text-secondary',
+  primary:             '--freesail-primary',
+  primaryHover:        '--freesail-primary-hover',
+  primaryForeground:   '--freesail-primary-foreground',
+  border:              '--freesail-border',
+};
+
+export function applyComponentTheme(
+  theme: Record<string, string> | undefined,
+): CSSProperties {
+  if (!theme || typeof theme !== 'object') return {};
+  const vars: Record<string, string> = {};
+  for (const [key, value] of Object.entries(theme)) {
+    const cssVar = THEME_TOKEN_TO_CSS_VAR[key];
+    if (cssVar && typeof value === 'string') {
+      vars[cssVar] = value;
+    }
+  }
+  return vars as CSSProperties;
+}
+
 export function getContrastTextColor(
   rawBackground: string | undefined,
   fallback: string = '#ffffff',
