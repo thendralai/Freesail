@@ -7,6 +7,8 @@
 
 import {
   isChildListTemplate,
+  componentStatePath,
+  STRUCTURAL_COMPONENT_PROPS,
   type SurfaceId,
   type CatalogId,
   type ComponentId,
@@ -35,6 +37,8 @@ export interface Surface {
   createdAt: number;
   /** Last update timestamp */
   updatedAt: number;
+  /** Per-path last-write timestamps for data model updates */
+  dataUpdateTimestamps: Record<string, number>;
 }
 
 /**
@@ -137,6 +141,7 @@ export class SurfaceManager {
       sendDataModel: sendDataModel ?? false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      dataUpdateTimestamps: {},
     };
 
     this.surfaces.set(surfaceId, surface);
@@ -232,11 +237,11 @@ export class SurfaceManager {
     for (const component of components) {
       surface.components.set(component.id, component);
 
-      // When the agent explicitly sets `visible`, clear any client-side
-      // override written by show/hide so the agent's intent takes effect.
-      if ('visible' in component) {
-        const overridePath = `/__componentState/${component.id}/visible`;
-        this.removeAtJsonPointer(surface.dataModel, overridePath);
+      // When the agent explicitly sets any non-structural property, clear the
+      // client-side override for that property so the agent's intent takes effect.
+      for (const property of Object.keys(component)) {
+        if (STRUCTURAL_COMPONENT_PROPS.has(property)) continue;
+        this.removeAtJsonPointer(surface.dataModel, componentStatePath(component.id, property));
       }
 
       // Track root component
@@ -316,6 +321,11 @@ export class SurfaceManager {
           return false;
         }
       }
+    }
+
+    if (path && path !== '/' && path !== '') {
+      surface.dataUpdateTimestamps[path] =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
     }
 
     surface.updatedAt = Date.now();
@@ -430,6 +440,7 @@ export class SurfaceManager {
           sendDataModel: s.sendDataModel,
           createdAt: s.createdAt,
           updatedAt: s.updatedAt,
+          dataUpdateTimestamps: {},
         };
 
         this.surfaces.set(surface.id, surface);

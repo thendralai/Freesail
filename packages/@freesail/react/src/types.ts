@@ -6,6 +6,7 @@
 
 import type { ComponentType } from 'react';
 import type { FreesailComponentProps } from './registry.js';
+import { componentStatePath, STRUCTURAL_COMPONENT_PROPS } from '@freesail/core';
 
 /**
  * Definition of a custom catalog that can be registered with Freesail.
@@ -43,3 +44,43 @@ export interface CatalogDefinition {
  * A function implementation that can be called from the data model.
  */
 export type FunctionImplementation = (...args: any[]) => any;
+
+// =============================================================================
+// Side Effects
+// =============================================================================
+
+/**
+ * A typed side effect returned by catalog functions (e.g. show/hide).
+ * The renderer detects this via isFreesailSideEffect and applies the update.
+ */
+export type FreesailSideEffect = {
+  readonly _effect: 'dataModelUpdate';
+  path: string;
+  value: unknown;
+};
+
+export function isFreesailSideEffect(v: unknown): v is FreesailSideEffect {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    (v as Record<string, unknown>)['_effect'] === 'dataModelUpdate'
+  );
+}
+
+/**
+ * Returns a FreesailSideEffect that sets a runtime state override for a component.
+ * Throws if a structural property (id, component, child, children, action) is targeted,
+ * since those are protocol-owned and cannot be overridden at runtime.
+ */
+export function setComponentState(
+  componentId: string,
+  property: string,
+  value: unknown
+): FreesailSideEffect {
+  if (STRUCTURAL_COMPONENT_PROPS.has(property)) {
+    throw new Error(
+      `[Freesail] setComponentState: '${property}' is a structural property and cannot be overridden at runtime.`
+    );
+  }
+  return { _effect: 'dataModelUpdate', path: componentStatePath(componentId, property), value };
+}

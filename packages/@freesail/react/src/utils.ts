@@ -1,10 +1,8 @@
-import type { JsonPointer } from '@freesail/core';
-
 /**
  * Traverse a nested object/array by JSON pointer or relative path.
  * Returns undefined if the path doesn't exist or data is nullish.
  */
-export function getDataAtPath(data: unknown, path?: JsonPointer | string): unknown {
+export function getDataAtPath(data: unknown, path?: string): unknown {
   if (data === null || data === undefined) return undefined;
   if (!path || path === '/') return data;
 

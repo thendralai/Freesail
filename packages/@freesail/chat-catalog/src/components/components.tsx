@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useEffect, useContext, useCallback, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { FreesailComponentProps } from '@freesail/react';
+import { type FreesailComponentProps } from '@freesail/react';
 import { getSemanticColor, getSemanticBackground, getContrastTextColor } from '@freesail/standard-catalog/utils';
 import { includedComponents } from '../includes/generated-includes.js';
 
@@ -479,34 +479,36 @@ function Dot({ delay }: { delay: number }) {
  * bubble. When `active` transitions to `false` the buffer is frozen (the
  * canonical message is committed to `/messages` by the full-state update).
  */
-export function AgentStream({ component }: FreesailComponentProps) {
+export function AgentStream({ component, meta }: FreesailComponentProps) {
   const active = (component['active'] as boolean) ?? false;
   const token = (component['token'] as string) ?? '';
+  const tokenUpdatedAt = meta.getUpdatedTime('token');
   const rawBg = component['background'] as string | undefined;
   const rawColor = component['color'] as string | undefined;
   const background = getSemanticBackground(rawBg);
   const color = getSemanticColor(rawColor);
 
   const bufferRef = useRef('');
+  const prevTimestampRef = useRef(-1);
   const prevTokenRef = useRef('');
   const [display, setDisplay] = useState('');
 
-  // Append whenever a new token value arrives while active
   useEffect(() => {
     if (!active) {
-      // Stream ended — clear buffer for next round
       bufferRef.current = '';
+      prevTimestampRef.current = -1;
       prevTokenRef.current = '';
       setDisplay('');
       return;
     }
 
-    if (token && token !== prevTokenRef.current) {
+    if (token && (tokenUpdatedAt !== prevTimestampRef.current || token !== prevTokenRef.current)) {
+      prevTimestampRef.current = tokenUpdatedAt;
       prevTokenRef.current = token;
       bufferRef.current += token;
       setDisplay(bufferRef.current);
     }
-  }, [token, active]);
+  }, [tokenUpdatedAt, token, active]);
 
   if (!active && !display) return null;
 

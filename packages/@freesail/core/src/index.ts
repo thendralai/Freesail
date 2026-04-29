@@ -57,6 +57,8 @@ export {
   isErrorMessage,
   isDownstreamMessage,
   isUpstreamMessage,
+  componentStatePath,
+  STRUCTURAL_COMPONENT_PROPS,
 } from './protocol.js';
 
 // Parser

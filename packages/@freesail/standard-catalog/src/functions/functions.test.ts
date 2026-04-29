@@ -252,7 +252,7 @@ describe('pluralize', () => {
 describe('show', () => {
   it('returns a dataModelUpdate side effect', () => {
     const result = show('myBtn') as Record<string, unknown>;
-    expect(result.__sideEffect).toBe('dataModelUpdate');
+    expect(result['_effect']).toBe('dataModelUpdate');
     expect(result.value).toBe(true);
     expect(String(result.path)).toContain('myBtn');
   });
@@ -265,7 +265,7 @@ describe('show', () => {
 describe('hide', () => {
   it('returns a dataModelUpdate side effect with value false', () => {
     const result = hide('myBtn') as Record<string, unknown>;
-    expect(result.__sideEffect).toBe('dataModelUpdate');
+    expect(result['_effect']).toBe('dataModelUpdate');
     expect(result.value).toBe(false);
   });
 

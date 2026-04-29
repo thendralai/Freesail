@@ -388,7 +388,7 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
   );
 }
 
-export function TextField({ component, onAction, onDataChange }: FreesailComponentProps) {
+export function TextField({ component, meta, onAction, onDataChange }: FreesailComponentProps) {
   const label = component['label'] as string | undefined;
   const name = (component['name'] as string) ?? component.id;
   const placeholder = (component['placeholder'] as string) ?? '';
@@ -400,8 +400,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
-  const rawValue = component['__rawValue'] as { path?: string } | string | undefined;
-  const boundPath = typeof rawValue === 'object' && rawValue?.path ? rawValue.path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -468,7 +467,7 @@ export function TextField({ component, onAction, onDataChange }: FreesailCompone
 // Form Components
 // =============================================================================
 
-export function DateTimeInput({ component, onDataChange }: FreesailComponentProps) {
+export function DateTimeInput({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = (component['label'] as string) ?? '';
   const value = (component['value'] as string) ?? '';
   const enableDate = (component['enableDate'] as boolean) ?? true;
@@ -478,8 +477,7 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
-  const rawValue = component['__rawValue'] as { path?: string } | string | undefined;
-  const boundPath = typeof rawValue === 'object' && rawValue?.path ? rawValue.path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const inputType = enableDate && enableTime ? 'datetime-local' : enableTime ? 'time' : 'date';
 
@@ -523,7 +521,7 @@ export function DateTimeInput({ component, onDataChange }: FreesailComponentProp
   );
 }
 
-export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailComponentProps) {
+export function ChoicePickerSingleSelect({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
   const variant = (component['variant'] as string) ?? 'radio';
   const checks = (component['checks'] as any[]) ?? [];
@@ -545,8 +543,7 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
   const rawValueList = component['value'];
   const value: string = typeof rawValueList === 'string' ? rawValueList : (Array.isArray(rawValueList) && rawValueList.length > 0 ? rawValueList[0] : '');
 
-  const rawValue = component['__rawValue'] as { path?: string } | string[] | undefined;
-  const boundPath = (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue) && 'path' in rawValue) ? (rawValue as { path?: string }).path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const [localValue, setLocalValue] = useState(value);
   useEffect(() => { setLocalValue(value); }, [value]);
@@ -612,7 +609,7 @@ export function ChoicePickerSingleSelect({ component, onDataChange }: FreesailCo
   );
 }
 
-export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailComponentProps) {
+export function ChoicePickerMultiSelect({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
   const variant = (component['variant'] as string) ?? 'checkbox';
   const checks = (component['checks'] as any[]) ?? [];
@@ -634,8 +631,7 @@ export function ChoicePickerMultiSelect({ component, onDataChange }: FreesailCom
   const rawValueList = component['value'];
   const value: string[] = Array.isArray(rawValueList) ? rawValueList : [];
 
-  const rawValue = component['__rawValue'] as { path?: string } | string[] | undefined;
-  const boundPath = (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue) && 'path' in rawValue) ? (rawValue as { path?: string }).path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const [localValue, setLocalValue] = useState(value);
   const valueKey = JSON.stringify(value);
@@ -1016,13 +1012,12 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
 /**
  * CheckBox - checkbox with label.
  */
-export function CheckBox({ component, onDataChange }: FreesailComponentProps) {
+export function CheckBox({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = (component['label'] as string) ?? '';
   const checked = (component['value'] as boolean) ?? false;
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
-  const rawValue = component['__rawValue'] as { path?: string } | boolean | undefined;
-  const boundPath = typeof rawValue === 'object' && rawValue?.path ? rawValue.path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
   const [localChecked, setLocalChecked] = useState(checked);
 
   useEffect(() => { setLocalChecked(checked); }, [checked]);
@@ -1391,7 +1386,7 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
 /**
  * Slider - range input.
  */
-export function Slider({ component, onDataChange }: FreesailComponentProps) {
+export function Slider({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
   const min = Number((component['min'] as number) ?? 0);
   const max = Number((component['max'] as number) ?? 100);
@@ -1399,8 +1394,7 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
-  const rawValue = component['__rawValue'] as { path?: string } | number | undefined;
-  const boundPath = typeof rawValue === 'object' && rawValue?.path ? rawValue.path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const [localValue, setLocalValue] = useState(value);
 
@@ -1437,7 +1431,7 @@ export function Slider({ component, onDataChange }: FreesailComponentProps) {
 /**
  * Dropdown - A select dropdown for choosing a single option.
  */
-export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
+export function Dropdown({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = component['label'] as string | undefined;
   const placeholder = (component['placeholder'] as string | undefined) ?? 'Select an option';
   const checks = (component['checks'] as any[]) ?? [];
@@ -1462,8 +1456,7 @@ export function Dropdown({ component, onDataChange }: FreesailComponentProps) {
   const rawValueString = component['value'];
   const value: string = typeof rawValueString === 'string' ? rawValueString : '';
 
-  const rawValue = component['__rawValue'] as { path?: string } | string | undefined;
-  const boundPath = (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue) && 'path' in rawValue) ? (rawValue as { path?: string }).path : null;
+  const boundPath = meta.getBinding('value')?.path ?? null;
 
   const [localValue, setLocalValue] = useState(value);
 
@@ -1802,7 +1795,7 @@ export function PieChart({ component }: FreesailComponentProps) {
 
     return {
       path,
-      color: d.color ?? defaultPalette[i % defaultPalette.length],
+      color: getSemanticColor(d.color) ?? defaultPalette[i % defaultPalette.length],
       label: d.label,
       value: d.value,
       percentage: Math.round(fraction * 100),

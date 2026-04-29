@@ -365,6 +365,33 @@ export type UpstreamMessage = ActionMessage | ErrorMessage;
 export type A2UIMessage = DownstreamMessage | UpstreamMessage;
 
 // =============================================================================
+// Component State Helpers
+// =============================================================================
+
+/**
+ * Structural component properties that may not be overridden via setComponentState.
+ * These are owned by the A2UI protocol and carry structural meaning.
+ */
+export const STRUCTURAL_COMPONENT_PROPS = new Set([
+  'id',
+  'component',
+  'child',
+  'children',
+  'action',
+]);
+
+/**
+ * Returns the JSON Pointer path for a runtime component state override.
+ * When property is an empty string, returns the path to the component's state object.
+ * e.g. componentStatePath('my-btn', 'visible') → '/__componentState/my-btn/visible'
+ */
+export function componentStatePath(componentId: ComponentId, property: string): string {
+  return property === ''
+    ? `/__componentState/${componentId}`
+    : `/__componentState/${componentId}/${property}`;
+}
+
+// =============================================================================
 // Type Guards
 // =============================================================================
 

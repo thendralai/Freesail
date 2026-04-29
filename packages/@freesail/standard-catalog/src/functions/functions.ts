@@ -6,7 +6,7 @@
  * runtime function map.
  */
 
-import type { FunctionImplementation } from '@freesail/react';
+import { setComponentState, type FunctionImplementation } from '@freesail/react';
 
 // =============================================================================
 // Validation Functions
@@ -212,20 +212,12 @@ export const openUrl: FunctionImplementation = (url: unknown) => {
 
 export const show: FunctionImplementation = (componentId: unknown) => {
   if (typeof componentId !== 'string') return undefined;
-  return {
-    __sideEffect: 'dataModelUpdate',
-    path: `/__componentState/${componentId}/visible`,
-    value: true,
-  };
+  return setComponentState(componentId, 'visible', true);
 };
 
 export const hide: FunctionImplementation = (componentId: unknown) => {
   if (typeof componentId !== 'string') return undefined;
-  return {
-    __sideEffect: 'dataModelUpdate',
-    path: `/__componentState/${componentId}/visible`,
-    value: false,
-  };
+  return setComponentState(componentId, 'visible', false);
 };
 
 export const standardCatalogFunctions: Record<string, FunctionImplementation> = {

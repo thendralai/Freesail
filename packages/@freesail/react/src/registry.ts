@@ -11,11 +11,41 @@ import type { A2UIComponent, CatalogId, FunctionCall } from '@freesail/core';
 import type { FunctionImplementation } from './types.js';
 
 /**
+ * Typed container for framework-injected metadata passed alongside component props.
+ * Access via the `meta` field on FreesailComponentProps — never access `__`-prefixed
+ * keys on `component` directly.
+ */
+export class ComponentMeta {
+  constructor(
+    private readonly _bindings: Record<string, { path: string }>,
+    private readonly _dataUpdatedAt: Record<string, number>,
+    private readonly _componentState: Record<string, unknown>
+  ) {}
+
+  /** Binding path for a data-bound prop. Returns undefined if the prop is not data-bound. */
+  getBinding(propName: string): { path: string } | undefined {
+    return this._bindings[propName];
+  }
+
+  /** Last-write timestamp for a data-bound prop. Returns 0 if no timestamp exists. */
+  getUpdatedTime(propName: string): number {
+    return this._dataUpdatedAt[propName] ?? 0;
+  }
+
+  /** Runtime state override set via setComponentState (e.g. visible, enabled). */
+  getComponentState(property: string): unknown {
+    return this._componentState[property];
+  }
+}
+
+/**
  * Props passed to all Freesail components.
  */
 export interface FreesailComponentProps {
-  /** The component definition from the A2UI message (with resolved data bindings) */
+  /** The component definition from the A2UI message (with resolved data bindings, no __ keys) */
   component: A2UIComponent;
+  /** Framework-injected metadata: data bindings, update timestamps, component state overrides */
+  meta: ComponentMeta;
   /** Rendered children (for container components) */
   children?: ReactNode;
   /** Full data model for the surface (server → client, kept in sync by two-way binding) */

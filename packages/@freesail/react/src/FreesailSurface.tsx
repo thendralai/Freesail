@@ -10,6 +10,7 @@ import { FREESAIL_LOGO_DATA_URI } from './logo.js';
 import {
   isChildListTemplate,
   isFunctionCall,
+  componentStatePath,
 } from '@freesail/core';
 import type {
   SurfaceId,
@@ -20,10 +21,10 @@ import type {
   FunctionCall,
 } from '@freesail/core';
 import { useSurface, useAction } from './hooks.js';
-import { registry, type FreesailComponentProps } from './registry.js';
+import { registry, ComponentMeta, type FreesailComponentProps } from './registry.js';
 import { useFreesailContext } from './context.js';
 import { getDataAtPath } from './utils.js';
-import type { FunctionImplementation } from './types.js';
+import { isFreesailSideEffect, type FunctionImplementation } from './types.js';
 import {
   type FreesailSurfaceTheme,
   surfaceThemeToCssVars,
@@ -106,6 +107,7 @@ export function FreesailSurface({
       surface.components,
       surface.catalogId,
       surface.dataModel,
+      surface.dataUpdateTimestamps,
       dispatch,
       onDataChange,
       undefined,
@@ -160,11 +162,44 @@ export function FreesailSurface({
 // Component Renderer
 // =============================================================================
 
+/**
+ * Extracts __raw* and __*UpdatedAt framework metadata keys from resolved props,
+ * builds a ComponentMeta, and returns the clean props (no __ keys) separately.
+ */
+function extractMeta(
+  resolved: Record<string, unknown>,
+  dataModel: Record<string, unknown>,
+  componentId: ComponentId
+): { cleanProps: Record<string, unknown>; meta: ComponentMeta } {
+  const bindings: Record<string, { path: string }> = {};
+  const dataUpdatedAt: Record<string, number> = {};
+  const cleanProps: Record<string, unknown> = {};
+
+  for (const [k, v] of Object.entries(resolved)) {
+    if (k.startsWith('__raw') && k.length > 5) {
+      // __rawValue → 'value', __rawToken → 'token'
+      const cap = k.slice(5);
+      bindings[cap.charAt(0).toLowerCase() + cap.slice(1)] = v as { path: string };
+    } else if (k.startsWith('__') && k.endsWith('UpdatedAt')) {
+      // __tokenUpdatedAt → 'token'
+      dataUpdatedAt[k.slice(2, -9)] = v as number;
+    } else {
+      cleanProps[k] = v;
+    }
+  }
+
+  const componentStateOverride =
+    (getDataAtPath(dataModel, componentStatePath(componentId, '')) as Record<string, unknown>) ?? {};
+
+  return { cleanProps, meta: new ComponentMeta(bindings, dataUpdatedAt, componentStateOverride) };
+}
+
 function renderComponent(
   componentId: ComponentId,
   components: Map<ComponentId, A2UIComponent>,
   catalogId: string,
   dataModel: Record<string, unknown>,
+  dataUpdateTimestamps: Record<string, number>,
   dispatch: ActionDispatch,
   onDataChange: DataChangeDispatch,
   scopeData?: unknown,
@@ -193,6 +228,7 @@ function renderComponent(
       components,
       catalogId,
       dataModel,
+      dataUpdateTimestamps,
       dispatch,
       onDataChange,
       scopeData,
@@ -207,7 +243,7 @@ function renderComponent(
     if (Array.isArray(childList)) {
       // Static array of child IDs
       children = childList.map((childId) =>
-        renderComponent(childId, components, catalogId, dataModel, dispatch, onDataChange, scopeData, undefined, scopeBasePath)
+        renderComponent(childId, components, catalogId, dataModel, dataUpdateTimestamps, dispatch, onDataChange, scopeData, undefined, scopeBasePath)
       );
     } else if (typeof childList === 'object' && 'componentId' in childList) {
       // Template for dynamic children
@@ -228,6 +264,7 @@ function renderComponent(
             components,
             catalogId,
             dataModel,
+            dataUpdateTimestamps,
             dispatch,
             onDataChange,
             itemData, // Pass item data as scope
@@ -240,19 +277,21 @@ function renderComponent(
   }
 
   // Resolve data bindings in component properties
-  const resolvedProps = resolveDataBindings(componentDef, dataModel, catalogId, scopeData, scopeBasePath);
+  const resolvedProps = resolveDataBindings(componentDef, dataModel, dataUpdateTimestamps, catalogId, scopeData, scopeBasePath);
+  const { cleanProps, meta } = extractMeta(resolvedProps, dataModel, componentId);
 
   // Visibility check: if `visible` resolves to exactly false, skip rendering.
-  // Data-model override (from show/hide) takes precedence over component prop.
-  const visibilityOverride = getDataAtPath(dataModel, `/__componentState/${componentId}/visible`);
-  const effectiveVisible = visibilityOverride != null ? visibilityOverride : resolvedProps['visible'];
+  // Component state override (from show/hide) takes precedence over component prop.
+  const visibilityOverride = meta.getComponentState('visible');
+  const effectiveVisible = visibilityOverride != null ? visibilityOverride : cleanProps['visible'];
   if (effectiveVisible === false || effectiveVisible === 'false') {
     return null;
   }
 
   // Build props
   const props: FreesailComponentProps = {
-    component: { ...componentDef, ...resolvedProps },
+    component: { ...componentDef, ...cleanProps },
+    meta,
     children,
     dataModel,
     scopeData,
@@ -264,12 +303,8 @@ function renderComponent(
     onDataChange,
     onFunctionCall: (call) => {
        const result = evaluateFunction(call, dataModel, catalogId, scopeData);
-       // Handle side-effect returns (e.g. show/hide writes to data model)
-       if (result && typeof result === 'object' && '__sideEffect' in (result as Record<string, unknown>)) {
-         const sideEffect = result as { __sideEffect: string; path: string; value: unknown };
-         if (sideEffect.__sideEffect === 'dataModelUpdate') {
-           onDataChange(sideEffect.path, sideEffect.value);
-         }
+       if (isFreesailSideEffect(result)) {
+         onDataChange(result.path, result.value);
        }
     },
   };
@@ -333,6 +368,7 @@ function renderComponent(
 function resolveDataBindings(
   component: A2UIComponent,
   dataModel: Record<string, unknown>,
+  dataUpdateTimestamps: Record<string, number>,
   catalogId: string,
   scopeData?: unknown,
   scopeBasePath?: string,
@@ -378,6 +414,8 @@ function resolveDataBindings(
       resolved[`__raw${key.charAt(0).toUpperCase()}${key.slice(1)}`] = rawBinding;
       // Resolve data binding
       resolved[key] = resolveSingleBinding(effectiveValue, dataModel, scopeData);
+      const ts = dataUpdateTimestamps[rawBinding.path];
+      if (ts !== undefined) resolved[`__${key}UpdatedAt`] = ts;
 
     } else if (typeof value === 'object' && value !== null) {
       // Prevent recursion into LocalAction definitions (which contain FunctionCalls that should NOT be evaluated yet)
@@ -400,12 +438,12 @@ function resolveDataBindings(
             if (isDataBindingObject(item)) {
               return resolveSingleBinding(item, dataModel, scopeData);
             }
-            return resolveDataBindings(item as any, dataModel, catalogId, scopeData, scopeBasePath, _depth + 1);
+            return resolveDataBindings(item as any, dataModel, dataUpdateTimestamps, catalogId, scopeData, scopeBasePath, _depth + 1);
           }
           return item;
         });
       } else {
-        resolved[key] = resolveDataBindings(value as any, dataModel, catalogId, scopeData, scopeBasePath, _depth + 1);
+        resolved[key] = resolveDataBindings(value as any, dataModel, dataUpdateTimestamps, catalogId, scopeData, scopeBasePath, _depth + 1);
       }
     } else {
       resolved[key] = value;
