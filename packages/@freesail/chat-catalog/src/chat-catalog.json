@@ -429,6 +429,31 @@
         }
       ]
     },
+    "DynamicNumber": {
+      "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.",
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "number"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
     "ChildList": {
       "oneOf": [
         {

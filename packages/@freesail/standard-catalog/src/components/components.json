@@ -242,7 +242,7 @@
         },
         {
           "type": "object",
-          "description": "A styled container with border and optional shadow. Two variants: 'raised' (default, elevated look with shadow and rounded corners) and 'flat' (no shadow, square corners, background matches the main surface). To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required), variant ('raised'|'flat'), borderWeight (border thickness in px, default 1, 0 removes border), padding, width, height, background, zoomable. User-Writable: false.",
+          "description": "A styled container with border and optional shadow. Two variants: 'raised' (default, elevated look with shadow and rounded corners) and 'flat' (no shadow, square corners, background matches the main surface). To make cards stretch to fill their parent's width, either set width to '100%' on the Card, or set align to 'stretch' on the parent Column. Key properties: child (required), variant ('raised'|'flat'), borderWeight (border thickness in px, default 1, 0 removes border), padding, width, height, align ('start'|'center'|'end'|'stretch', aligns children horizontally), justify ('start'|'center'|'end'|'between'|'around', distributes children vertically), zoomable. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Card"
@@ -263,6 +263,16 @@
               "description": "Padding inside the card.",
               "$ref": "../common/common_types.json#/$defs/DynamicString",
               "default": "16px"
+            },
+            "align": {
+              "type": "string",
+              "enum": ["start", "center", "end", "stretch"],
+              "description": "Cross-axis alignment of children inside the card. 'start' (default) aligns to the top-left, 'center' centers both horizontally, 'end' aligns to the right, 'stretch' fills full width."
+            },
+            "justify": {
+              "type": "string",
+              "enum": ["start", "center", "end", "between", "around"],
+              "description": "Main-axis (vertical) distribution of children inside the card. 'start' (default) stacks from the top, 'center' centers vertically, 'end' aligns to the bottom."
             },
             "zoomable": {
               "type": "boolean",
@@ -1228,7 +1238,7 @@
               "description": "Whether to display the numeric value on each bar.",
               "default": true
             },
-            "height": {
+            "chartHeight": {
               "$ref": "../common/common_types.json#/$defs/DynamicNumber",
               "description": "Chart height in pixels.",
               "default": 300
@@ -1301,7 +1311,7 @@
               "description": "Whether to fill the area under the line with a translucent gradient.",
               "default": false
             },
-            "height": {
+            "chartHeight": {
               "$ref": "../common/common_types.json#/$defs/DynamicNumber",
               "description": "Chart height in pixels.",
               "default": 300

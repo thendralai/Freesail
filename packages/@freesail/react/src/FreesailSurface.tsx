@@ -326,7 +326,7 @@ function renderComponent(
     // Apply layout properties (weight, width, height) using a wrapper div.
     // Uses a data attribute so parent layouts (e.g. GridLayout) can override
     // with display:contents if needed.
-    const weight = componentDef['weight'] as number | undefined;
+    const weight = resolvedProps['weight'] as number | undefined;
     const width = resolvedProps['width'] as string | undefined;
     const height = resolvedProps['height'] as string | undefined;
     const flexBasis = resolvedProps['flexBasis'] as string | undefined;
@@ -340,6 +340,7 @@ function renderComponent(
         minHeight: minHeight ?? 0,
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'center',
         alignSelf: weight != null ? 'stretch' : undefined,
         width,
         height,

@@ -35,7 +35,7 @@ export function Column({ component, children }: FreesailComponentProps) {
     minHeight: 0,
   };
 
-  return <div style={style}>{children}</div>;
+  return <div className="fs-layout" style={style}>{children}</div>;
 }
 
 export function Row({ component, children }: FreesailComponentProps) {
@@ -56,7 +56,7 @@ export function Row({ component, children }: FreesailComponentProps) {
     minHeight: 0,
   };
 
-  return <div style={style}>{children}</div>;
+  return <div className="fs-layout" style={style}>{children}</div>;
 }
 
 export function Card({ component, children }: FreesailComponentProps) {
@@ -66,9 +66,15 @@ export function Card({ component, children }: FreesailComponentProps) {
   const isFlat = variant === 'flat';
   const borderWeight = component['borderWeight'] !== undefined ? Number(component['borderWeight']) : 1;
   const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
+  const align = component['align'] as string | undefined;
+  const justify = component['justify'] as string | undefined;
 
   const cardStyle: CSSProperties = {
     ...themeVars,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: (align as CSSProperties['alignItems']) ?? 'stretch',
+    justifyContent: mapJustify(justify),
     padding: (component['padding'] as string) ?? 'var(--freesail-space-lg)',
     width: (component['width'] as string) ?? undefined,
     height: (component['height'] as string) ?? undefined,
@@ -80,7 +86,7 @@ export function Card({ component, children }: FreesailComponentProps) {
     alignSelf: 'stretch',
     position: 'relative',
     overflow: 'hidden',
-    minWidth: (component['minWidth'] as string) ?? '180px',
+    minWidth: (component['minWidth'] as string) ?? ((component['width'] as string) ? undefined : '180px'),
   };
 
   const zoomBtnStyle: CSSProperties = {
@@ -166,36 +172,63 @@ export function Card({ component, children }: FreesailComponentProps) {
 // Text Components
 // =============================================================================
 
+const THEMED_LINK_STYLE: CSSProperties = {
+  color: 'var(--freesail-primary, #2563eb)',
+  textDecorationColor: 'var(--freesail-primary, #2563eb)',
+};
+
+function ThemedLink({ href, children }: { href?: string; children?: React.ReactNode }) {
+  const safe = href && !href.trimStart().toLowerCase().startsWith('javascript:') ? href : undefined;
+  return <a href={safe} target="_blank" rel="noopener noreferrer" style={THEMED_LINK_STYLE}>{children}</a>;
+}
+
 export function Text({ component }: FreesailComponentProps) {
   const rawText = component['text'] ?? '';
   const text = (typeof rawText === 'object' && rawText !== null
     ? JSON.stringify(rawText)
     : String(rawText)).replace(/\\n/g, '\n');
 
-  const baseStyle: CSSProperties = {
-    fontSize: (component['size'] as string) ?? 'var(--freesail-type-body)',
-    fontWeight: (component['fontWeight'] as CSSProperties['fontWeight']) ?? 'normal',
-    color: getSemanticColor(component['color'] as string) ?? 'inherit',
-    margin: 0,
+  const variant = (component['variant'] as string) ?? 'body';
+  const explicitColor = getSemanticColor(component['color'] as string);
+  const explicitSize = component['size'] as string | undefined;
+  const explicitWeight = component['fontWeight'] as CSSProperties['fontWeight'] | undefined;
+
+  // Variant-specific defaults — each uses the correct type token.
+  // caption defaults to textSecondary; all others default to textForeground.
+  const variantDefaults: Record<string, CSSProperties> = {
+    h1:      { fontSize: 'var(--freesail-type-h1)',      fontWeight: '700', lineHeight: '1.2', color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    h2:      { fontSize: 'var(--freesail-type-h2)',      fontWeight: '700', lineHeight: '1.3', color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    h3:      { fontSize: 'var(--freesail-type-h3)',      fontWeight: '600', lineHeight: '1.4', color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    h4:      { fontSize: 'var(--freesail-type-h4)',      fontWeight: '600', lineHeight: '1.4', color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    h5:      { fontSize: 'var(--freesail-type-h5)',      fontWeight: '600', lineHeight: '1.5', color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    body:    { fontSize: 'var(--freesail-type-body)',    fontWeight: 'normal',                 color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    label:   { fontSize: 'var(--freesail-type-label)',   fontWeight: '500',                    color: 'var(--freesail-text-foreground, #0f172a)', margin: 0 },
+    caption: { fontSize: 'var(--freesail-type-caption)', fontWeight: 'normal',                 color: 'var(--freesail-text-secondary, #64748b)',  margin: 0 },
   };
 
-  const variant = (component['variant'] as string) ?? 'body';
+  const defaults = variantDefaults[variant] ?? variantDefaults['body']!;
+  const style: CSSProperties = {
+    ...defaults,
+    ...(explicitColor  ? { color: explicitColor }        : {}),
+    ...(explicitSize   ? { fontSize: explicitSize }       : {}),
+    ...(explicitWeight ? { fontWeight: explicitWeight }   : {}),
+  };
 
-  if (variant === 'caption' || variant === 'label') {
-    return <label style={{ ...baseStyle, fontWeight: '500', fontSize: 'var(--freesail-type-caption)' }}>{text}</label>;
-  }
+  // Headings render as native elements so inline styles fully control size, weight,
+  // and color — ReactMarkdown's browser-default h1–h3 styles would override them.
+  if (variant === 'h1') return <h1 style={style}>{text}</h1>;
+  if (variant === 'h2') return <h2 style={style}>{text}</h2>;
+  if (variant === 'h3') return <h3 style={style}>{text}</h3>;
+  if (variant === 'h4') return <h4 style={style}>{text}</h4>;
+  if (variant === 'h5') return <h5 style={style}>{text}</h5>;
+  if (variant === 'label')   return <label style={style}>{text}</label>;
+  if (variant === 'caption') return <span style={style}>{text}</span>;
 
+  // body — ReactMarkdown for links, bold, italic, inline code
   return (
-    <div style={baseStyle}>
-      <ReactMarkdown
-        components={{
-          a: ({ href, children }) => {
-            const safe = href && !href.trimStart().toLowerCase().startsWith('javascript:') ? href : undefined;
-            return <a href={safe} target="_blank" rel="noopener noreferrer">{children}</a>;
-          },
-        }}
-      >
-        {variant === 'h1' ? `# ${text}` : variant === 'h2' ? `## ${text}` : variant === 'h3' ? `### ${text}` : text}
+    <div style={style}>
+      <ReactMarkdown components={{ a: ThemedLink }}>
+        {text}
       </ReactMarkdown>
     </div>
   );
@@ -293,6 +326,7 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
     userSelect: 'none',
     outline: 'none',
     display: 'inline-flex',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 'var(--freesail-space-xs)',
@@ -910,7 +944,31 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
   const showGridLines = component['showGridLines'] !== false;
   const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
 
+  const wrapperClass = `${gridClass}-wrapper`;
+
   const styleContent = useMemo(() => `
+    .${wrapperClass}::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .${wrapperClass}::-webkit-scrollbar-track {
+      background: transparent;
+      margin: 6px;
+    }
+    .${wrapperClass}::-webkit-scrollbar-thumb {
+      background: var(--freesail-border, #e2e8f0);
+      border-radius: 99px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+    .${wrapperClass}::-webkit-scrollbar-thumb:hover {
+      background: var(--freesail-text-secondary, #64748b);
+      background-clip: content-box;
+    }
+    .${wrapperClass} {
+      scrollbar-width: thin;
+      scrollbar-color: var(--freesail-border, #e2e8f0) transparent;
+    }
     .${gridClass} {
       display: grid;
       grid-template-columns: ${gridCols};
@@ -925,7 +983,7 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
     .${gridClass} > .fs-grid-row > div > div > div,
     .${gridClass} > .fs-grid-row [data-freesail-weight],
     .${gridClass} > .fs-grid-row [data-freesail-component],
-    .${gridClass} > .fs-grid-row [data-freesail-component] > div:has([data-freesail-component]) {
+    .${gridClass} > .fs-grid-row [data-freesail-component] > div.fs-layout {
       display: contents !important;
     }
     /* Leaf cell: flex-centered, full height */
@@ -950,7 +1008,7 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
         display: block;
       }
     }
-  `, [gridClass, gridCols, rowPadding, hasHeaders, showGridLines]);
+  `, [gridClass, wrapperClass, gridCols, rowPadding, hasHeaders, showGridLines]);
 
 
 
@@ -959,6 +1017,7 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
     ...themeVars,
     width: '100%',
     overflowX: 'auto',
+    overflowY: 'auto',
     border: '1px solid var(--freesail-border, #e2e8f0)',
     borderRadius: 'var(--freesail-radius-md, 8px)',
   };
@@ -978,7 +1037,7 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
   return (
     <>
       <style>{styleContent}</style>
-      <div style={wrapperStyle}>
+      <div className={wrapperClass} style={wrapperStyle}>
         <div className={gridClass}>
           {/* Header row */}
           {headers.length > 0 ? headers.map((header, i) => {
@@ -1057,10 +1116,11 @@ export function CheckBox({ component, meta, onDataChange }: FreesailComponentPro
 /**
  * Image - displays an image.
  */
-export function Image({ component }: FreesailComponentProps) {
+export function Image({ component, onAction }: FreesailComponentProps) {
   const src = String((component['src'] as string) ?? (component['url'] as string) ?? '');
   const alt = String((component['alt'] as string) ?? '');
   const [error, setError] = useState(false);
+  useEffect(() => { setError(false); }, [src]);
 
   if (!isSafeUrl(src)) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Invalid image URL</div>;
@@ -1095,7 +1155,10 @@ export function Image({ component }: FreesailComponentProps) {
     borderRadius: (component['borderRadius'] as string) ?? '0',
   };
 
-  return <img src={src} alt={alt} style={style} onError={() => setError(true)} />;
+  return <img src={src} alt={alt} style={style} onError={() => {
+    setError(true);
+    onAction?.('image_error', { src, componentId: component.id, reason: 'load_failed' });
+  }} />;
 }
 
 /**
@@ -1142,7 +1205,7 @@ export function List({ component, children }: FreesailComponentProps) {
     overflowY: maxHeight !== 'auto' ? 'auto' : undefined,
   };
 
-  return <div style={style}>{children}</div>;
+  return <div className="fs-layout" style={style}>{children}</div>;
 }
 
 /**
@@ -1502,6 +1565,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   const orientation = (component['orientation'] as string) ?? 'vertical';
   const defaultColor = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showValues = component['showValues'] !== false;
+  const CHART_H = typeof component['chartHeight'] === 'number' ? component['chartHeight'] : 244;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
@@ -1563,7 +1627,6 @@ export function BarChart({ component }: FreesailComponentProps) {
   const firstLabelBleed = rotateLabels ? Math.ceil((data[0]?.label.length ?? 0) * 4.95) : 0;
   const leftPad = Math.max(yAxisLeftPad, firstLabelBleed);
   const bottomPad = rotateLabels ? Math.min(120, Math.round(maxXLabelLen * 4.5) + 8) : 40;
-  const CHART_H = 244;
   const svgHeight = 16 + CHART_H + bottomPad;
   const padding = { top: 16, right: 16, bottom: bottomPad, left: leftPad };
   const chartW = svgWidth - padding.left - padding.right;
@@ -1638,6 +1701,7 @@ export function LineChart({ component }: FreesailComponentProps) {
   const color = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showDots = component['showDots'] !== false;
   const showArea = component['showArea'] === true;
+  const CHART_H = typeof component['chartHeight'] === 'number' ? component['chartHeight'] : 244;
 
   if (data.length < 2) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Need at least 2 data points</div>;
@@ -1662,7 +1726,6 @@ export function LineChart({ component }: FreesailComponentProps) {
   const firstLabelBleed = rotateLabels ? Math.ceil((data[0]?.label.length ?? 0) * 4.95) : 0;
   const leftPad = Math.max(yAxisLeftPad, firstLabelBleed);
   const bottomPad = rotateLabels ? Math.min(120, Math.round(maxXLabelLen * 4.5) + 8) : 40;
-  const CHART_H = 244;
   const svgHeight = 16 + CHART_H + bottomPad;
   const padding = { top: 16, right: 16, bottom: bottomPad, left: leftPad };
 

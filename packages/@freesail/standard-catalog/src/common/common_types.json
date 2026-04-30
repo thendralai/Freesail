@@ -37,27 +37,27 @@
           "default": true
         },
         "width": {
-          "type": "string",
+          "$ref": "#/$defs/DynamicString",
           "description": "The width of the component (e.g. '100%', '300px')."
         },
         "height": {
-          "type": "string",
+          "$ref": "#/$defs/DynamicString",
           "description": "The height of the component (e.g. '100%', '300px')."
         },
         "weight": {
-          "type": "number",
+          "$ref": "#/$defs/DynamicNumber",
           "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
         },
         "flexBasis": {
-          "type": "string",
+          "$ref": "#/$defs/DynamicString",
           "description": "The flex-basis of this component within a Row or Column. Defines the default size of an element before remaining space is distributed. Essential for fluid responsive breakpoints (e.g., '300px')."
         },
         "minWidth": {
-          "type": "string",
+          "$ref": "#/$defs/DynamicString",
           "description": "Hard minimum width floor. The component will not shrink below this value even after wrapping. Use independently from flexBasis to prevent overflow (e.g. flexBasis: '400px' sets the wrap point, minWidth: '200px' sets the floor after wrapping)."
         },
         "minHeight": {
-          "type": "string",
+          "$ref": "#/$defs/DynamicString",
           "description": "Hard minimum height floor. Ensures the component has a minimum visual presence even with sparse content (e.g. '300px' for a chart card)."
         }
       },
@@ -384,15 +384,15 @@
       "type": "object",
       "description": "Design token overrides applied as CSS custom properties (--freesail-*) on this component's root element, cascading to all descendants. Accepts CSS color values (hex, rgb, named) or semantic token names.",
       "properties": {
-        "bg":               { "type": "string", "description": "Base surface background color." },
-        "bgRaised":         { "type": "string", "description": "Raised or elevated surface background color." },
-        "bgMuted":          { "type": "string", "description": "Muted or subdued surface background color." },
-        "textForeground":   { "type": "string", "description": "Primary text color." },
-        "textSecondary":    { "type": "string", "description": "Secondary or de-emphasized text color." },
-        "primary":          { "type": "string", "description": "Brand accent color used for buttons, links, and interactive elements." },
-        "primaryHover":     { "type": "string", "description": "Brand accent color in hover or focus state." },
-        "primaryForeground":{ "type": "string", "description": "Text color on primary-colored backgrounds." },
-        "border":           { "type": "string", "description": "Border and divider color." }
+        "bg":               { "$ref": "#/$defs/DynamicString", "description": "Base surface background color." },
+        "bgRaised":         { "$ref": "#/$defs/DynamicString", "description": "Raised or elevated surface background color." },
+        "bgMuted":          { "$ref": "#/$defs/DynamicString", "description": "Muted or subdued surface background color." },
+        "textForeground":   { "$ref": "#/$defs/DynamicString", "description": "Primary text color." },
+        "textSecondary":    { "$ref": "#/$defs/DynamicString", "description": "Secondary or de-emphasized text color." },
+        "primary":          { "$ref": "#/$defs/DynamicString", "description": "Brand accent color used for buttons, links, and interactive elements." },
+        "primaryHover":     { "$ref": "#/$defs/DynamicString", "description": "Brand accent color in hover or focus state." },
+        "primaryForeground":{ "$ref": "#/$defs/DynamicString", "description": "Text color on primary-colored backgrounds." },
+        "border":           { "$ref": "#/$defs/DynamicString", "description": "Border and divider color." }
       },
       "additionalProperties": false
     },
