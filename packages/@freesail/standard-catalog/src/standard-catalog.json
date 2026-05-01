@@ -295,7 +295,7 @@
             },
             "zoomable": {
               "type": "boolean",
-              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it."
+              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it. Set it to true when the card contains content that benefits from a larger view, such as charts. "
             },
             "child": {
               "$ref": "#/$defs/ComponentId",
@@ -2332,11 +2332,11 @@
         },
         "width": {
           "$ref": "#/$defs/DynamicString",
-          "description": "The width of the component (e.g. '100%', '300px')."
+          "description": "The width of the component. Use '100%' to fill the parent container's full width (e.g. on an Image or a full-width input). Use px only for small fixed-size elements (e.g. '40px' for an avatar). To distribute space proportionally between siblings in a Row/Column, use 'weight' instead of a percentage width."
         },
         "height": {
           "$ref": "#/$defs/DynamicString",
-          "description": "The height of the component (e.g. '100%', '300px')."
+          "description": "The height of the component. Use '100%' to stretch and fill the parent container's full height. Use px only for small fixed-size elements (e.g. '40px' for an icon). To guarantee a minimum visual height (e.g. for a chart), prefer 'minHeight' over a fixed height so the component can still grow."
         },
         "weight": {
           "$ref": "#/$defs/DynamicNumber",
@@ -2379,7 +2379,7 @@
       }
     },
     "DynamicString": {
-      "description": "Represents a string",
+      "description": "A string value. Prefer a plain string literal for static text (e.g. \"Submit\"). Use a DataBinding ({\"path\": \"...\"}) to read a value from the data model. Use a formatString function call when you need to embed data model values inside a string template (e.g. \"Hello, ${/user/name}\"). Do NOT wrap plain static strings in formatString.",
       "oneOf": [
         {
           "type": "string"
@@ -2483,7 +2483,7 @@
       ]
     },
     "DynamicValue": {
-      "description": "A value that can be a literal, a path, or a function call returning any type.",
+      "description": "A value of any type. Prefer a plain literal for static values. Use a DataBinding ({\"path\": \"...\"}) to read from the data model. Use a function call when the value must be computed at runtime.",
       "oneOf": [
         {
           "type": "string"
@@ -2582,7 +2582,7 @@
       ]
     },
     "DynamicBoolean": {
-      "description": "A boolean value that can be a literal, a path, or a function call returning a boolean.",
+      "description": "A boolean value. Prefer a plain literal (true or false) for static values. Use a DataBinding ({\"path\": \"...\"}) to read a boolean from the data model. Use a function call when the value must be computed at runtime (e.g. comparing two data model values).",
       "oneOf": [
         {
           "type": "boolean"
@@ -2607,7 +2607,7 @@
       ]
     },
     "DynamicNumber": {
-      "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.",
+      "description": "A number value. Prefer a plain number literal for static values (e.g. 300). Use a DataBinding ({\"path\": \"...\"}) to read a number from the data model. Use a function call when the value must be computed at runtime.",
       "oneOf": [
         {
           "type": "number"
@@ -2784,7 +2784,7 @@
       ]
     },
     "DynamicStringList": {
-      "description": "Represents a value that can be either a literal array of strings, a path to a string array in the data model, or a function call returning a string array.",
+      "description": "An array of strings. Prefer a plain literal array for static values (e.g. [\"Option A\", \"Option B\"]). Use a DataBinding ({\"path\": \"...\"}) to read a list from the data model. Use a function call when the list must be computed at runtime.",
       "oneOf": [
         {
           "type": "array",

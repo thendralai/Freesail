@@ -430,7 +430,7 @@
       ]
     },
     "DynamicNumber": {
-      "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.",
+      "description": "A number value. Prefer a plain number literal for static values (e.g. 300). Use a DataBinding ({\"path\": \"...\"}) to read a number from the data model. Use a function call when the value must be computed at runtime.",
       "oneOf": [
         {
           "type": "number"

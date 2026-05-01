@@ -194,7 +194,7 @@
             },
             "zoomable": {
               "type": "boolean",
-              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it."
+              "description": "When true, a small toggle button appears in the top-right corner of the card. Clicking it opens the card in a centered modal overlay at 70% of the viewport width (max 1200px, max 90vh tall); clicking outside or the button again restores it. Set it to true when the card contains content that benefits from a larger view, such as charts. "
             },
             "child": {
               "$ref": "#/$defs/ComponentId",
