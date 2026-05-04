@@ -23,22 +23,6 @@ const CHAT_CATALOG_ID = ChatCatalog.namespace;
  *  2. VITE_GATEWAY_PORT — same host as the UI, different port (e.g. 3001 in dev).
  *  3. Default: same host, port 3001.
  */
-function getGatewayUrl(): string {
-  const gatewayUrl = import.meta.env['VITE_GATEWAY_URL'] as string | undefined;
-
-  if (gatewayUrl) {
-    if (gatewayUrl.startsWith('/')) {
-      // Path-prefix mode: reverse proxy on same domain.
-      // Strip trailing slash so /sse appends cleanly.
-      return `${window.location.protocol}//${window.location.host}${gatewayUrl.replace(/\/$/, '')}`;
-    }
-    // Full URL mode: different domain.
-    return gatewayUrl.replace(/\/$/, '');
-  }
-
-  const port = import.meta.env['VITE_GATEWAY_PORT'] ?? '3001';
-  return `${window.location.protocol}//${window.location.hostname}:${port}`;
-}
 
 const ALL_CATALOGS: ReactUI.CatalogDefinition[] = [
   StandardCatalog,

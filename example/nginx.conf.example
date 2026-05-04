@@ -5,9 +5,13 @@
 #
 # Deployment:
 #   1. Build the UI:   cd react-app && npm run build
-#   2. Copy dist/ to   /var/www/freesail
-#   3. Set in env:     VITE_GATEWAY_URL=/
+#   2. Copy dist/ to   /var/www/freesail-app
+#   3. Start gateway:  npx freesail-gateway   (must be running on port 3001)
+#                      Use pm2 or systemd to keep it alive across restarts.
 #   4. Copy this file to /etc/nginx/sites-available/freesail and symlink to sites-enabled
+# sudo cp nginx.conf /etc/nginx/sites-available/freesail
+# sudo ln -s /etc/nginx/sites-available/freesail /etc/nginx/sites-enabled/freesail
+# sudo nginx -t && sudo systemctl reload nginx
 
 server {
     listen 80;
@@ -26,7 +30,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/myapp.com/privkey.pem;
 
     # ── Static UI ────────────────────────────────────────────────────────────
-    root /var/www/freesail;  # <-- path to your Vite dist/ output
+    root /var/www/freesail-app;  # <-- path to your Vite dist/ output
     index index.html;
 
     location / {
