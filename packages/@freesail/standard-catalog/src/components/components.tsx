@@ -5,20 +5,198 @@
 import React, { useState, useEffect, useId, useMemo, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
+import * as RadixCheckbox from '@radix-ui/react-checkbox';
+import * as RadixRadioGroup from '@radix-ui/react-radio-group';
+import * as RadixSelect from '@radix-ui/react-select';
+import * as RadixSlider from '@radix-ui/react-slider';
+import * as RadixDialog from '@radix-ui/react-dialog';
+import * as RadixTabs from '@radix-ui/react-tabs';
+import * as RadixPopover from '@radix-ui/react-popover';
+import { DayPicker } from 'react-day-picker';
 import type { FreesailComponentProps } from '@freesail/react';
+import { useFreesailTheme, tokensToCssVars } from '@freesail/react';
 import type { FunctionCall } from '@freesail/core';
 import {
   getSemanticColor,
-  getSemanticBackground,
   applyComponentTheme,
   mapJustify,
-  toInputFormat,
   validateChecks,
 } from './utils.js';
 
 // =============================================================================
+// Shared style helpers
+// =============================================================================
+
+function fieldBorder(hasError: boolean): string {
+  return hasError
+    ? '1px solid var(--freesail-error, #ef4444)'
+    : '1px solid var(--freesail-border, #e2e8f0)';
+}
+
+function DigitalTimePicker({
+  h24,
+  m,
+  timeStep,
+  timeFormat,
+  onConfirm,
+  onCancel,
+}: {
+  h24: number;
+  m: number;
+  timeStep: number;
+  timeFormat: '24h' | '12h';
+  onConfirm: (h24: number, m: number) => void;
+  onCancel: () => void;
+}) {
+  const isPm = h24 >= 12;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+
+  const [draftH, setDraftH] = useState(
+    timeFormat === '12h' ? String(h12) : String(h24)
+  );
+  const [draftM, setDraftM] = useState(String(m).padStart(2, '0'));
+  const [draftPm, setDraftPm] = useState(isPm);
+
+  const h12to24 = (h: number, pm: boolean) => pm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+
+  const handleOk = () => {
+    const parsedH = parseInt(draftH, 10) || 0;
+    const parsedM = parseInt(draftM, 10) || 0;
+    const clampedM = Math.min(59, Math.max(0, Math.round(parsedM / timeStep) * timeStep % 60));
+    if (timeFormat === '12h') {
+      const clampedH = Math.min(12, Math.max(1, parsedH));
+      onConfirm(h12to24(clampedH, draftPm), clampedM);
+    } else {
+      const clampedH = Math.min(23, Math.max(0, parsedH));
+      onConfirm(clampedH, clampedM);
+    }
+  };
+
+  const fieldStyle: CSSProperties = {
+    width: '72px',
+    textAlign: 'center',
+    fontSize: 'var(--freesail-type-h2, 24px)',
+    fontWeight: 600,
+    padding: '8px 4px',
+    border: '1px solid var(--freesail-border, #e2e8f0)',
+    borderRadius: 'var(--freesail-radius-md, 0.5rem)',
+    background: 'color-mix(in srgb, var(--freesail-primary, #5b7c99) 10%, var(--freesail-bg, #ffffff))',
+    color: 'var(--freesail-text-foreground, #0f172a)',
+    outline: 'none',
+    MozAppearance: 'textfield' as any,
+    WebkitAppearance: 'none' as any,
+  };
+
+  const labelStyle: CSSProperties = {
+    fontSize: 'var(--freesail-type-caption, 12px)',
+    color: 'var(--freesail-text-secondary, #64748b)',
+    textAlign: 'center',
+    marginTop: '4px',
+  };
+
+  const amPmStyle = (active: boolean): CSSProperties => ({
+    padding: '6px 10px',
+    fontSize: 'var(--freesail-type-label, 13px)',
+    fontWeight: active ? 700 : 400,
+    border: '1px solid var(--freesail-border, #e2e8f0)',
+    borderRadius: 'var(--freesail-radius-sm, 0.25rem)',
+    background: active ? 'var(--freesail-primary, #5b7c99)' : 'var(--freesail-bg-muted, #dce8f0)',
+    color: active ? 'var(--freesail-primary-foreground, #ffffff)' : 'var(--freesail-text-secondary, #64748b)',
+    cursor: 'pointer',
+  });
+
+  const actionBtnStyle = (primary: boolean): CSSProperties => ({
+    padding: '6px 14px',
+    fontSize: 'var(--freesail-type-label, 13px)',
+    fontWeight: 500,
+    border: 'none',
+    borderRadius: 'var(--freesail-radius-sm, 0.25rem)',
+    background: primary ? 'var(--freesail-primary, #5b7c99)' : 'transparent',
+    color: primary ? 'var(--freesail-primary-foreground, #ffffff)' : 'var(--freesail-text-secondary, #64748b)',
+    cursor: 'pointer',
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-md, 16px)' }}>
+      <div style={{ fontSize: 'var(--freesail-type-label, 13px)', color: 'var(--freesail-text-secondary, #64748b)', fontWeight: 500 }}>
+        Select time
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm, 8px)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <input
+            type="number"
+            min={timeFormat === '12h' ? 1 : 0}
+            max={timeFormat === '12h' ? 12 : 23}
+            value={draftH}
+            onChange={e => setDraftH(e.target.value)}
+            onBlur={e => {
+              const v = parseInt(e.target.value, 10);
+              const max = timeFormat === '12h' ? 12 : 23;
+              const min = timeFormat === '12h' ? 1 : 0;
+              setDraftH(String(Math.min(max, Math.max(min, isNaN(v) ? min : v))).padStart(2, '0'));
+            }}
+            style={fieldStyle}
+          />
+          <div style={labelStyle}>Hour</div>
+        </div>
+
+        <span style={{ fontSize: 'var(--freesail-type-h2, 24px)', fontWeight: 700, color: 'var(--freesail-text-secondary, #64748b)', lineHeight: 1, marginBottom: '18px' }}>:</span>
+
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <input
+            type="number"
+            min={0}
+            max={59}
+            step={timeStep}
+            value={draftM}
+            onChange={e => setDraftM(e.target.value)}
+            onBlur={e => {
+              const v = parseInt(e.target.value, 10);
+              const snapped = Math.round(Math.min(59, Math.max(0, isNaN(v) ? 0 : v)) / timeStep) * timeStep % 60;
+              setDraftM(String(snapped).padStart(2, '0'));
+            }}
+            style={fieldStyle}
+          />
+          <div style={labelStyle}>Minute</div>
+        </div>
+
+        {timeFormat === '12h' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '18px' }}>
+            <button type="button" style={amPmStyle(!draftPm)} onClick={() => setDraftPm(false)}>AM</button>
+            <button type="button" style={amPmStyle(draftPm)} onClick={() => setDraftPm(true)}>PM</button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--freesail-space-xs, 4px)' }}>
+        <button type="button" style={actionBtnStyle(false)} onClick={onCancel}>Cancel</button>
+        <button type="button" style={actionBtnStyle(true)} onClick={handleOk}>OK</button>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Layout Components
 // =============================================================================
+
+const GAP_MAP: Record<string, string> = {
+  none: '0',
+  xs: 'var(--freesail-space-xs)',
+  sm: 'var(--freesail-space-sm)',
+  small: 'var(--freesail-space-sm)',
+  md: 'var(--freesail-space-md)',
+  medium: 'var(--freesail-space-md)',
+  lg: 'var(--freesail-space-lg)',
+  large: 'var(--freesail-space-lg)',
+  xl: 'var(--freesail-space-xl)',
+};
+
+function resolveGap(gap: string | undefined): string {
+  if (!gap) return 'var(--freesail-space-sm)';
+  return GAP_MAP[gap] ?? gap;
+}
 
 export function Column({ component, children }: FreesailComponentProps) {
   const theme = component['theme'] as Record<string, string> | undefined;
@@ -27,7 +205,7 @@ export function Column({ component, children }: FreesailComponentProps) {
     ...themeVars,
     display: 'flex',
     flexDirection: 'column',
-    gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
+    gap: resolveGap(component['gap'] as string | undefined),
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     background: theme?.['bg'] ? 'var(--freesail-bg)' : undefined,
@@ -45,7 +223,7 @@ export function Row({ component, children }: FreesailComponentProps) {
     ...themeVars,
     display: 'flex',
     flexDirection: 'row',
-    gap: (component['gap'] as string) ?? 'var(--freesail-space-sm)',
+    gap: resolveGap(component['gap'] as string | undefined),
     padding: (component['padding'] as string) ?? undefined,
     alignItems: (component['align'] as CSSProperties['alignItems']) ?? 'start',
     justifyContent: mapJustify(component['justify'] as string),
@@ -368,12 +546,11 @@ export function Button({ component, children, onAction, onFunctionCall }: Freesa
     },
     borderless: {
       background: !isDisabled && isActive
-        ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 12%, transparent)'
+        ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 10%, transparent)'
         : !isDisabled && isHovered
-          ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 7%, transparent)'
+          ? 'color-mix(in srgb, var(--freesail-primary, #2563eb) 6%, transparent)'
           : 'transparent',
-      color: 'var(--freesail-primary, #2563eb)',
-      textDecoration: !isDisabled && isHovered ? 'underline' : 'none',
+      color: !isDisabled && isHovered ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-text-foreground, #0f172a)',
     },
     danger: {
       background: !isDisabled && isActive
@@ -443,19 +620,15 @@ export function TextField({ component, meta, onAction, onDataChange }: FreesailC
     }
   };
 
-  const containerStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 'var(--freesail-space-xs)',
-  };
-
   const labelStyle: CSSProperties = {
     fontSize: 'var(--freesail-type-label)',
     fontWeight: '500',
     color: 'var(--freesail-text-foreground, #0f172a)',
+    whiteSpace: 'nowrap',
   };
 
   const inputStyle: CSSProperties = {
+    flex: 1,
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-md)',
     border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
@@ -465,34 +638,30 @@ export function TextField({ component, meta, onAction, onDataChange }: FreesailC
     color: 'var(--freesail-text-foreground, #0f172a)',
   };
 
-  const errorStyle: CSSProperties = {
-    fontSize: 'var(--freesail-type-caption)',
-    color: 'var(--freesail-error, #ef4444)',
-    marginTop: 'var(--freesail-space-xs)',
-  };
-
   return (
-    <div style={containerStyle}>
-      {label && <label style={labelStyle}>{label}</label>}
-      {variant === 'longText' ? (
-        <textarea
-          placeholder={placeholder}
-          value={value}
-          onChange={handleChange}
-          style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
-        />
-      ) : (
-        <input
-          type={variant === 'obscured' ? 'password' : variant === 'number' ? 'number' : 'text'}
-          placeholder={placeholder}
-          value={value}
-          onChange={handleChange}
-          min={variant === 'number' ? min : undefined}
-          max={variant === 'number' ? max : undefined}
-          style={inputStyle}
-        />
-      )}
-      {validationError && <div style={errorStyle}>{validationError}</div>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+      <div style={{ display: 'flex', alignItems: variant === 'longText' ? 'flex-start' : 'center', gap: 'var(--freesail-space-sm)' }}>
+        {label && <label style={labelStyle}>{label}</label>}
+        {variant === 'longText' ? (
+          <textarea
+            placeholder={placeholder}
+            value={value}
+            onChange={handleChange}
+            style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+          />
+        ) : (
+          <input
+            type={variant === 'obscured' ? 'password' : variant === 'number' ? 'number' : 'text'}
+            placeholder={placeholder}
+            value={value}
+            onChange={handleChange}
+            min={variant === 'number' ? min : undefined}
+            max={variant === 'number' ? max : undefined}
+            style={inputStyle}
+          />
+        )}
+      </div>
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -501,56 +670,349 @@ export function TextField({ component, meta, onAction, onDataChange }: FreesailC
 // Form Components
 // =============================================================================
 
-export function DateTimeInput({ component, meta, onDataChange }: FreesailComponentProps) {
+export function DateInput({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = (component['label'] as string) ?? '';
-  const value = (component['value'] as string) ?? '';
-  const enableDate = (component['enableDate'] as boolean) ?? true;
-  const enableTime = (component['enableTime'] as boolean) ?? false;
   const rawMin = (component['min'] as string) ?? undefined;
   const rawMax = (component['max'] as string) ?? undefined;
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
+  const isRange = (component['mode'] as string) === 'range';
 
   const boundPath = meta.getBinding('value')?.path ?? null;
 
-  const inputType = enableDate && enableTime ? 'datetime-local' : enableTime ? 'time' : 'date';
+  const parseToDate = (v: string | undefined): Date | undefined => {
+    if (!v) return undefined;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? undefined : d;
+  };
 
-  const normalizedValue = toInputFormat(value, inputType);
-  const min = rawMin !== undefined ? toInputFormat(rawMin, inputType) : undefined;
-  const max = rawMax !== undefined ? toInputFormat(rawMax, inputType) : undefined;
+  const formatDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${day}`;
+  };
 
-  const [localValue, setLocalValue] = useState(normalizedValue);
+  // value is always string[] — [date] for single, [from, to] for range
+  const valueArr = (component['value'] as string[] | undefined) ?? [];
+  const singleValueStr = isRange ? '' : (valueArr[0] ?? '');
+  const rangeFromStr = isRange ? (valueArr[0] ?? '') : '';
+  const rangeToStr = isRange ? (valueArr[1] ?? '') : '';
 
-  useEffect(() => { setLocalValue(normalizedValue); }, [normalizedValue]);
+  // confirmed = what has been emitted and shown in trigger
+  const [confirmedDate, setConfirmedDate] = useState<Date | undefined>(() =>
+    isRange ? undefined : parseToDate(singleValueStr)
+  );
+  const [confirmedFrom, setConfirmedFrom] = useState<Date | undefined>(() =>
+    isRange ? parseToDate(rangeFromStr) : undefined
+  );
+  const [confirmedTo, setConfirmedTo] = useState<Date | undefined>(() =>
+    isRange ? parseToDate(rangeToStr) : undefined
+  );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    const writePath = boundPath ?? `/input/${component.id}`;
-    if (onDataChange) {
-      onDataChange(writePath, newValue);
+  // pending = what the calendar shows while popover is open
+  const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
+  const [pendingFrom, setPendingFrom] = useState<Date | undefined>(undefined);
+  const [pendingTo, setPendingTo] = useState<Date | undefined>(undefined);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    if (isRange) {
+      setConfirmedFrom(parseToDate(rangeFromStr));
+      setConfirmedTo(parseToDate(rangeToStr));
+    } else {
+      setConfirmedDate(parseToDate(singleValueStr));
     }
+  }, [singleValueStr, rangeFromStr, rangeToStr]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      // snapshot confirmed into pending when opening
+      setPendingDate(confirmedDate);
+      setPendingFrom(confirmedFrom);
+      setPendingTo(confirmedTo);
+    }
+    setPopoverOpen(open);
+  };
+
+  const handleDaySelect = (date: Date | undefined) => {
+    setPendingDate(date);
+  };
+
+  const handleRangeSelect = (range: { from?: Date; to?: Date } | undefined) => {
+    setPendingFrom(range?.from);
+    setPendingTo(range?.to);
+  };
+
+  const handleOk = () => {
+    const writePath = boundPath ?? `/input/${component.id}`;
+    if (isRange) {
+      setConfirmedFrom(pendingFrom);
+      setConfirmedTo(pendingTo);
+      const arr: string[] = [];
+      if (pendingFrom) arr.push(formatDate(pendingFrom));
+      if (pendingTo) arr.push(formatDate(pendingTo));
+      onDataChange?.(writePath, arr);
+    } else {
+      setConfirmedDate(pendingDate);
+      onDataChange?.(writePath, pendingDate ? [formatDate(pendingDate)] : []);
+    }
+    setPopoverOpen(false);
+  };
+
+  const handleCancel = () => setPopoverOpen(false);
+
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const displayValue = isRange
+    ? confirmedFrom ? `${fmt(confirmedFrom)} → ${confirmedTo ? fmt(confirmedTo) : '…'}` : ''
+    : confirmedDate ? fmt(confirmedDate) : '';
+
+  const minDate = rawMin ? parseToDate(rawMin) : undefined;
+  const maxDate = rawMax ? parseToDate(rawMax) : undefined;
+  const disabledDays = [
+    ...(minDate ? [{ before: minDate }] : []),
+    ...(maxDate ? [{ after: maxDate }] : []),
+  ];
+
+  const baseDayStyle: CSSProperties = {
+    width: '32px',
+    height: '32px',
+    borderRadius: 'var(--freesail-radius-sm, 4px)',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    fontSize: 'var(--freesail-type-label)',
+    fontFamily: 'inherit',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const triggerStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--freesail-space-sm)',
+    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
+    borderRadius: 'var(--freesail-radius-md)',
+    border: fieldBorder(!!validationError),
+    fontSize: 'var(--freesail-type-body)',
+    backgroundColor: 'var(--freesail-bg, #ffffff)',
+    color: displayValue ? 'var(--freesail-text-foreground, #0f172a)' : 'var(--freesail-text-secondary, #64748b)',
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left',
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
       {label && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
-      <input
-        type={inputType}
-        value={localValue}
-        onChange={handleChange}
-        min={min}
-        max={max}
-        style={{
-          padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
-          borderRadius: 'var(--freesail-radius-md)',
-          border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)',
-          fontSize: 'var(--freesail-type-body)',
-          backgroundColor: 'var(--freesail-bg, #ffffff)',
-          color: 'var(--freesail-text-foreground, #0f172a)',
-        }}
-      />
-      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
+
+      <RadixPopover.Root open={popoverOpen} onOpenChange={handleOpenChange}>
+        <RadixPopover.Trigger asChild>
+          <button type="button" style={triggerStyle}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: 'var(--freesail-text-secondary, #64748b)' }}>
+              <rect x="1" y="2" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M1 5h12M5 1v2M9 1v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+            <span>{displayValue || 'Select date'}</span>
+          </button>
+        </RadixPopover.Trigger>
+        <RadixPopover.Portal>
+          <RadixPopover.Content
+            align="start"
+            sideOffset={4}
+            style={{
+              background: 'var(--freesail-bg-raised, #ffffff)',
+              border: '1px solid var(--freesail-border, #e2e8f0)',
+              borderRadius: 'var(--freesail-radius-lg, 0.75rem)',
+              boxShadow: 'var(--freesail-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1))',
+              padding: 'var(--freesail-space-sm, 8px)',
+              zIndex: 9999,
+              overflow: 'hidden',
+            }}
+          >
+            <DayPicker
+              {...(isRange
+                ? { mode: 'range', selected: { from: pendingFrom, to: pendingTo }, onSelect: handleRangeSelect as any }
+                : { mode: 'single', selected: pendingDate, onSelect: handleDaySelect }
+              )}
+              disabled={disabledDays}
+              styles={{
+                root: { fontFamily: 'inherit', margin: 0 },
+                month_caption: {
+                  display: 'flex',
+                  justifyContent: 'center',
+                  fontWeight: 600,
+                  padding: 'var(--freesail-space-xs, 4px) 0',
+                  color: 'var(--freesail-text-foreground, #0f172a)',
+                  fontSize: 'var(--freesail-type-label, 13px)',
+                },
+                weekdays: { color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-caption, 12px)' },
+                nav: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+              }}
+              components={{
+                DayButton: ({ day, modifiers, ...props }: any) => {
+                  const isEndpoint = modifiers.range_start || modifiers.range_end;
+                  const isMiddle = modifiers.range_middle;
+                  return (
+                    <button
+                      {...props}
+                      style={{
+                        ...baseDayStyle,
+                        borderRadius: isMiddle ? '0' : '50%',
+                        border: !isRange && modifiers.selected
+                          ? '2px solid var(--freesail-primary, #77c4e6)'
+                          : '2px solid transparent',
+                        background: isEndpoint
+                          ? 'var(--freesail-primary, #77c4e6)'
+                          : isMiddle
+                            ? 'color-mix(in srgb, var(--freesail-primary, #77c4e6) 15%, transparent)'
+                            : modifiers.today && !modifiers.selected
+                              ? 'color-mix(in srgb, var(--freesail-primary, #77c4e6) 12%, transparent)'
+                              : 'none',
+                        color: isEndpoint
+                          ? 'var(--freesail-primary-foreground, #0d2233)'
+                          : !isRange && modifiers.selected
+                            ? 'var(--freesail-primary, #77c4e6)'
+                            : modifiers.disabled
+                              ? 'var(--freesail-text-secondary, #64748b)'
+                              : 'var(--freesail-text-foreground, #0f172a)',
+                        fontWeight: (modifiers.selected || isEndpoint || modifiers.today) ? 600 : 'normal',
+                        opacity: modifiers.disabled ? 0.4 : 1,
+                        cursor: modifiers.disabled ? 'not-allowed' : 'pointer',
+                      }}
+                    />
+                  );
+                },
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--freesail-space-xs, 4px)', paddingTop: 'var(--freesail-space-xs, 4px)' }}>
+              <button type="button" onClick={handleCancel} style={{ padding: '5px 12px', fontSize: 'var(--freesail-type-label, 13px)', fontWeight: 500, border: 'none', borderRadius: 'var(--freesail-radius-sm, 0.25rem)', background: 'transparent', color: 'var(--freesail-text-secondary, #64748b)', cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={handleOk} style={{ padding: '5px 12px', fontSize: 'var(--freesail-type-label, 13px)', fontWeight: 500, border: 'none', borderRadius: 'var(--freesail-radius-sm, 0.25rem)', background: 'var(--freesail-primary, #77c4e6)', color: 'var(--freesail-primary-foreground, #0d2233)', cursor: 'pointer' }}>OK</button>
+            </div>
+          </RadixPopover.Content>
+        </RadixPopover.Portal>
+      </RadixPopover.Root>
+
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
+    </div>
+  );
+}
+
+export function TimeInput({ component, meta, onDataChange }: FreesailComponentProps) {
+  const label = (component['label'] as string) ?? '';
+  const timeStep = Math.max(1, Math.min(60, Number(component['timeStep'] ?? 1)));
+  const timeFormat = ((component['timeFormat'] as string) ?? '24h') === '12h' ? '12h' : '24h';
+  const checks = (component['checks'] as any[]) ?? [];
+  const validationError = validateChecks(checks);
+
+  const boundPath = meta.getBinding('value')?.path ?? null;
+
+  const valueArr = (component['value'] as string[] | undefined) ?? [];
+  const externalTime = valueArr[0] ?? '';
+
+  const parseTime = (v: string) => {
+    const parts = v ? v.split(':') : [];
+    const h = parts[0] !== undefined ? parseInt(parts[0], 10) : 0;
+    const m = parts[1] !== undefined ? parseInt(parts[1], 10) : 0;
+    return { h24: isNaN(h) ? 0 : h, m: isNaN(m) ? 0 : m };
+  };
+
+  const [timeValue, setTimeValue] = useState(() => {
+    if (externalTime) return externalTime;
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  useEffect(() => { if (externalTime) setTimeValue(externalTime); }, [externalTime]);
+
+  const { h24, m } = parseTime(timeValue);
+
+  const formatDisplay = () => {
+    if (!timeValue) return '';
+    if (timeFormat === '12h') {
+      const isPm = h24 >= 12;
+      const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+      return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${isPm ? 'PM' : 'AM'}`;
+    }
+    return `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
+  const displayValue = formatDisplay();
+
+  const handleConfirm = (newH: number, newM: number) => {
+    const t = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+    setTimeValue(t);
+    const writePath = boundPath ?? `/input/${component.id}`;
+    onDataChange?.(writePath, [t]);
+    setPopoverOpen(false);
+  };
+
+  const handleCancel = () => setPopoverOpen(false);
+
+  const triggerStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--freesail-space-sm, 8px)',
+    padding: 'var(--freesail-space-sm, 8px) var(--freesail-space-md, 12px)',
+    borderRadius: 'var(--freesail-radius-md, 0.5rem)',
+    border: fieldBorder(!!validationError),
+    fontSize: 'var(--freesail-type-body, 16px)',
+    backgroundColor: 'var(--freesail-bg, #ffffff)',
+    color: displayValue ? 'var(--freesail-text-foreground, #0f172a)' : 'var(--freesail-text-secondary, #64748b)',
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs, 4px)' }}>
+      {label && (
+        <label style={{ fontSize: 'var(--freesail-type-label, 13px)', fontWeight: 500, color: 'var(--freesail-text-foreground, #0f172a)' }}>
+          {label}
+        </label>
+      )}
+      <RadixPopover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <RadixPopover.Trigger asChild>
+          <button type="button" style={triggerStyle}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: 'var(--freesail-text-secondary, #64748b)' }}>
+              <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M7 4v3l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>{displayValue || 'Select time'}</span>
+          </button>
+        </RadixPopover.Trigger>
+        <RadixPopover.Portal>
+          <RadixPopover.Content
+            align="start"
+            sideOffset={4}
+            style={{
+              background: 'var(--freesail-bg-raised, #ffffff)',
+              border: '1px solid var(--freesail-border, #e2e8f0)',
+              borderRadius: 'var(--freesail-radius-lg, 0.75rem)',
+              boxShadow: 'var(--freesail-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1))',
+              padding: 'var(--freesail-space-md, 16px)',
+              zIndex: 9999,
+              minWidth: '260px',
+            }}
+          >
+            <DigitalTimePicker
+              h24={h24}
+              m={m}
+              timeStep={timeStep}
+              timeFormat={timeFormat as '24h' | '12h'}
+              onConfirm={handleConfirm}
+              onCancel={handleCancel}
+            />
+          </RadixPopover.Content>
+        </RadixPopover.Portal>
+      </RadixPopover.Root>
+      {validationError && (
+        <div style={{ fontSize: 'var(--freesail-type-caption, 12px)', color: 'var(--freesail-error, #ef4444)' }}>
+          {validationError}
+        </div>
+      )}
     </div>
   );
 }
@@ -606,9 +1068,9 @@ export function ChoicePickerSingleSelect({ component, meta, onDataChange }: Free
                   borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: 'var(--freesail-type-body)',
-                  border: `1px solid ${selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-border, #e2e8f0)'}`,
-                  backgroundColor: selected ? 'var(--freesail-bg-raised, #ffffff)' : 'transparent',
-                  color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
+                  border: `1px solid ${selected ? 'var(--freesail-primary, #77c4e6)' : 'var(--freesail-border, #e2e8f0)'}`,
+                  backgroundColor: selected ? 'var(--freesail-primary, #77c4e6)' : 'transparent',
+                  color: selected ? 'var(--freesail-primary-foreground, #0d2233)' : 'var(--freesail-text-foreground, #0f172a)',
                   padding: '4px 12px',
                 }}
               >
@@ -625,19 +1087,48 @@ export function ChoicePickerSingleSelect({ component, meta, onDataChange }: Free
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
       {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
-        {options.map((opt) => (
-          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
-            <input
-              type="radio"
-              name={component.id}
-              checked={localValue === opt.value}
-              onChange={() => handleRadioChange(opt.value)}
-            />
-            <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
-          </label>
-        ))}
-      </div>
+      <RadixRadioGroup.Root
+        value={localValue}
+        onValueChange={handleRadioChange}
+        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}
+      >
+        {options.map((opt) => {
+          const isSelected = localValue === opt.value;
+          return (
+            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
+              <RadixRadioGroup.Item
+                value={opt.value}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  flexShrink: 0,
+                  borderRadius: '50%',
+                  border: `2px solid ${isSelected ? 'var(--freesail-primary)' : 'var(--freesail-border, #e2e8f0)'}`,
+                  background: isSelected ? 'var(--freesail-primary)' : 'var(--freesail-bg, #ffffff)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {isSelected && (
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: 'var(--freesail-primary-foreground, #ffffff)',
+                    display: 'block',
+                    flexShrink: 0,
+                  }} />
+                )}
+              </RadixRadioGroup.Item>
+              <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
+            </label>
+          );
+        })}
+      </RadixRadioGroup.Root>
       {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
@@ -704,9 +1195,9 @@ export function ChoicePickerMultiSelect({ component, meta, onDataChange }: Frees
                   borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: 'var(--freesail-type-body)',
-                  border: `1px solid ${selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-border, #e2e8f0)'}`,
-                  backgroundColor: selected ? 'var(--freesail-bg-raised, #ffffff)' : 'transparent',
-                  color: selected ? 'var(--freesail-primary, #3b82f6)' : 'var(--freesail-text-foreground, #0f172a)',
+                  border: `1px solid ${selected ? 'var(--freesail-primary, #77c4e6)' : 'var(--freesail-border, #e2e8f0)'}`,
+                  backgroundColor: selected ? 'var(--freesail-primary, #77c4e6)' : 'transparent',
+                  color: selected ? 'var(--freesail-primary-foreground, #0d2233)' : 'var(--freesail-text-foreground, #0f172a)',
                   padding: '4px 12px',
                 }}
               >
@@ -727,16 +1218,36 @@ export function ChoicePickerMultiSelect({ component, meta, onDataChange }: Frees
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-sm)' }}>
       {label && <div style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
-        {options.map((opt) => (
-          <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={localValue.includes(opt.value)}
-              onChange={(e) => handleCheckboxChange(opt.value, e.target.checked)}
-            />
-            <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
-          </label>
-        ))}
+        {options.map((opt) => {
+          const isChecked = localValue.includes(opt.value);
+          return (
+            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)', cursor: 'pointer' }}>
+              <RadixCheckbox.Root
+                checked={isChecked}
+                onCheckedChange={(checked) => handleCheckboxChange(opt.value, checked === true)}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  flexShrink: 0,
+                  borderRadius: 'var(--freesail-radius-sm, 3px)',
+                  border: fieldBorder(false),
+                  background: isChecked ? 'var(--freesail-primary)' : 'var(--freesail-bg, #ffffff)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <RadixCheckbox.Indicator>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="var(--freesail-primary-foreground, #ffffff)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </RadixCheckbox.Indicator>
+              </RadixCheckbox.Root>
+              <span style={{ fontSize: 'var(--freesail-type-body)' }}>{opt.label}</span>
+            </label>
+          );
+        })}
       </div>
       {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
@@ -757,8 +1268,11 @@ export function Spacer({ component }: FreesailComponentProps) {
 }
 
 export function Modal({ component, children, onAction, onFunctionCall }: FreesailComponentProps) {
-  const modalRef = React.useRef<HTMLDivElement>(null);
-  const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
+  const { mode, tokens } = useFreesailTheme();
+  const themeVars = {
+    ...tokensToCssVars(tokens, mode),
+    ...applyComponentTheme(component['theme'] as Record<string, string> | undefined),
+  };
 
   const handleClose = () => {
     if (onFunctionCall) {
@@ -769,61 +1283,58 @@ export function Modal({ component, children, onAction, onFunctionCall }: Freesai
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    if (modalRef.current) {
-      modalRef.current.focus();
-    }
-  }, []);
-
-  const modalOverlayStyle: CSSProperties = {
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  };
-
-  const modalContentStyle: CSSProperties = {
-    ...themeVars,
-    backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
-    color: 'var(--freesail-text-foreground, #0f172a)',
-    padding: 'var(--freesail-space-lg)',
-    borderRadius: 'var(--freesail-radius-lg)',
-    maxWidth: '90%',
-    maxHeight: '90%',
-    overflow: 'auto',
-    position: 'relative',
-    boxShadow: 'var(--freesail-shadow-md)',
-  };
-
-  const closeButtonStyle: CSSProperties = {
-    position: 'absolute',
-    top: 'var(--freesail-space-sm)', right: 'var(--freesail-space-sm)',
-    cursor: 'pointer',
-    border: 'none',
-    background: 'none',
-    fontSize: 'var(--freesail-icon-lg)',
-  };
-
   return (
-    <div style={modalOverlayStyle} onClick={handleClose} role="dialog" aria-modal="true">
-      <div ref={modalRef} style={modalContentStyle} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
-        <button style={closeButtonStyle} onClick={handleClose} aria-label="Close">
-          &times;
-        </button>
-        {children}
-      </div>
-    </div>
+    <RadixDialog.Root open={true} onOpenChange={(open) => { if (!open) handleClose(); }}>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+          }}
+        />
+        <RadixDialog.Content
+          onEscapeKeyDown={handleClose}
+          onInteractOutside={handleClose}
+          style={{
+            ...themeVars,
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
+            color: 'var(--freesail-text-foreground, #0f172a)',
+            padding: 'var(--freesail-space-lg, 24px)',
+            borderRadius: 'var(--freesail-radius-lg, 0.75rem)',
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: 'var(--freesail-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1))',
+            zIndex: 1001,
+          }}
+        >
+          <RadixDialog.Title style={{ display: 'none' }} />
+          <button
+            onClick={handleClose}
+            aria-label="Close"
+            style={{
+              position: 'absolute',
+              top: 'var(--freesail-space-sm, 8px)',
+              right: 'var(--freesail-space-sm, 8px)',
+              cursor: 'pointer',
+              border: 'none',
+              background: 'none',
+              fontSize: 'var(--freesail-icon-lg)',
+              color: 'var(--freesail-text-secondary, #64748b)',
+            }}
+          >
+            &times;
+          </button>
+          {children}
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }
 
@@ -1091,17 +1602,33 @@ export function CheckBox({ component, meta, onDataChange }: FreesailComponentPro
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
       <label style={style}>
-        <input
-          type="checkbox"
+        <RadixCheckbox.Root
           checked={localChecked}
-          onChange={(e) => {
+          onCheckedChange={(checked) => {
+            const newVal = checked === 'indeterminate' ? false : Boolean(checked);
+            setLocalChecked(newVal);
             const writePath = boundPath ?? `/input/${component.id}`;
-            setLocalChecked(e.target.checked);
-            if (onDataChange) {
-              onDataChange(writePath, e.target.checked);
-            }
+            if (onDataChange) onDataChange(writePath, newVal);
           }}
-        />
+          style={{
+            width: '16px',
+            height: '16px',
+            flexShrink: 0,
+            borderRadius: 'var(--freesail-radius-sm, 3px)',
+            border: fieldBorder(!!validationError),
+            background: localChecked ? 'var(--freesail-primary)' : 'var(--freesail-bg, #ffffff)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <RadixCheckbox.Indicator>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="var(--freesail-primary-foreground, #ffffff)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </RadixCheckbox.Indicator>
+        </RadixCheckbox.Root>
         <span>{label}</span>
       </label>
       {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
@@ -1220,10 +1747,9 @@ export function Tab({ component, children }: FreesailComponentProps) {
  * TabGroup - tabbed container that shows one Tab child at a time.
  */
 export function TabGroup({ component, children }: FreesailComponentProps) {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState('0');
   const childArray = React.Children.toArray(children);
 
-  // Extract tab titles by traversing down the wrappers
   const getComponentTitle = (child: React.ReactNode): string | undefined => {
     if (!React.isValidElement(child)) return undefined;
     if (child.props?.component && 'title' in child.props.component) {
@@ -1242,54 +1768,46 @@ export function TabGroup({ component, children }: FreesailComponentProps) {
     return undefined;
   };
 
-  const tabTitles: string[] = childArray.map((child) => {
-    return getComponentTitle(child) ?? 'Tab';
-  });
-
-  const tabBarStyle: CSSProperties = {
-    display: 'flex',
-    borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
-    marginBottom: 'var(--freesail-space-md)',
-  };
-
-  const tabStyle = (active: boolean): CSSProperties => ({
-    padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
-    cursor: 'pointer',
-    borderBottom: active ? '2px solid var(--freesail-primary, #2563eb)' : '2px solid transparent',
-    color: active ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-text-secondary, #64748b)',
-    fontWeight: active ? '500' : 'normal',
-  });
+  const tabTitles: string[] = childArray.map((child) => getComponentTitle(child) ?? 'Tab');
 
   return (
-    <div>
-      <div style={tabBarStyle} role="tablist">
-        {tabTitles.map((title, index) => (
-          <div
-            key={index}
-            role="tab"
-            tabIndex={index === activeTab ? 0 : -1}
-            aria-selected={index === activeTab}
-            style={tabStyle(index === activeTab)}
-            onClick={() => setActiveTab(index)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setActiveTab(index);
-              } else if (e.key === 'ArrowRight') {
-                setActiveTab((index + 1) % tabTitles.length);
-              } else if (e.key === 'ArrowLeft') {
-                setActiveTab((index - 1 + tabTitles.length) % tabTitles.length);
-              }
-            }}
-          >
-            {title}
-          </div>
-        ))}
-      </div>
-      <div style={{ flex: 1, minHeight: 0 }} role="tabpanel">
-        {childArray[activeTab]}
-      </div>
-    </div>
+    <RadixTabs.Root value={activeTab} onValueChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column' }}>
+      <RadixTabs.List
+        style={{
+          display: 'flex',
+          borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
+          marginBottom: 'var(--freesail-space-md)',
+        }}
+      >
+        {tabTitles.map((title, index) => {
+          const val = String(index);
+          const isActive = activeTab === val;
+          return (
+            <RadixTabs.Trigger
+              key={val}
+              value={val}
+              style={{
+                padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
+                cursor: 'pointer',
+                border: 'none',
+                background: 'none',
+                borderBottom: isActive ? '2px solid var(--freesail-primary)' : '2px solid transparent',
+                color: isActive ? 'var(--freesail-primary)' : 'var(--freesail-text-secondary, #64748b)',
+                fontWeight: isActive ? '500' : 'normal',
+                fontSize: 'var(--freesail-type-body)',
+              }}
+            >
+              {title}
+            </RadixTabs.Trigger>
+          );
+        })}
+      </RadixTabs.List>
+      {childArray.map((child, index) => (
+        <RadixTabs.Content key={index} value={String(index)} style={{ flex: 1, minHeight: 0 }}>
+          {child}
+        </RadixTabs.Content>
+      ))}
+    </RadixTabs.Root>
   );
 }
 
@@ -1453,40 +1971,88 @@ export function Slider({ component, meta, onDataChange }: FreesailComponentProps
   const label = String((component['label'] as string) ?? '');
   const min = Number((component['min'] as number) ?? 0);
   const max = Number((component['max'] as number) ?? 100);
-  const value = Number((component['value'] as number) ?? min);
+  const step = Number((component['step'] as number) ?? 1);
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
   const boundPath = meta.getBinding('value')?.path ?? null;
 
-  const [localValue, setLocalValue] = useState(value);
+  const rawValue = component['value'];
+  const isMulti = Array.isArray(rawValue);
+  const valueArray: number[] = isMulti
+    ? (rawValue as unknown[]).map(Number)
+    : [Number(rawValue ?? min)];
 
-  useEffect(() => { setLocalValue(value); }, [value]);
+  const [localValues, setLocalValues] = useState<number[]>(valueArray);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
-    setLocalValue(newValue);
+  const valueKey = JSON.stringify(valueArray);
+  useEffect(() => { setLocalValues(valueArray); }, [valueKey]);
+
+  const handleSliderChange = (values: number[]) => {
+    setLocalValues(values);
     const writePath = boundPath ?? `/input/${component.id}`;
     if (onDataChange) {
-      onDataChange(writePath, newValue);
+      onDataChange(writePath, isMulti ? values : values[0]);
     }
   };
 
+  const displayValue = isMulti ? localValues.join(' – ') : localValues[0];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
-      {label && <label style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</label>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--freesail-space-sm)' }}>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={localValue}
-          onChange={handleChange}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 'var(--freesail-type-label)', color: 'var(--freesail-text-secondary, #64748b)', minWidth: '32px' }}>{localValue}</span>
-      </div>
-      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
+      {label && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--freesail-space-lg, 24px)' }}>
+          <label style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</label>
+          <span style={{ fontSize: 'var(--freesail-type-label)', color: 'var(--freesail-text-secondary, #64748b)', flexShrink: 0 }}>{displayValue}</span>
+        </div>
+      )}
+      <RadixSlider.Root
+        min={min}
+        max={max}
+        step={step}
+        value={localValues}
+        onValueChange={handleSliderChange}
+        style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '20px', userSelect: 'none', width: '100%' }}
+      >
+        <RadixSlider.Track
+          style={{
+            position: 'relative',
+            flexGrow: 1,
+            borderRadius: '9999px',
+            height: '4px',
+            background: 'var(--freesail-border, #e2e8f0)',
+          }}
+        >
+          <RadixSlider.Range
+            style={{
+              position: 'absolute',
+              borderRadius: '9999px',
+              height: '100%',
+              background: 'var(--freesail-primary)',
+            }}
+          />
+        </RadixSlider.Track>
+        {localValues.map((_, index) => (
+          <RadixSlider.Thumb
+            key={index}
+            aria-label={isMulti ? `${label} thumb ${index + 1}` : label}
+            style={{
+              display: 'block',
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              background: 'var(--freesail-primary)',
+              border: '2px solid var(--freesail-bg-raised, #ffffff)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+              cursor: 'pointer',
+            }}
+          />
+        ))}
+      </RadixSlider.Root>
+      {!label && (
+        <span style={{ fontSize: 'var(--freesail-type-label)', color: 'var(--freesail-text-secondary, #64748b)', textAlign: 'right' }}>{displayValue}</span>
+      )}
+      {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)' }}>{validationError}</div>}
     </div>
   );
 }
@@ -1502,7 +2068,6 @@ export function Dropdown({ component, meta, onDataChange }: FreesailComponentPro
 
   const rawOptions = component['options'];
 
-  // Normalize options: handle both string arrays and object arrays
   const options: Array<{ label: string; value: string }> = Array.isArray(rawOptions)
     ? rawOptions.map((opt) => {
       if (typeof opt === 'string') {
@@ -1515,38 +2080,99 @@ export function Dropdown({ component, meta, onDataChange }: FreesailComponentPro
     })
     : [];
 
-  // Value is a single string
   const rawValueString = component['value'];
   const value: string = typeof rawValueString === 'string' ? rawValueString : '';
 
   const boundPath = meta.getBinding('value')?.path ?? null;
 
   const [localValue, setLocalValue] = useState(value);
+  const [hoveredValue, setHoveredValue] = useState<string | null>(null);
 
   useEffect(() => { setLocalValue(value); }, [value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newValue = e.target.value;
+  const handleValueChange = (newValue: string) => {
     setLocalValue(newValue);
     const writePath = boundPath ?? `/input/${component.id}`;
-    if (onDataChange) {
-      onDataChange(writePath, newValue);
-    }
+    if (onDataChange) onDataChange(writePath, newValue);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
       {label && <label style={{ fontSize: 'var(--freesail-type-label)', fontWeight: 500 }}>{label}</label>}
-      <select
-        value={localValue}
-        onChange={handleChange}
-        style={{ padding: 'var(--freesail-space-sm) var(--freesail-space-md)', borderRadius: 'var(--freesail-radius-md)', border: validationError ? '1px solid var(--freesail-error, #ef4444)' : '1px solid var(--freesail-border, #e2e8f0)', fontSize: 'var(--freesail-type-body)', backgroundColor: 'var(--freesail-bg, #ffffff)', color: 'var(--freesail-text-foreground, #0f172a)' }}
-      >
-        <option value="" disabled>{placeholder}</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
+      <RadixSelect.Root value={localValue} onValueChange={handleValueChange}>
+        <RadixSelect.Trigger
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
+            borderRadius: 'var(--freesail-radius-md)',
+            border: fieldBorder(!!validationError),
+            fontSize: 'var(--freesail-type-body)',
+            backgroundColor: 'var(--freesail-bg, #ffffff)',
+            color: localValue ? 'var(--freesail-text-foreground, #0f172a)' : 'var(--freesail-text-secondary, #64748b)',
+            cursor: 'pointer',
+            width: '100%',
+          }}
+        >
+          <RadixSelect.Value placeholder={placeholder} />
+          <RadixSelect.Icon>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </RadixSelect.Icon>
+        </RadixSelect.Trigger>
+        <RadixSelect.Portal>
+          <RadixSelect.Content
+            position="popper"
+            sideOffset={4}
+            style={{
+              background: 'var(--freesail-bg-raised, #ffffff)',
+              border: '1px solid var(--freesail-border, #e2e8f0)',
+              borderRadius: 'var(--freesail-radius-md, 0.5rem)',
+              boxShadow: 'var(--freesail-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1))',
+              zIndex: 9999,
+              minWidth: 'var(--radix-select-trigger-width)',
+              overflow: 'hidden',
+            }}
+          >
+            <RadixSelect.Viewport style={{ padding: 'var(--freesail-space-xs, 4px)' }}>
+              {options.map((opt) => {
+                const isSelected = localValue === opt.value;
+                const isHovered = hoveredValue === opt.value;
+                return (
+                  <RadixSelect.Item
+                    key={opt.value}
+                    value={opt.value}
+                    onMouseEnter={() => setHoveredValue(opt.value)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 'var(--freesail-space-sm, 8px) var(--freesail-space-md, 12px)',
+                      borderRadius: 'var(--freesail-radius-sm, 3px)',
+                      fontSize: 'var(--freesail-type-body, 16px)',
+                      cursor: 'pointer',
+                      outline: isHovered && !isSelected ? '1px solid var(--freesail-border, #e2e8f0)' : 'none',
+                      userSelect: 'none',
+                      background: isSelected
+                        ? 'var(--freesail-primary, #5b7c99)'
+                        : isHovered
+                          ? 'var(--freesail-bg-muted, #dce8f0)'
+                          : 'transparent',
+                      color: isSelected
+                        ? 'var(--freesail-primary-foreground, #ffffff)'
+                        : 'var(--freesail-text-foreground, #0f172a)',
+                    }}
+                  >
+                    <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
+                  </RadixSelect.Item>
+                );
+              })}
+            </RadixSelect.Viewport>
+          </RadixSelect.Content>
+        </RadixSelect.Portal>
+      </RadixSelect.Root>
       {validationError && <div style={{ fontSize: 'var(--freesail-type-caption)', color: 'var(--freesail-error, #ef4444)', marginTop: 'var(--freesail-space-xs)' }}>{validationError}</div>}
     </div>
   );
@@ -1566,6 +2192,7 @@ export function BarChart({ component }: FreesailComponentProps) {
   const defaultColor = getSemanticColor(component['color'] as string) ?? '#2563eb';
   const showValues = component['showValues'] !== false;
   const CHART_H = typeof component['chartHeight'] === 'number' ? component['chartHeight'] : 244;
+  const heightProp = component['height'] as string | undefined;
 
   if (data.length === 0) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>No chart data</div>;
@@ -1581,10 +2208,12 @@ export function BarChart({ component }: FreesailComponentProps) {
     const chartWidth = 300;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: heightProp ? 'fit-content' : '100%', minWidth: 0 }}>
         <ChartTitle title={title} />
-        <svg width="100%" viewBox={`0 0 ${labelWidth + chartWidth + 60} ${svgHeight}`}
-          preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${labelWidth + chartWidth + 60} / ${svgHeight}` }}>
+        <svg viewBox={`0 0 ${labelWidth + chartWidth + 60} ${svgHeight}`}
+          preserveAspectRatio="xMinYMin meet"
+          {...(heightProp ? { height: heightProp } : { width: '100%' })}
+          style={{ overflow: 'visible', display: 'block', ...(!heightProp && { aspectRatio: `${labelWidth + chartWidth + 60} / ${svgHeight}` }) }}>
           {data.map((d, i) => {
             const y = i * (barHeight + gap);
             const barW = (d.value / maxVal) * chartWidth;
@@ -1635,10 +2264,12 @@ export function BarChart({ component }: FreesailComponentProps) {
   const step = chartW / data.length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: heightProp ? 'fit-content' : '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${svgHeight}` }}>
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="xMinYMin meet"
+        {...(heightProp ? { height: heightProp } : { width: '100%' })}
+        style={{ overflow: 'visible', display: 'block', ...(!heightProp && { aspectRatio: `${svgWidth} / ${svgHeight}` }) }}>
         {/* Grid lines */}
         {gridVals.map((v, i) => {
           const y = padding.top + chartH - (v / maxVal) * chartH;
@@ -1702,6 +2333,7 @@ export function LineChart({ component }: FreesailComponentProps) {
   const showDots = component['showDots'] !== false;
   const showArea = component['showArea'] === true;
   const CHART_H = typeof component['chartHeight'] === 'number' ? component['chartHeight'] : 244;
+  const heightProp = component['height'] as string | undefined;
 
   if (data.length < 2) {
     return <div style={{ color: 'var(--freesail-text-secondary, #64748b)', fontSize: 'var(--freesail-type-body)' }}>Need at least 2 data points</div>;
@@ -1743,10 +2375,12 @@ export function LineChart({ component }: FreesailComponentProps) {
     ` L${points[0]!.x},${padding.top + chartH} Z`;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: heightProp ? 'fit-content' : '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        preserveAspectRatio="xMinYMin meet" style={{ overflow: 'visible', aspectRatio: `${svgWidth} / ${svgHeight}` }}>
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="xMinYMin meet"
+        {...(heightProp ? { height: heightProp } : { width: '100%' })}
+        style={{ overflow: 'visible', display: 'block', ...(!heightProp && { aspectRatio: `${svgWidth} / ${svgHeight}` }) }}>
         <defs>
           <linearGradient id={`area-grad-${color.replace(/[^a-zA-Z0-9]/g, '')}`}
             x1="0" y1="0" x2="0" y2="1">
@@ -1865,10 +2499,14 @@ export function PieChart({ component }: FreesailComponentProps) {
     };
   });
 
+  const align = (component['align'] as string) ?? 'start';
+  const justifyMap: Record<string, string> = { start: 'flex-start', center: 'center', end: 'flex-end' };
+  const justify = justifyMap[align] ?? 'flex-start';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
       <ChartTitle title={title} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: justify, gap: 'var(--freesail-space-lg)', flexWrap: 'wrap', width: '100%' }}>
         <svg viewBox={`0 0 ${size} ${size}`} preserveAspectRatio="xMidYMid meet" style={{ flex: '1 1 0', maxWidth: `${size}px`, minWidth: `${Math.round(size / 2)}px`, aspectRatio: '1 / 1', overflow: 'visible', display: 'block' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill={seg.color} stroke="white" strokeWidth={2} />
@@ -2009,7 +2647,7 @@ export function StatCard({ component, children }: FreesailComponentProps) {
 // =============================================================================
 
 export const standardCatalogComponents: Record<string, React.ComponentType<FreesailComponentProps>> = {
-  Column, Row, Card, Text, Button, TextField, Icon, DateTimeInput, Modal, Spacer,
+  Column, Row, Card, Text, Button, TextField, Icon, DateInput, TimeInput, Modal, Spacer,
   ChoicePickerSingleSelect, ChoicePickerMultiSelect,
   FluidGrid, TabularGrid, CheckBox, Image, Divider, List, Tab, TabGroup,
   Video, AudioPlayer, Slider, Dropdown, BarChart, LineChart, PieChart, Sparkline, StatCard,

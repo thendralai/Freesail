@@ -23,9 +23,9 @@
               "$ref": "#/$defs/ChildList"
             },
             "gap": {
-              "description": "The spacing between children.",
+              "description": "Spacing between children. Use semantic words: \"none\", \"sm\" / \"small\", \"md\" / \"medium\", \"lg\" / \"large\", \"xl\". Also accepts any valid CSS length (e.g. \"16px\").",
               "$ref": "#/$defs/DynamicString",
-              "default": "8px"
+              "default": "sm"
             },
             "padding": {
               "description": "Padding around the content.",
@@ -94,9 +94,9 @@
               "$ref": "#/$defs/ChildList"
             },
             "gap": {
-              "description": "The spacing between children.",
+              "description": "Spacing between children. Use semantic words: \"none\", \"sm\" / \"small\", \"md\" / \"medium\", \"lg\" / \"large\", \"xl\". Also accepts any valid CSS length (e.g. \"16px\").",
               "$ref": "#/$defs/DynamicString",
-              "default": "8px"
+              "default": "sm"
             },
             "padding": {
               "description": "Padding around the content.",
@@ -179,7 +179,7 @@
                 "end",
                 "stretch"
               ],
-              "description": "Cross-axis alignment of children inside the card. 'start' (default) aligns to the top-left, 'center' centers both horizontally, 'end' aligns to the right, 'stretch' fills full width."
+              "description": "Cross-axis alignment of children inside the card. 'stretch' (default) makes children fill the full card width. 'start' aligns children to the left, 'center' centers them horizontally, 'end' aligns them to the right."
             },
             "justify": {
               "type": "string",

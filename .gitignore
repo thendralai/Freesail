@@ -41,3 +41,4 @@ docs/Agents/*
 #Configuration
 freesail-gateway.config.json
 
+example/nginx.conf

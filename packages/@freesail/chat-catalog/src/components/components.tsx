@@ -203,8 +203,8 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
   const isUser = role === 'user';
   const isSystem = role === 'system';
 
-  const defaultBg = isSystem ? 'var(--freesail-warning, #f59e0b)' : isUser ? 'var(--freesail-primary, #2563eb)' : 'var(--freesail-bg-muted, #f8fafc)';
-  const defaultColor = isUser ? '#ffffff' : 'var(--freesail-text-foreground, #0f172a)';
+  const defaultBg = isSystem ? 'var(--freesail-warning, #f59e0b)' : isUser ? 'var(--freesail-bg-muted, #2563eb)' : 'var(--freesail-bg-raised, #f8fafc)';
+  const defaultColor = 'var(--freesail-text-foreground, #0f172a)';//isUser ? '#ffffff' : 'var(--freesail-text-foreground, #0f172a)';
 
   // When agent provides a background but no explicit color, auto-derive contrast text
   const resolvedColor = rawColor

@@ -165,7 +165,7 @@ function App() {
               flex: 1,
               padding: '20px',
               overflow: 'auto',
-              backgroundColor: 'var(--freesail-bg-muted, #f8fafc)',
+              backgroundColor: 'var(--freesail-bg, #f8fafc)',
               color: 'var(--freesail-text-foreground, #0f172a)',
             }}>
               <header style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

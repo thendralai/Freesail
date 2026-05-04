@@ -317,7 +317,7 @@ function renderComponent(
     // stay on a real DOM element instead of leaking as props into
     // functional components.
     const taggedRendered = (
-      <div data-freesail-component={componentDef.component} data-freesail-id={componentId} style={{ display: 'contents' }}>
+      <div key={keyOverride ?? componentId} data-freesail-component={componentDef.component} data-freesail-id={componentId} style={{ display: 'contents' }}>
         {rendered}
       </div>
     );
