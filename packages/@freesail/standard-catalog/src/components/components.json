@@ -65,7 +65,7 @@
               "const": "Icon"
             },
             "name": {
-              "description": "A Material Icon name in camelCase (e.g. 'home', 'search', 'settings', 'accountCircle', 'shoppingCart'). Use any valid icon name from the Material Icons library.",
+              "description": "A Material Symbols icon name in camelCase (e.g. 'home', 'search', 'settings', 'accountCircle', 'shoppingCart', 'mail', 'phone', 'star', 'language'). IMPORTANT: Material Symbols does NOT include brand or social media icons — 'facebook', 'twitter', 'instagram', 'linkedin', 'youtube' and similar are invalid and will render as broken text. For social media links, use a Button with variant 'borderless' and a text label instead.",
               "oneOf": [
                 {
                   "type": "string"
@@ -161,7 +161,7 @@
             },
             "theme": {
               "$ref": "../common/common_types.json#/$defs/Theme",
-              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → sets BOTH the container's own background color AND the background of any flat Card children inside (IMPORTANT: always set bg when you want a colored section background, e.g. a hero or banner — do NOT set color on individual Text children instead); bgRaised → background of raised Card children; textForeground → text color inherited by all Text components inside (use this alongside bg for hero sections so text is readable); primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example for a dark hero section: { \"bg\": \"#1a2a4a\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
@@ -223,7 +223,7 @@
             },
             "theme": {
               "$ref": "../common/common_types.json#/$defs/Theme",
-              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → sets BOTH the container's own background color AND the background of any flat Card children inside (IMPORTANT: always set bg when you want a colored section background, e.g. a hero or banner — do NOT set color on individual Text children instead); bgRaised → background of raised Card children; textForeground → text color inherited by all Text components inside (use this alongside bg for hero sections so text is readable); primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example for a dark hero section: { \"bg\": \"#1a2a4a\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
@@ -303,7 +303,7 @@
         },
         {
           "type": "object",
-          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. Visibility is controlled via the show/hide functions or the visible property (default false). To open the modal, use a Button whose action calls show with the modal's ID. Key properties: child (required, ID of the component shown inside the modal), visible (boolean, default false). The Modal includes a 'X' button for closing. User-Writable: false.",
+          "description": "A modal window that overlays the screen. IMPORTANT: The Modal must be added to a parent layout's children array (e.g. the root Column) to render. It renders as a fixed overlay so its position in the tree does not affect layout. You can set visibility at client side using the show/hide functions. To open the modal, use a Button whose action calls the show function with the modal's ID. Key properties: child (required, ID of the component shown inside the modal). The Modal includes a 'X' button for closing. User-Writable: false.",
           "properties": {
             "component": {
               "const": "Modal"

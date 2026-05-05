@@ -257,6 +257,14 @@ describe('show', () => {
     expect(String(result.path)).toContain('myBtn');
   });
 
+  it('includes a component_visibility_changed action', () => {
+    const result = show('myBtn') as Record<string, unknown>;
+    const action = result['action'] as Record<string, unknown>;
+    expect(action['name']).toBe('component_visibility_changed');
+    expect((action['context'] as Record<string, unknown>)['componentId']).toBe('myBtn');
+    expect((action['context'] as Record<string, unknown>)['visible']).toBe(true);
+  });
+
   it('returns undefined for non-string input', () => {
     expect(show(42)).toBeUndefined();
   });
@@ -267,6 +275,14 @@ describe('hide', () => {
     const result = hide('myBtn') as Record<string, unknown>;
     expect(result['_effect']).toBe('dataModelUpdate');
     expect(result.value).toBe(false);
+  });
+
+  it('includes a component_visibility_changed action', () => {
+    const result = hide('myBtn') as Record<string, unknown>;
+    const action = result['action'] as Record<string, unknown>;
+    expect(action['name']).toBe('component_visibility_changed');
+    expect((action['context'] as Record<string, unknown>)['componentId']).toBe('myBtn');
+    expect((action['context'] as Record<string, unknown>)['visible']).toBe(false);
   });
 
   it('returns undefined for non-string input', () => {

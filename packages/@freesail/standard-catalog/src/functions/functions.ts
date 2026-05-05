@@ -212,12 +212,18 @@ export const openUrl: FunctionImplementation = (url: unknown) => {
 
 export const show: FunctionImplementation = (componentId: unknown) => {
   if (typeof componentId !== 'string') return undefined;
-  return setComponentState(componentId, 'visible', true);
+  return {
+    ...setComponentState(componentId, 'visible', true),
+    action: { name: 'component_visibility_changed', context: { componentId, visible: true } },
+  };
 };
 
 export const hide: FunctionImplementation = (componentId: unknown) => {
   if (typeof componentId !== 'string') return undefined;
-  return setComponentState(componentId, 'visible', false);
+  return {
+    ...setComponentState(componentId, 'visible', false),
+    action: { name: 'component_visibility_changed', context: { componentId, visible: false } },
+  };
 };
 
 export const standardCatalogFunctions: Record<string, FunctionImplementation> = {

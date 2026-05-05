@@ -303,8 +303,15 @@ function renderComponent(
     onDataChange,
     onFunctionCall: (call) => {
        const result = evaluateFunction(call, dataModel, catalogId, scopeData);
-       if (isFreesailSideEffect(result)) {
+       if (!isFreesailSideEffect(result)) return;
+       if (result._effect === 'dataModelUpdate') {
          onDataChange(result.path, result.value);
+       }
+       const action = result._effect === 'actionDispatch'
+         ? { name: result.name, context: result.context }
+         : result.action;
+       if (action) {
+         dispatch(action.name, componentDef.id, action.context);
        }
     },
   };

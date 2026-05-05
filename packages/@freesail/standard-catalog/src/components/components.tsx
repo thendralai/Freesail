@@ -449,8 +449,29 @@ export function Icon({ component }: FreesailComponentProps) {
   ensureMaterialSymbols();
 
   const toSnakeCase = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
-
   const ligature = toSnakeCase(name);
+  const [displayLigature, setDisplayLigature] = useState(ligature);
+
+  useEffect(() => {
+    setDisplayLigature(ligature); // reset if name prop changes
+    document.fonts.load('24px "Material Symbols Outlined"').then(() => {
+      const probe = document.createElement('span');
+      Object.assign(probe.style, {
+        position: 'absolute', top: '-9999px', left: '-9999px',
+        fontFamily: "'Material Symbols Outlined', sans-serif",
+        fontSize: '24px', whiteSpace: 'nowrap', visibility: 'hidden',
+      });
+      document.body.appendChild(probe);
+      probe.textContent = ligature;
+      const ligatureWidth = probe.getBoundingClientRect().width;
+      probe.textContent = 'home'; // known-valid reference
+      const referenceWidth = probe.getBoundingClientRect().width;
+      document.body.removeChild(probe);
+      if (ligatureWidth > referenceWidth * 1.5) {
+        setDisplayLigature('help_outline');
+      }
+    });
+  }, [ligature]);
 
   const style: CSSProperties = {
     fontSize: size,
@@ -468,7 +489,7 @@ export function Icon({ component }: FreesailComponentProps) {
     WebkitFontSmoothing: 'antialiased',
   };
 
-  return <span style={style}>{ligature}</span>;
+  return <span style={style}>{displayLigature}</span>;
 }
 
 // =============================================================================
@@ -1700,7 +1721,6 @@ export function Image({ component, onAction }: FreesailComponentProps) {
 
   return <img src={src} alt={alt} style={style} onError={() => {
     setError(true);
-    onAction?.('image_error', { src, componentId: component.id, reason: 'load_failed' });
   }} />;
 }
 

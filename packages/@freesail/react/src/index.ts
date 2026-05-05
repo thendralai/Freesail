@@ -38,6 +38,7 @@ export {
   type FreesailSideEffect,
   isFreesailSideEffect,
   setComponentState,
+  dispatchAction,
 } from './types.js';
 
 // Re-export core types for convenience

@@ -50,21 +50,37 @@ export type FunctionImplementation = (...args: any[]) => any;
 // =============================================================================
 
 /**
- * A typed side effect returned by catalog functions (e.g. show/hide).
- * The renderer detects this via isFreesailSideEffect and applies the update.
+ * A typed side effect returned by catalog functions.
+ *
+ * - `dataModelUpdate`: writes a value to the local data model (e.g. show/hide).
+ *   Optionally also dispatches an upstream action to the agent.
+ * - `actionDispatch`: dispatches an upstream action to the agent with no local state change.
+ *   Any catalog function can return this to notify the agent of something that happened.
  */
-export type FreesailSideEffect = {
-  readonly _effect: 'dataModelUpdate';
-  path: string;
-  value: unknown;
-};
+export type FreesailSideEffect =
+  | {
+      readonly _effect: 'dataModelUpdate';
+      path: string;
+      value: unknown;
+      action?: { name: string; context: Record<string, unknown> };
+    }
+  | {
+      readonly _effect: 'actionDispatch';
+      name: string;
+      context: Record<string, unknown>;
+    };
 
 export function isFreesailSideEffect(v: unknown): v is FreesailSideEffect {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    (v as Record<string, unknown>)['_effect'] === 'dataModelUpdate'
-  );
+  const effect = (v as Record<string, unknown>)?.['_effect'];
+  return effect === 'dataModelUpdate' || effect === 'actionDispatch';
+}
+
+/**
+ * Returns a FreesailSideEffect that dispatches an upstream action to the agent.
+ * Use this in any catalog function that needs to notify the agent of a client-side event.
+ */
+export function dispatchAction(name: string, context: Record<string, unknown> = {}): FreesailSideEffect {
+  return { _effect: 'actionDispatch', name, context };
 }
 
 /**

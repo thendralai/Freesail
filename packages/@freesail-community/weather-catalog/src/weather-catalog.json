@@ -65,7 +65,7 @@
             },
             "theme": {
               "$ref": "#/$defs/Theme",
-              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → sets BOTH the container's own background color AND the background of any flat Card children inside (IMPORTANT: always set bg when you want a colored section background, e.g. a hero or banner — do NOT set color on individual Text children instead); bgRaised → background of raised Card children; textForeground → text color inherited by all Text components inside (use this alongside bg for hero sections so text is readable); primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example for a dark hero section: { \"bg\": \"#1a2a4a\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
@@ -127,7 +127,7 @@
             },
             "theme": {
               "$ref": "#/$defs/Theme",
-              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → background of flat Card children; bgRaised → background of raised Card children; textForeground → text color inherited by Text components inside; primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example: { \"primary\": \"#dc2626\", \"textForeground\": \"#1e293b\" }"
+              "description": "Theme token overrides cascading to all children of this layout container. Useful for scoping a color scheme to a section of the UI. Token-to-element mapping: bg → sets BOTH the container's own background color AND the background of any flat Card children inside (IMPORTANT: always set bg when you want a colored section background, e.g. a hero or banner — do NOT set color on individual Text children instead); bgRaised → background of raised Card children; textForeground → text color inherited by all Text components inside (use this alongside bg for hero sections so text is readable); primary → brand/accent color for Button and icon children; border → border color for Divider and TabularGrid children. Example for a dark hero section: { \"bg\": \"#1a2a4a\", \"textForeground\": \"#ffffff\" }"
             }
           },
           "required": [
