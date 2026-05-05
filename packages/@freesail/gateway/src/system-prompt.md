@@ -117,6 +117,7 @@ E.g. The below update_data_model tool call updates the value for the sections of
 - **Use `minWidth` to prevent overflow after wrapping**: After a card wraps to its own row, it can still be forced narrower than `flexBasis` if the container is very narrow. Set `minWidth` independently to define the hard floor (e.g. `flexBasis: "400px"` for the wrap point, `minWidth: "200px"` as the floor). Without `minWidth`, the component overflows the container.
 - **Use `minHeight` to guarantee visual presence**: Set `minHeight` on chart or media cards to ensure they have enough vertical space to be readable even with sparse content (e.g. `"250px"`).
 - **Wrap your Rows**: Group nested horizontal content using `Row` components. Rows automatically wrap their children by default. If inner items (like heavily weighted Cards) run out of width and hit their `flexBasis` floor, they will cleanly cascade down into standard vertical stacks, simulating perfect fluid mobile breakpoints.
+- **Row vertical alignment defaults to bottom (`flex-end`)**: All children in a Row are bottom-aligned by default, so shorter elements (e.g. a Button next to a taller Card) sit at the bottom edge. Override with `align: "start"` when top-alignment is needed.
 - **Lock exact component metrics**: Use specific physical `width` and `height` strings *only* for specialized granular elements that realistically require strict geometric boundaries (e.g. `"40px"` for an Avatar Graphic, or `"100%"` to force a component to stretch vertically perfectly).
 
 ### Components
@@ -192,16 +193,16 @@ Then reference the field with a relative path: `{ "path": "label" }`.
   - **Use Semantic Tokens** — always prefer these over raw colors:
     | Token | Use for |
     |---|---|
-    | `textMain` | Default body/heading text on any background |
-    | `textMuted` | Secondary, hint, or caption text |
-    | `primaryText` | Text **on top of** a primary-colored surface (e.g. button labels) — NOT for general text |
+    | `textForeground` | Default body/heading text on any background |
+    | `textSecondary` | Secondary, hint, or caption text |
+    | `primaryForeground` | Text **on top of** a primary-colored surface (e.g. button labels) — NOT for general text |
     | `primary` | Brand accent: buttons, links, highlights |
-    | `bgRoot` | Page/surface root background |
-    | `bgSurface` | Card or panel background |
+    | `bg` | Page/surface root background |
+    | `bgRaised` | Card or panel background |
     | `bgMuted` | Subtle fill, dividers, disabled states |
     | `error` / `success` | Status indicators |
 
-  Example: `{ "component": "Text", "color": "textMuted", "text": "Hint" }`
+  Example: `{ "component": "Text", "color": "textSecondary", "text": "Hint" }`
   - For catalogs without semantic token support, or when a specific color is explicitly required for meaning (e.g., a critical status indicator), you MAY use specific CSS colors (e.g., "red", "#ff0000", or HSL).
   - Prefer colors that work well in both light and dark themes.
 
@@ -209,5 +210,4 @@ Then reference the field with a relative path: `{ "path": "label" }`.
 Use the correct sessionId and surfaceId whereever applicable when calling tools and checking resources. All tools have description that detail their purpose and usage.
 
 ### Create Sophisticated UI
-Use colors, icons, alignments, height, width, flexbasis, weight and functions to create sophisticated and engaging UI.
-
+Use colors, icons, alignments, height, width, flexbasis, weight and functions to create sophisticated and engaging UI. Center-align the components whereever it makes sense to be center aligned. 

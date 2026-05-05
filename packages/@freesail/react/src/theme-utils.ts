@@ -68,7 +68,7 @@ export const defaultLightTokens: FreesailThemeTokens = {
   success: '#22c55e',
   warning: '#f59e0b',
   info: '#3b82f6',
-  border: '#a8d6eb',
+  border: '#808080',
   radiusSm: '0.25rem',
   radiusMd: '0.5rem',
   radiusLg: '0.75rem',

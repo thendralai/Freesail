@@ -37,7 +37,7 @@ function OptimisticUserMessage({ text }: { text: string }) {
     maxWidth: '85%',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)',
-    backgroundColor: 'var(--freesail-primary, #2563eb)',
+    backgroundColor: 'var(--freesail-primary)',
     color: '#ffffff',
     fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
@@ -99,9 +99,9 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
     minHeight: 0,
     overflow: 'hidden',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    backgroundColor: background ?? 'var(--freesail-bg, #ffffff)',
+    backgroundColor: background ?? 'var(--freesail-bg)',
     color: color ?? (rawBg ? getContrastTextColor(rawBg) : undefined),
-    borderRight: '1px solid var(--freesail-border, #e2e8f0)',
+    borderRight: '1px solid var(--freesail-border)',
   };
 
   const scrollStyle: CSSProperties = {
@@ -116,10 +116,10 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
         {title && (
           <div style={{
             padding: 'var(--freesail-space-md)',
-            borderBottom: '1px solid var(--freesail-border, #e2e8f0)',
+            borderBottom: '1px solid var(--freesail-border)',
             fontWeight: 600,
             fontSize: 'var(--freesail-type-h4)',
-            color: 'var(--freesail-text-foreground, #0f172a)',
+            color: 'var(--freesail-text-foreground)',
           }}>
             {title}
           </div>
@@ -172,7 +172,7 @@ export function ChatMessageList({ children }: FreesailComponentProps) {
           ))}
         </>
       ) : (
-        <div style={{ color: 'var(--freesail-text-secondary, #64748b)', textAlign: 'center', marginTop: 'var(--freesail-space-xl)' }}>
+        <div style={{ color: 'var(--freesail-text-secondary)', textAlign: 'center', marginTop: 'var(--freesail-space-xl)' }}>
           <p>Ask the agent anything!</p>
           <p style={{ fontSize: 'var(--freesail-type-label)', marginTop: 'var(--freesail-space-sm)' }}>
             Try: &quot;Show me a welcome card&quot; or &quot;Create a counter&quot;
@@ -203,8 +203,8 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
   const isUser = role === 'user';
   const isSystem = role === 'system';
 
-  const defaultBg = isSystem ? 'var(--freesail-warning, #f59e0b)' : isUser ? 'var(--freesail-bg-muted, #2563eb)' : 'var(--freesail-bg-raised, #f8fafc)';
-  const defaultColor = 'var(--freesail-text-foreground, #0f172a)';//isUser ? '#ffffff' : 'var(--freesail-text-foreground, #0f172a)';
+  const defaultBg = isSystem ? 'var(--freesail-warning)' : isUser ? 'var(--freesail-bg-muted)' : 'var(--freesail-bg-raised)';
+  const defaultColor = 'var(--freesail-text-foreground)';//isUser ? '#ffffff' : 'var(--freesail-text-foreground)';
 
   // When agent provides a background but no explicit color, auto-derive contrast text
   const resolvedColor = rawColor
@@ -234,7 +234,7 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
 
   const timeStyle: CSSProperties = {
     fontSize: 'var(--freesail-type-caption)',
-    color: 'var(--freesail-text-secondary, #64748b)',
+    color: 'var(--freesail-text-secondary)',
     marginTop: 'var(--freesail-space-xs)',
     paddingLeft: isUser ? undefined : 'var(--freesail-space-xs)',
     paddingRight: isUser ? 'var(--freesail-space-xs)' : undefined,
@@ -299,6 +299,7 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
   const placeholder = (component['placeholder'] as string) ?? 'Type a message...';
   const disabled = (component['disabled'] as boolean) ?? false;
   const [text, setText] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatContext = useContext(ChatContext);
 
   const handleSend = () => {
@@ -318,6 +319,20 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  // Reset height when text is cleared after send
+  useEffect(() => {
+    if (!text && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [text]);
+
   const rawBg = component['background'] as string | undefined;
   const rawButtonColor = component['buttonColor'] as string | undefined;
   const background = getSemanticBackground(rawBg);
@@ -325,22 +340,29 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
 
   const containerStyle: CSSProperties = {
     padding: 'var(--freesail-space-md)',
-    borderTop: '1px solid var(--freesail-border, #e2e8f0)',
+    borderTop: '1px hidden var(--freesail-border)',
     display: 'flex',
+    alignItems: 'flex-end',
     gap: 'var(--freesail-space-sm)',
-    backgroundColor: background ?? 'var(--freesail-bg, #ffffff)'
+    backgroundColor: background ?? 'var(--freesail-bg)',
   };
 
   const inputStyle: CSSProperties = {
     flex: 1,
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
-    border: '1px solid var(--freesail-border, #e2e8f0)',
-    borderRadius: '20px',
+    border: '1px inset var(--freesail-border)',
+    borderRadius: 'var(--freesail-radius-lg)',
     fontSize: 'var(--freesail-type-body)',
+    lineHeight: '1.5',
     outline: 'none',
+    resize: 'none',
+    overflow: 'auto',
+    minHeight: '70px',
+    maxHeight: '160px',
     opacity: disabled ? 0.6 : 1,
-    backgroundColor: 'var(--freesail-bg-raised, #ffffff)',
-    color: rawBg ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground, #0f172a)') : 'var(--freesail-text-foreground, #0f172a)',
+    backgroundColor: 'var(--freesail-bg-raised)',
+    color: rawBg ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground)') : 'var(--freesail-text-foreground)',
+    fontFamily: 'inherit',
   };
 
   const buttonStyle: CSSProperties = {
@@ -349,8 +371,8 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
     padding: '10px',
     border: 'none',
     borderRadius: '50%',
-    backgroundColor: buttonColor ?? 'var(--freesail-primary, #2563eb)',
-    color: rawButtonColor ? getContrastTextColor(rawButtonColor, '#ffffff') : 'var(--freesail-primary-foreground, #ffffff)',
+    backgroundColor: buttonColor ?? 'var(--freesail-primary)',
+    color: rawButtonColor ? getContrastTextColor(rawButtonColor, '#ffffff') : 'var(--freesail-primary-foreground)',
     cursor: disabled || !text.trim() ? 'not-allowed' : 'pointer',
     opacity: disabled || !text.trim() ? 0.5 : 1,
     display: 'flex',
@@ -361,10 +383,11 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
 
   return (
     <div style={containerStyle}>
-      <input
-        type="text"
+      <textarea
+        ref={textareaRef}
+        rows={1}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
@@ -414,7 +437,7 @@ export function ChatTypingIndicator({ component, scopeData }: FreesailComponentP
     alignItems: 'center',
     gap: 'var(--freesail-space-sm)',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
-    color: 'var(--freesail-text-secondary, #64748b)',
+    color: 'var(--freesail-text-secondary)',
     fontSize: 'var(--freesail-type-body)',
   };
 
@@ -458,7 +481,7 @@ function Dot({ delay }: { delay: number }) {
       width: '6px',
       height: '6px',
       borderRadius: '50%',
-      backgroundColor: 'var(--freesail-text-secondary, #64748b)',
+      backgroundColor: 'var(--freesail-text-secondary)',
       opacity,
       transition: 'opacity 0.3s ease',
       display: 'inline-block',
@@ -522,12 +545,12 @@ export function AgentStream({ component, meta }: FreesailComponentProps) {
     maxWidth: '85%',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) var(--freesail-radius-lg) 4px',
-    backgroundColor: background ?? 'var(--freesail-bg-muted, #f8fafc)',
+    backgroundColor: background ?? 'var(--freesail-bg-muted)',
     color: rawColor
       ? (color ?? rawColor)
       : rawBg
-        ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground, #0f172a)')
-        : 'var(--freesail-text-foreground, #0f172a)',
+        ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground)')
+        : 'var(--freesail-text-foreground)',
     fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     wordBreak: 'break-word',

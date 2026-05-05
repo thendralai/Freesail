@@ -146,16 +146,16 @@ function App() {
 
             {/* Drag Handle */}
               <div
-                onMouseDown={onMouseDown}
                 style={{
-                  width: '2px',
+                  width: '1px',
                   cursor: 'col-resize',
-                  background: 'var(--freesail-border, rgba(128,128,128,0.4))',
+                  background: 'var(--freesail-border)',
                   flexShrink: 0,
-                  transition: 'background 0.15s',
+                  transition: 'background 0.15s, width 0.15s',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--freesail-primary, #3b82f6)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'var(--freesail-border, rgba(128,128,128,0.4))')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--freesail-primary)', e.currentTarget.style.width = '5px')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--freesail-border)', e.currentTarget.style.width = '1px')}
+                onMouseDown={e => { e.currentTarget.style.background = 'var(--freesail-primary)'; e.currentTarget.style.width = '5px'; onMouseDown(e); }}
                 tabIndex={0}
                 aria-label="Resize chat panel"
               />
@@ -176,12 +176,12 @@ function App() {
                 
                 {/* Theme Switcher Controls */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-border, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
+                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-bg, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)', outline: '1px solid var(--freesail-border, #a8d6eb)' }}>
                     <ThemeButton active={themeMode === 'light'} onClick={() => setThemeMode('light')}>Light</ThemeButton>
                     <ThemeButton active={themeMode === 'dark'} onClick={() => setThemeMode('dark')}>Dark</ThemeButton>
                     <ThemeButton active={themeMode === 'custom'} onClick={() => setThemeMode('custom')}>Custom (Rose)</ThemeButton>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-border, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
+                  <div style={{ display: 'flex', gap: '8px', background: 'var(--freesail-bg, #e2e8f0)', padding: '4px', borderRadius: 'var(--freesail-radius-md)' }}>
                     <ThemeButton active={fontSize === 'normal'} onClick={() => setFontSize('normal')}>A</ThemeButton>
                     <ThemeButton active={fontSize === 'large'} onClick={() => setFontSize('large')}>A+</ThemeButton>
                   </div>

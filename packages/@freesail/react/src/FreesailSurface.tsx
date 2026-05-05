@@ -335,9 +335,10 @@ function renderComponent(
 
     if (weight != null || width != null || height != null || flexBasis != null || minWidth != null || minHeight != null) {
       const wrapperStyle: React.CSSProperties = {
-        flex: weight != null ? `${weight} 1 ${flexBasis ?? 'auto'}` : (flexBasis ? `0 1 ${flexBasis}` : '0 0 auto'),
+        flex: weight != null ? `${weight} 1 ${flexBasis ?? 'auto'}` : '0 0 auto',
         minWidth: minWidth ?? flexBasis ?? 'min-content',
         minHeight: minHeight ?? 0,
+        maxWidth: weight != null && !flexBasis && !minWidth ? 'max-content' : undefined,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',

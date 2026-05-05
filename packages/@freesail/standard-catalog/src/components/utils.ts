@@ -11,15 +11,15 @@ export function getSemanticColor(color: string | undefined): string | undefined 
   if (!color) return undefined;
 
   const semanticMap: Record<string, string> = {
-    textForeground: 'var(--freesail-text-foreground, #0f172a)',
-    textSecondary: 'var(--freesail-text-secondary, #64748b)',
-    primary: 'var(--freesail-primary, #2563eb)',
-    primaryHover: 'var(--freesail-primary-hover, #1d4ed8)',
-    primaryForeground: 'var(--freesail-primary-foreground, #ffffff)',
-    error: 'var(--freesail-error, #ef4444)',
-    success: 'var(--freesail-success, #22c55e)',
-    warning: 'var(--freesail-warning, #f59e0b)',
-    info: 'var(--freesail-info, #3b82f6)',
+    textForeground: 'var(--freesail-text-foreground)',
+    textSecondary: 'var(--freesail-text-secondary)',
+    primary: 'var(--freesail-primary)',
+    primaryHover: 'var(--freesail-primary-hover)',
+    primaryForeground: 'var(--freesail-primary-foreground)',
+    error: 'var(--freesail-error)',
+    success: 'var(--freesail-success)',
+    warning: 'var(--freesail-warning)',
+    info: 'var(--freesail-info)',
   };
 
   return semanticMap[color] || color;
@@ -29,15 +29,15 @@ export function getSemanticBackground(value: string | undefined): string | undef
   if (!value) return undefined;
 
   const semanticMap: Record<string, string> = {
-    bg: 'var(--freesail-bg, #f8fafc)',
-    bgRaised: 'var(--freesail-bg-raised, #ffffff)',
-    bgMuted: 'var(--freesail-bg-muted, #f1f5f9)',
-    bgOverlay: 'var(--freesail-bg-overlay, rgba(0,0,0,0.5))',
-    primary: 'var(--freesail-primary, #2563eb)',
-    error: 'var(--freesail-error, #ef4444)',
-    success: 'var(--freesail-success, #22c55e)',
-    warning: 'var(--freesail-warning, #f59e0b)',
-    info: 'var(--freesail-info, #3b82f6)',
+    bg: 'var(--freesail-bg)',
+    bgRaised: 'var(--freesail-bg-raised)',
+    bgMuted: 'var(--freesail-bg-muted)',
+    bgOverlay: 'var(--freesail-bg-overlay)',
+    primary: 'var(--freesail-primary)',
+    error: 'var(--freesail-error)',
+    success: 'var(--freesail-success)',
+    warning: 'var(--freesail-warning)',
+    info: 'var(--freesail-info)',
   };
 
   return semanticMap[value] || value;
@@ -77,7 +77,7 @@ export function getContrastTextColor(
 
   const semanticBgTokens = ['bg', 'bgRaised', 'bgMuted'];
   if (semanticBgTokens.includes(rawBackground)) {
-    return 'var(--freesail-text-foreground, #0f172a)';
+    return 'var(--freesail-text-foreground)';
   }
 
   const bg = rawBackground.trim();
