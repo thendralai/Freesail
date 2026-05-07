@@ -660,6 +660,7 @@ export function TextField({ component, meta, onAction, onDataChange }: FreesailC
 
   const inputStyle: CSSProperties = {
     flex: 1,
+    minWidth: 0,
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-md)',
     border: validationError ? '1px solid var(--freesail-error)' : '1px solid var(--freesail-border)',
@@ -670,7 +671,7 @@ export function TextField({ component, meta, onAction, onDataChange }: FreesailC
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', width: width ?? undefined }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', width: width ?? '100%', minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: variant === 'longText' ? 'flex-start' : 'center', gap: 'var(--freesail-space-sm)' }}>
         {label && <label style={labelStyle}>{label}</label>}
         {variant === 'longText' ? (

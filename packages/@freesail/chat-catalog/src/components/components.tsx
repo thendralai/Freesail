@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect, useContext, useCallback, type CSSProperties } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { type FreesailComponentProps } from '@freesail/react';
-import { getSemanticColor, getSemanticBackground, getContrastTextColor } from '@freesail/standard-catalog/utils';
+import { getSemanticBackground, getContrastTextColor } from '@freesail/standard-catalog/utils';
 import { includedComponents } from '../includes/generated-includes.js';
 
 // =============================================================================
@@ -37,8 +37,8 @@ function OptimisticUserMessage({ text }: { text: string }) {
     maxWidth: '85%',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)',
-    backgroundColor: 'var(--freesail-primary)',
-    color: '#ffffff',
+    backgroundColor: 'var(--freesail-bg)',
+    color: 'var(--freesail-text-foreground)',
     fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     whiteSpace: 'pre-wrap',
@@ -69,7 +69,6 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
   const title = component['title'] as string | undefined;
   const rawBg = component['background'] as string | undefined;
   const background = getSemanticBackground(rawBg);
-  const color = getSemanticColor(component['color'] as string | undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [optimisticMessages, setOptimisticMessages] = useState<string[]>([]);
@@ -100,7 +99,7 @@ export function ChatContainer({ component, children }: FreesailComponentProps) {
     overflow: 'hidden',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     backgroundColor: background ?? 'var(--freesail-bg)',
-    color: color ?? (rawBg ? getContrastTextColor(rawBg) : undefined),
+    color: rawBg ? getContrastTextColor(rawBg) : undefined,
     borderRight: '1px solid var(--freesail-border)',
   };
 
@@ -196,22 +195,12 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
   const content = (component['content'] as string) ?? (scopeData as any)?.content ?? '';
   const timestamp = (component['timestamp'] as string) ?? (scopeData as any)?.timestamp;
   const rawBg = component['background'] as string | undefined;
-  const rawColor = component['color'] as string | undefined;
   const background = getSemanticBackground(rawBg);
-  const color = getSemanticColor(rawColor);
 
   const isUser = role === 'user';
   const isSystem = role === 'system';
 
-  const defaultBg = isSystem ? 'var(--freesail-warning)' : isUser ? 'var(--freesail-bg-muted)' : 'var(--freesail-bg-raised)';
-  const defaultColor = 'var(--freesail-text-foreground)';//isUser ? '#ffffff' : 'var(--freesail-text-foreground)';
-
-  // When agent provides a background but no explicit color, auto-derive contrast text
-  const resolvedColor = rawColor
-    ? (color ?? rawColor)
-    : rawBg
-      ? getContrastTextColor(rawBg, defaultColor)
-      : defaultColor;
+  const defaultBg = isSystem ? 'var(--freesail-warning)' : isUser ? 'var(--freesail-bg)' : 'var(--freesail-bg-raised)';
 
   const containerStyle: CSSProperties = {
     display: 'flex',
@@ -224,7 +213,7 @@ export function ChatMessage({ component, scopeData }: FreesailComponentProps) {
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: isUser ? 'var(--freesail-radius-lg) var(--freesail-radius-lg) 4px var(--freesail-radius-lg)' : 'var(--freesail-radius-lg) var(--freesail-radius-lg) var(--freesail-radius-lg) 4px',
     backgroundColor: background ?? defaultBg,
-    color: resolvedColor,
+    color: rawBg ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground)') : 'var(--freesail-text-foreground)',
     fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     whiteSpace: isUser ? 'pre-wrap' : undefined,
@@ -372,7 +361,7 @@ export function ChatInput({ component, onAction }: FreesailComponentProps) {
     border: 'none',
     borderRadius: '50%',
     backgroundColor: buttonColor ?? 'var(--freesail-primary)',
-    color: rawButtonColor ? getContrastTextColor(rawButtonColor, '#ffffff') : 'var(--freesail-primary-foreground)',
+    color: rawButtonColor ? getContrastTextColor(rawButtonColor, 'var(--freesail-primary-foreground)') : 'var(--freesail-primary-foreground)',
     cursor: disabled || !text.trim() ? 'not-allowed' : 'pointer',
     opacity: disabled || !text.trim() ? 0.5 : 1,
     display: 'flex',
@@ -507,9 +496,7 @@ export function AgentStream({ component, meta }: FreesailComponentProps) {
   const token = (component['token'] as string) ?? '';
   const tokenUpdatedAt = meta.getUpdatedTime('token');
   const rawBg = component['background'] as string | undefined;
-  const rawColor = component['color'] as string | undefined;
   const background = getSemanticBackground(rawBg);
-  const color = getSemanticColor(rawColor);
 
   const bufferRef = useRef('');
   const prevTimestampRef = useRef(-1);
@@ -545,12 +532,8 @@ export function AgentStream({ component, meta }: FreesailComponentProps) {
     maxWidth: '85%',
     padding: 'var(--freesail-space-sm) var(--freesail-space-md)',
     borderRadius: 'var(--freesail-radius-lg) var(--freesail-radius-lg) var(--freesail-radius-lg) 4px',
-    backgroundColor: background ?? 'var(--freesail-bg-muted)',
-    color: rawColor
-      ? (color ?? rawColor)
-      : rawBg
-        ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground)')
-        : 'var(--freesail-text-foreground)',
+    backgroundColor: background ?? 'var(--freesail-bg-raised)',
+    color: rawBg ? getContrastTextColor(rawBg, 'var(--freesail-text-foreground)') : 'var(--freesail-text-foreground)',
     fontSize: 'var(--freesail-type-body)',
     lineHeight: '1.5',
     wordBreak: 'break-word',
