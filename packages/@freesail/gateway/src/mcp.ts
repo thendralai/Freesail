@@ -670,6 +670,14 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
         };
       }
 
+      const surfaceError = sessionManager.validateSurfaceForSession(sessionId, surfaceId);
+      if (surfaceError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: surfaceError }) }],
+          isError: true,
+        };
+      }
+
       if (sessionManager.hasPendingActionsForSurface(sessionId, surfaceId)) {
         return {
           content: [{ type: 'text', text: JSON.stringify({
@@ -691,6 +699,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       if (!result.success) {
         return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: true };
       }
+      sessionManager.removeSurface(surfaceId as SurfaceId);
       return {
         content: [{ type: 'text', text: JSON.stringify(result) }],
       };
