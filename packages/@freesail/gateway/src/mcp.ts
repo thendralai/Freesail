@@ -599,6 +599,60 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
   );
 
   server.registerTool(
+    'get_component_tree',
+    {
+      description:
+        'Retrieve the current component tree for a surface from the client. ' +
+        'Returns the flat list of components and the root component ID. ' +
+        'Useful after reconnects or agent restarts to verify the current rendered state.',
+      inputSchema: {
+        surfaceId: z.string().describe('The surface to get the component tree for'),
+        sessionId: z.string().describe('Target client session ID'),
+      },
+    },
+    async ({ surfaceId, sessionId }) => {
+      const session = sessionManager.getSession(sessionId);
+      if (!session) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: `Session ${sessionId} not found` }) }],
+          isError: true,
+        };
+      }
+
+      const surfaceError = sessionManager.validateSurfaceForSession(sessionId, surfaceId);
+      if (surfaceError) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ success: false, error: surfaceError }) }],
+          isError: true,
+        };
+      }
+
+      try {
+        const { components, rootId } = await sessionManager.requestComponentTree(sessionId, surfaceId as SurfaceId);
+        logger.info(`[MCP] get_component_tree: surface=${surfaceId} components=${components.length} rootId=${rootId}`);
+        logger.debug(`[MCP] get_component_tree payload: ${JSON.stringify({ components, rootId })}`);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, surfaceId, components, rootId }),
+          }],
+        };
+      } catch (error) {
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     'delete_surface',
     {
       description: 'Remove a surface and all its components from the UI for a specific client.',

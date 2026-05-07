@@ -202,6 +202,27 @@ export function createExpressServer(options: ExpressServerOptions): Express {
         return;
       }
 
+      // Intercept __get_component_tree_response — resolve the pending request
+      // instead of enqueuing it as a normal action.
+      if ('action' in message && message.action.name === '__get_component_tree_response') {
+        const surfaceId = message.action.surfaceId;
+        const components = (message.action.context?.['components'] ?? []) as import('@freesail/core').A2UIComponent[];
+        const rootId = (message.action.context?.['root_id'] ?? null) as string | null;
+        const surfaceSession = sessionManager.getSessionBySurface(surfaceId);
+        let resolvedSid = sessionId;
+        if (!resolvedSid) {
+          resolvedSid = surfaceSession?.id;
+        } else if (surfaceSession && surfaceSession.id !== resolvedSid) {
+          logger.warn(`[Express] __get_component_tree_response session mismatch: header=${resolvedSid}, surface maps to ${surfaceSession.id}`);
+        }
+        if (resolvedSid) {
+          logger.info(`[Express] __get_component_tree_response: surface=${surfaceId} components=${components.length} rootId=${rootId}`);
+          sessionManager.resolveComponentTreeRequest(resolvedSid, surfaceId, { components, rootId });
+        }
+        res.json({ success: true, sessionId: resolvedSid });
+        return;
+      }
+
       // Resolve session: from header, or from surface→session mapping
       let resolvedSessionId = sessionId ?? null;
       if (!resolvedSessionId) {

@@ -11,6 +11,7 @@ import {
   type DownstreamMessage,
   type UpstreamMessage,
   type A2UIClientCapabilities,
+  type A2UIComponent,
 } from '@freesail/core';
 import { writeFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
@@ -30,6 +31,7 @@ function getSurfaceId(message: DownstreamMessage): string | null {
     ?? m.updateDataModel?.surfaceId
     ?? m.deleteSurface?.surfaceId
     ?? m.getDataModel?.surfaceId
+    ?? m.getComponentTree?.surfaceId
     ?? null;
 }
 
@@ -116,6 +118,7 @@ export class SessionManager {
    *  Held until the agent collects them via drainDisconnectNotifications. */
   private disconnectNotifications: Map<string, Array<{ sessionId: string, actions: UpstreamMessage[] }>> = new Map();
   private pendingDataModelRequests: Map<string, { resolve: (data: Record<string, unknown>) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
+  private pendingComponentTreeRequests: Map<string, { resolve: (data: { components: A2UIComponent[]; rootId: string | null }) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
   private options: Required<Omit<SessionManagerOptions, 'catalogLogDir'>>;
   private catalogLogDir: string | undefined;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
@@ -608,6 +611,15 @@ export class SessionManager {
         }
       }
 
+      // Cancel any pending component tree requests for this session
+      for (const key of this.pendingComponentTreeRequests.keys()) {
+        if (key.startsWith(`${id}:`)) {
+          const pending = this.pendingComponentTreeRequests.get(key)!;
+          clearTimeout(pending.timer);
+          this.pendingComponentTreeRequests.delete(key);
+        }
+      }
+
       session.response.end();
       this.sessions.delete(id);
       this.actionQueue.delete(id);
@@ -938,6 +950,10 @@ export class SessionManager {
       clearTimeout(pending.timer);
     }
     this.pendingDataModelRequests.clear();
+    for (const pending of this.pendingComponentTreeRequests.values()) {
+      clearTimeout(pending.timer);
+    }
+    this.pendingComponentTreeRequests.clear();
     this.catalogListeners.length = 0;
     this.actionListeners.length = 0;
     this.sessionEventListeners.clear();
@@ -991,6 +1007,57 @@ export class SessionManager {
     clearTimeout(pending.timer);
     this.pendingDataModelRequests.delete(key);
     pending.resolve(dataModel);
+    return true;
+  }
+
+  // ==========================================================================
+  // Component Tree Request/Response
+  // ==========================================================================
+
+  /**
+   * Request the current component tree from the client for a surface.
+   * Sends a getComponentTree downstream message and returns a Promise that
+   * resolves when the client responds with __get_component_tree_response.
+   */
+  requestComponentTree(sessionId: string, surfaceId: SurfaceId, timeoutMs = 10_000): Promise<{ components: A2UIComponent[]; rootId: string | null }> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return Promise.reject(new Error(`Session ${sessionId} not found`));
+    }
+
+    const message: DownstreamMessage = {
+      version: A2UI_VERSION,
+      getComponentTree: { surfaceId },
+    } as DownstreamMessage;
+
+    const sent = this.sendToSession(sessionId, message);
+    if (!sent) {
+      return Promise.reject(new Error(`Failed to send getComponentTree request to session ${sessionId}: client connection may be lost`));
+    }
+
+    const key = `${sessionId}:${surfaceId}`;
+    return new Promise<{ components: A2UIComponent[]; rootId: string | null }>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingComponentTreeRequests.delete(key);
+        reject(new Error(`Timed out waiting for component tree response from client (surface: ${surfaceId})`));
+      }, timeoutMs);
+
+      this.pendingComponentTreeRequests.set(key, { resolve, timer });
+    });
+  }
+
+  /**
+   * Resolve a pending component tree request when the client responds.
+   * Returns true if a pending request was found and resolved.
+   */
+  resolveComponentTreeRequest(sessionId: string, surfaceId: string, data: { components: A2UIComponent[]; rootId: string | null }): boolean {
+    const key = `${sessionId}:${surfaceId}`;
+    const pending = this.pendingComponentTreeRequests.get(key);
+    if (!pending) return false;
+
+    clearTimeout(pending.timer);
+    this.pendingComponentTreeRequests.delete(key);
+    pending.resolve(data);
     return true;
   }
 

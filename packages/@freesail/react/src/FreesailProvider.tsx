@@ -21,6 +21,7 @@ import {
   isUpdateDataModelMessage,
   isDeleteSurfaceMessage,
   isGetDataModelMessage,
+  isGetComponentTreeMessage,
   type SurfaceManager,
   type SurfaceError,
   type SerializedSurface,
@@ -245,6 +246,20 @@ export function FreesailProvider({
           '__get_data_model_response',
           '__system' as ComponentId,
           { current_data_model: dataModel ?? {} }
+        );
+        return;
+      }
+      if (isGetComponentTreeMessage(message)) {
+        const { surfaceId } = message.getComponentTree;
+        const surface = surfaceManager.getSurface(surfaceId as any);
+        const components = surface ? Array.from(surface.components.values()) : [];
+        const rootId = surface?.rootId ?? null;
+        console.log(`[FreesailProvider] get_component_tree request: surface=${surfaceId} components=${components.length} rootId=${rootId}`, components);
+        newTransport.sendAction(
+          surfaceId,
+          '__get_component_tree_response',
+          '__system' as ComponentId,
+          { components, root_id: rootId }
         );
         return;
       }

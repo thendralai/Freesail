@@ -267,6 +267,18 @@ export interface GetDataModelMessage extends A2UIMessageBase {
   };
 }
 
+/**
+ * Requests the client to send back the current component tree for a surface.
+ * The client responds with an action named '__get_component_tree_response'
+ * containing the components array and root component ID in the action context.
+ */
+export interface GetComponentTreeMessage extends A2UIMessageBase {
+  getComponentTree: {
+    /** The surface to get the component tree for */
+    surfaceId: SurfaceId;
+  };
+}
+
 // =============================================================================
 // Client -> Server Messages (Upstream via HTTP POST)
 // =============================================================================
@@ -352,7 +364,8 @@ export type DownstreamMessage =
   | UpdateComponentsMessage
   | UpdateDataModelMessage
   | DeleteSurfaceMessage
-  | GetDataModelMessage;
+  | GetDataModelMessage
+  | GetComponentTreeMessage;
 
 /**
  * All possible client-to-server (upstream) messages.
@@ -415,6 +428,10 @@ export function isGetDataModelMessage(msg: A2UIMessage): msg is GetDataModelMess
   return 'getDataModel' in msg;
 }
 
+export function isGetComponentTreeMessage(msg: A2UIMessage): msg is GetComponentTreeMessage {
+  return 'getComponentTree' in msg;
+}
+
 export function isActionMessage(msg: A2UIMessage): msg is ActionMessage {
   return 'action' in msg;
 }
@@ -429,7 +446,8 @@ export function isDownstreamMessage(msg: A2UIMessage): msg is DownstreamMessage 
     isUpdateComponentsMessage(msg) ||
     isUpdateDataModelMessage(msg) ||
     isDeleteSurfaceMessage(msg) ||
-    isGetDataModelMessage(msg)
+    isGetDataModelMessage(msg) ||
+    isGetComponentTreeMessage(msg)
   );
 }
 
