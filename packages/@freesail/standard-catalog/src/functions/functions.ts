@@ -111,7 +111,9 @@ export const formatCurrency: FunctionImplementation = (value: unknown, currency:
 };
 
 export const formatDate: FunctionImplementation = (value: unknown, pattern: string) => {
-  const date = new Date(String(value));
+  // Accept numbers and numeric strings as Unix timestamps (milliseconds)
+  const raw = typeof value === 'number' ? value : String(value);
+  const date = typeof raw === 'number' || /^\d+$/.test(raw) ? new Date(Number(raw)) : new Date(raw as string);
   if (isNaN(date.getTime())) return '';
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

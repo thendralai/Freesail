@@ -36,11 +36,23 @@ function getSurfaceId(message: DownstreamMessage): string | null {
 }
 
 /**
- * Represents a connected client session.
+ * Lifecycle states a client session can be in.
+ *
+ * connected  → SSE connection is live; downstream messages can be written.
+ * suspended  → SSE connection dropped; grace period timer is running.
+ *              The session is still in memory and can be resumed if the client
+ *              reconnects before the timer expires. Downstream writes are rejected.
+ */
+export type SessionState = 'connected' | 'suspended';
+
+/**
+ * Represents a client session.
  */
 export interface ClientSession {
   /** Unique session identifier */
   id: string;
+  /** Current lifecycle state */
+  state: SessionState;
   /** SSE response object for sending messages */
   response: {
     write: (data: string) => void;
@@ -109,16 +121,35 @@ export class SessionManager {
   private surfaceToCatalog: Map<SurfaceId, string> = new Map();
   private catalogStore: Map<string, Catalog> = new Map();
   private catalogListeners: Array<(catalogs: Catalog[]) => void> = [];
+  // --- Action queues (fire-and-forget upstream messages from the client) ---
+
+  /** Live upstream actions from connected clients, keyed by sessionId. Drained by the agent via get_pending_actions. */
   private actionQueue: Map<string, UpstreamMessage[]> = new Map();
   private actionListeners: Array<(sessionId: string, message: UpstreamMessage) => void> = [];
+
+  /** Upstream actions buffered for an agent when its claimed browser session goes offline.
+   *  Keyed by agentId. Held until the agent drains them via get_all_pending_actions,
+   *  or discarded if the agent itself disconnects. */
+  private disconnectNotifications: Map<string, Array<{ sessionId: string, actions: UpstreamMessage[] }>> = new Map();
+
+  /** Actions that arrived for a surface after it was deleted. Keyed by surfaceId.
+   *  Audit only — never exposed to agents. Destroyed when the session is removed. */
+  private deadLetterQueue: Map<SurfaceId, { sessionId: string; actions: UpstreamMessage[] }> = new Map();
+
+  // --- In-flight request trackers (NOT queues) ---
+  // get_data_model and get_component_tree are request-response round-trips: the gateway sends a
+  // downstream SSE message asking the client for data, then suspends the MCP tool call until the
+  // client responds via a separate HTTP POST. These maps hold the pending promise resolver + timeout
+  // for each in-flight request, keyed by `${sessionId}:${surfaceId}`.
+  // Unlike action queues, these are never drained by the agent — they resolve automatically when
+  // the client responds, or reject on timeout.
+
+  private pendingDataModelRequests: Map<string, { resolve: (data: Record<string, unknown>) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
+  private pendingComponentTreeRequests: Map<string, { resolve: (data: { components: A2UIComponent[]; rootId: string | null }) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
+
   private agentBindings: Map<string, AgentBinding> = new Map();
   private sessionToAgent: Map<string, string> = new Map();
   private sessionEventListeners: Map<keyof SessionManagerEvents, Array<(...args: any[]) => void>> = new Map();
-  /** Disconnect notifications for browser sessions that have gone offline, keyed by the claiming agent ID.
-   *  Held until the agent collects them via drainDisconnectNotifications. */
-  private disconnectNotifications: Map<string, Array<{ sessionId: string, actions: UpstreamMessage[] }>> = new Map();
-  private pendingDataModelRequests: Map<string, { resolve: (data: Record<string, unknown>) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
-  private pendingComponentTreeRequests: Map<string, { resolve: (data: { components: A2UIComponent[]; rootId: string | null }) => void; timer: ReturnType<typeof setTimeout> }> = new Map();
   private options: Required<Omit<SessionManagerOptions, 'catalogLogDir'>>;
   private catalogLogDir: string | undefined;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
@@ -142,6 +173,7 @@ export class SessionManager {
   ): ClientSession {
     const session: ClientSession = {
       id,
+      state: 'connected',
       response,
       surfaces: new Set(),
       catalogIds: new Set(),
@@ -378,6 +410,9 @@ export class SessionManager {
     const queue = this.actionQueue.get(sessionId);
     if (!queue) return false;
 
+    const session = this.sessions.get(sessionId);
+    if (session) session.lastActivity = Date.now();
+
     queue.push(message);
 
     // Notify listeners
@@ -401,7 +436,15 @@ export class SessionManager {
     if (!surfaceId) return null;
 
     const sessionId = this.surfaceToSession.get(surfaceId as SurfaceId);
-    if (!sessionId) return null;
+    if (!sessionId) {
+      // Surface has been deleted — route to dead letter queue if we know this surface
+      const dlq = this.deadLetterQueue.get(surfaceId as SurfaceId);
+      if (dlq) {
+        logger.warn(`[Session] Action for deleted surface '${surfaceId}' routed to dead letter queue`);
+        dlq.actions.push(message);
+      }
+      return null;
+    }
 
     this.enqueueAction(sessionId, message);
     return sessionId;
@@ -496,12 +539,13 @@ export class SessionManager {
    */
   getSessionSummaries(): Array<{
     id: string;
+    state: SessionState;
     surfaces: Array<{ surfaceId: string; surfaceCatalog: string | null; pendingActionCount: number }>;
     capabilities: A2UIClientCapabilities | null;
     userContext: Record<string, unknown> | null;
     agentId: string | null;
-    createdAt: number;
-    lastActivity: number;
+    createdAt: string;
+    lastActivity: string;
   }> {
     return Array.from(this.sessions.values()).map(s => {
       const queue = this.actionQueue.get(s.id) ?? [];
@@ -514,6 +558,7 @@ export class SessionManager {
       }
       return {
         id: s.id,
+        state: s.state,
         surfaces: Array.from(s.surfaces).map(surfaceId => ({
           surfaceId,
           surfaceCatalog: this.surfaceToCatalog.get(surfaceId) ?? null,
@@ -522,8 +567,8 @@ export class SessionManager {
         capabilities: s.capabilities,
         userContext: s.userContext,
         agentId: this.sessionToAgent.get(s.id) ?? null,
-        createdAt: s.createdAt,
-        lastActivity: s.lastActivity,
+        createdAt: new Date(s.createdAt).toISOString(),
+        lastActivity: new Date(s.lastActivity).toISOString(),
       };
     });
   }
@@ -620,6 +665,16 @@ export class SessionManager {
         }
       }
 
+      // Destroy dead letter queue entries for this session
+      for (const [surfaceId, entry] of this.deadLetterQueue) {
+        if (entry.sessionId === id) {
+          if (entry.actions.length > 0) {
+            logger.info(`[Session] Discarding ${entry.actions.length} dead letter action(s) for surface '${surfaceId}' (session ${id} removed)`);
+          }
+          this.deadLetterQueue.delete(surfaceId);
+        }
+      }
+
       session.response.end();
       this.sessions.delete(id);
       this.actionQueue.delete(id);
@@ -639,6 +694,7 @@ export class SessionManager {
     const session = this.sessions.get(id);
     if (!session) return;
 
+    session.state = 'suspended';
     session.response.end();
 
     const timer = setTimeout(() => {
@@ -669,7 +725,7 @@ export class SessionManager {
    * A suspended session has a pending reconnect timer — its SSE response has already ended.
    */
   isSessionActive(id: string): boolean {
-    return this.sessions.has(id) && !this.pendingReconnects.has(id);
+    return this.sessions.get(id)?.state === 'connected';
   }
 
   /**
@@ -687,6 +743,7 @@ export class SessionManager {
       this.pendingReconnects.delete(id);
     }
 
+    session.state = 'connected';
     session.response = newResponse;
     session.lastActivity = Date.now();
     // Refresh user context on reconnect — claims may have changed since last connect
@@ -726,6 +783,33 @@ export class SessionManager {
       session.lastActivity = Date.now();
     }
 
+    // Initialize DLQ entry before removing from surfaceToSession so that
+    // any racing actions arriving after this point can still be routed here.
+    this.deadLetterQueue.set(surfaceId, { sessionId, actions: [] });
+
+    // Sweep any actions already sitting in the session queue for this surface
+    // into the dead letter queue.
+    const liveQueue = this.actionQueue.get(sessionId);
+    if (liveQueue) {
+      const dead: UpstreamMessage[] = [];
+      const live: UpstreamMessage[] = [];
+      for (const msg of liveQueue) {
+        const m = msg as any;
+        const msgSurface = m.action?.surfaceId ?? m.error?.surfaceId;
+        if (msgSurface === surfaceId) {
+          dead.push(msg);
+        } else {
+          live.push(msg);
+        }
+      }
+      if (dead.length > 0) {
+        logger.warn(`[Session] Moved ${dead.length} action(s) for deleted surface '${surfaceId}' to dead letter queue`);
+        this.deadLetterQueue.get(surfaceId)!.actions.push(...dead);
+        liveQueue.length = 0;
+        liveQueue.push(...live);
+      }
+    }
+
     this.surfaceToSession.delete(surfaceId);
     this.surfaceToCatalog.delete(surfaceId);
     return true;
@@ -751,6 +835,11 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn(`[SessionManager] Session not found: ${sessionId}`);
+      return false;
+    }
+
+    if (session.state === 'suspended') {
+      logger.warn(`[SessionManager] Cannot send to suspended session ${sessionId} — client is disconnected, grace period is active`);
       return false;
     }
 
@@ -954,6 +1043,7 @@ export class SessionManager {
       clearTimeout(pending.timer);
     }
     this.pendingComponentTreeRequests.clear();
+    this.deadLetterQueue.clear();
     this.catalogListeners.length = 0;
     this.actionListeners.length = 0;
     this.sessionEventListeners.clear();

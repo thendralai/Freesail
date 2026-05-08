@@ -240,8 +240,8 @@ export function FreesailProvider({
     newTransport.on('message', (message: DownstreamMessage) => {
       if (isGetDataModelMessage(message)) {
         const { surfaceId } = message.getDataModel;
-        const dataModel = surfaceManager.getDataModel(surfaceId);
-        if (dataModel === undefined) {
+        const surface = surfaceManager.getSurface(surfaceId as any);
+        if (!surface) {
           console.warn(`[FreesailProvider] get_data_model: surface '${surfaceId}' not found, ignoring request`);
           return;
         }
@@ -249,7 +249,7 @@ export function FreesailProvider({
           surfaceId,
           '__get_data_model_response',
           '__system' as ComponentId,
-          { current_data_model: dataModel }
+          { current_data_model: surface.dataModel ?? {} }
         );
         return;
       }
@@ -260,7 +260,7 @@ export function FreesailProvider({
           console.warn(`[FreesailProvider] get_component_tree: surface '${surfaceId}' not found, ignoring request`);
           return;
         }
-        const components = Array.from(surface.components.values());
+        const components = Array.from(surface.components?.values() ?? []);
         const rootId = surface.rootId ?? null;
         console.log(`[FreesailProvider] get_component_tree request: surface=${surfaceId} components=${components.length} rootId=${rootId}`, components);
         newTransport.sendAction(

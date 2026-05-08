@@ -114,6 +114,17 @@ describe('formatDate', () => {
   it('returns empty string for invalid date', () => {
     expect(formatDate('not-a-date', 'yyyy')).toBe('');
   });
+
+  it('formats a Unix timestamp number', () => {
+    // 2024-06-15T00:00:00.000Z in ms
+    const ts = new Date('2024-06-15T00:00:00.000Z').getTime();
+    expect(formatDate(ts, 'yyyy-MM-dd')).toBe('2024-06-15');
+  });
+
+  it('formats a Unix timestamp as a numeric string', () => {
+    const ts = String(new Date('2024-06-15T00:00:00.000Z').getTime());
+    expect(formatDate(ts, 'yyyy-MM-dd')).toBe('2024-06-15');
+  });
 });
 
 // ---------------------------------------------------------------------------
