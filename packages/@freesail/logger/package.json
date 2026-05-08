@@ -1,7 +1,8 @@
 {
   "name": "@freesail/logger",
-  "version": "0.8.9",
-  "description": "Standard logging library for Freesail packages",
+  "version": "0.9.0",
+  "description": "Standard logging library for Freesail A2UI SDK",
+  "homepage": "https://www.freesail.dev",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

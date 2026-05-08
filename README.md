@@ -1,79 +1,96 @@
 # Freesail
 
-**Agent-driven UI SDK** - Enables AI Agents to drive user interfaces across any frontend framework. Currently in alpha.
+**Agent-driven UI SDK** — Enables AI agents to create and drive user interfaces.
 
 ## Overview
 
-Freesail enables AI Agents to stream UI to supported clients using the **A2UI Protocol**. This allows agents to render interfaces remotely, without generating raw HTML or framework-specific code.
+Freesail enables AI agents to stream UI to supported clients using the **A2UI Protocol**. Agents render interfaces remotely without generating raw HTML or framework-specific code. The UI is defined through a schema-first catalog, keeping the agent and the frontend in sync.
 
 ## Architecture
 
-Freesail operates on a "Triangle Pattern" with three nodes:
+Freesail operates on a three-node pattern:
 
-- **Agent (Orchestrator)**: The intelligence layer (e.g., LangChain) that decides *what* to show using MCP tools.
-- **Freesail Gateway (Bridge)**: The Node.js server that connects to the Agent via MCP and streams A2UI messages to the Frontend via Server-Sent Events (SSE).
-- **Frontend (Renderer)**: The presentation layer (e.g., React) that translates A2UI messages and renders dynamic UI statefully.
+- **Agent**: The intelligence layer that decides what to show, using MCP tools exposed by the Gateway.
+- **Gateway**: A Node.js bridge that connects to the agent via MCP and streams A2UI messages to the frontend via Server-Sent Events (SSE).
+- **Frontend**: The presentation layer (React) that receives A2UI messages and renders dynamic UI statefully.
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| `@freesail/agentruntime` | Core agent functionalities and streaming integration |
-| `@freesail/catalogs` | Shared UI catalog schemas and type definitions |
-| `@freesail/core` | Pure TypeScript logic - A2UI protocol definitions, parser, transport |
-| `@freesail/gateway` | Node.js MCP bridge server with native structured logging |
-| `@freesail/logger` | Native structured logging for the Freesail ecosystem |
-| `@freesail/react` | React implementation of the Renderer |
+| `freesail` | CLI and core libraries for running and configuring Freesail |
+| `@freesail/core` | A2UI protocol definitions, parser, and transport |
+| `@freesail/gateway` | Node.js MCP bridge server |
+| `@freesail/react` | React renderer (`<FreesailProvider>` and surface hooks) |
+| `@freesail/agent-runtime` | Runtime library for building Freesail agents |
+| `@freesail/standard-catalog` | Standard UI component catalog (Text, Button, Chart, etc.) |
+| `@freesail/chat-catalog` | Chat interface component catalog |
+| `@freesail/logger` | Structured logging for the Freesail ecosystem |
 
-## Quick Start
-
-The easiest way to see Freesail in action is to run the complete example stack (Agent + Gateway + React UI) using the provided script.
-
-Ensure you have a Google Gemini API key mapped in your environment:
-
-```bash
-export GOOGLE_API_KEY=your-api-key
-```
-
-Then run the stack from the project root:
-
-```bash
-./examples/run-all.sh
-```
-
-This script will automatically build all packages, then start the Gateway, Agent, and React UI as three independent processes.
+Community packages are in `packages/@freesail-community/`.
 
 ## Key Concepts
 
-### Schema-First Development
+### Catalogs
 
-We write the **Contract** (`catalog.json`) first:
+A catalog is a JSON schema that defines the components and functions an agent can use on a surface. The agent can only reference components declared in the catalog registered for that surface, preventing drift between the agent and the UI.
 
-1. Define a component's schema in `catalog.json`
-2. The UI Developer builds the React component and registers the catalog
-3. The Agent can now use the new UI component via its tools
+### Surfaces
 
-This ensures the Agent and UI never drift out of sync.
+A surface is a named UI container within a client session. The agent creates surfaces, populates them with components, and updates their data model independently. Multiple surfaces can be active simultaneously within the same session.
+
+### Sessions
+
+AA client session represents a conversation thread. Sessions are identified by a unique ID and track active surfaces, client capabilities, and connection state (`connected` or `suspended`). A suspended session retains its state during a 3-minute reconnect grace period.
 
 ### A2UI Protocol
 
-A2UI (Agent-to-User Interface) is the JSON protocol for bi-directional communication:
+A2UI is the JSON protocol for bi-directional communication between the gateway and the frontend.
 
-**Server → Client (SSE)**
-- `createSurface` - Initialize UI container
-- `updateComponents` - Stream UI components
-- `updateDataModel` - Push data updates
-- `deleteSurface` - Remove a surface
+**Gateway → Frontend (SSE)**
 
-**Client → Server (HTTP POST)**
-- `action` - Report user interactions
-- `error` - Report validation or runtime errors
+| Message | Description |
+|---------|-------------|
+| `createSurface` | Initialise a UI surface and load a catalog |
+| `updateComponents` | Send or update the component tree for a surface |
+| `updateDataModel` | Push data updates to a surface |
+| `deleteSurface` | Remove a surface and its components |
+| `getDataModel` | Request the current data model from the frontend |
+| `getComponentTree` | Request the current component tree from the frontend |
+
+**Frontend → Gateway (HTTP POST)**
+
+| Message | Description |
+|---------|-------------|
+| `action` | Report a user interaction |
+| `error` | Report a validation or runtime error |
+
+## MCP Tools
+
+The Gateway exposes the following MCP tools to the agent:
+
+| Tool | Description |
+|------|-------------|
+| `create_surface` | Create a new surface for a session |
+| `update_components` | Send components to a surface |
+| `update_data_model` | Update a surface's data model |
+| `delete_surface` | Delete a surface |
+| `get_data_model` | Retrieve the current data model from the frontend |
+| `get_component_tree` | Retrieve the current component tree from the frontend |
+| `get_pending_actions` | Drain pending user actions for a session |
+| `get_all_pending_actions` | Drain pending actions across all claimed sessions |
+| `list_sessions` | List active sessions owned by the agent |
+| `get_catalogs` | Get catalog definitions for a session |
+| `get_component_details` | Get detailed schema for specific components |
+| `get_function_details` | Get detailed schema for specific functions |
+| `claim_session` | Claim a client session for exclusive use |
+| `release_session` | Release a claimed session |
 
 ## Documentation
 
-Access the latest documentation at [www.freesail.dev](https://www.freesail.dev)
+[www.freesail.dev](https://www.freesail.dev)
 
-## 👥 Maintainers & Contributors
+## Maintainers & Contributors
 
 Freesail is an open-source project. For support contact [Thendral AI](mailto:support@thendral.ai).
 

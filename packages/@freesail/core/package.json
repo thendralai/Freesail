@@ -1,7 +1,8 @@
 {
   "name": "@freesail/core",
-  "version": "0.8.9",
-  "description": "Core TypeScript logic for Freesail - protocol definitions, parser, transport",
+  "version": "0.9.0",
+  "description": "Core frontend library for Freesail A2UI SDK - protocol definitions, parser and transport",
+  "homepage": "https://www.freesail.dev",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

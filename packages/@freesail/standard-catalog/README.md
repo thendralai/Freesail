@@ -6,40 +6,82 @@ Freesail Standard UI Component Catalog — a collection of ready-to-use componen
 
 | Component | Description |
 |-----------|-------------|
-| `Column` | Vertical flex container |
-| `Row` | Horizontal flex container |
-| `Card` | Surfaced container with border and shadow |
-| `Text` | Text display with variant support (body, label, heading, etc.) |
-| `Icon` | Material Symbols icon (font auto-injected) |
-| `Button` | Clickable button with action support |
+| `Text` | Renders text content with variant support (h1–h5, caption, body) |
+| `Icon` | Displays a Material Design icon (font auto-injected) |
+| `Row` | Arranges children horizontally |
+| `Column` | Arranges children vertically |
+| `Card` | Styled container with border and optional shadow |
+| `Modal` | Overlay dialog that covers the screen |
+| `Button` | Clickable button that triggers an action |
 | `TextField` | Single or multi-line text input |
-| `DateTimeInput` | Date and/or time picker |
-| `ChoicePickerSingleSelect` | Single-select option list |
-| `ChoicePickerMultiSelect` | Multi-select option list |
-| `Dropdown` | Dropdown select input |
-| `CheckBox` | Checkbox input |
+| `ChoicePickerSingleSelect` | Selects exactly one option from a list |
+| `ChoicePickerMultiSelect` | Selects one or more options from a list |
+| `DateInput` | Date picker (ISO 8601 date strings, no time component) |
+| `TimeInput` | Standalone hour/minute time picker |
+| `Dropdown` | Dropdown select for a single option |
+| `CheckBox` | Checkbox toggle for boolean values |
+| `Slider` | Numeric range slider; supports single thumb or range |
 | `Spacer` | Flexible spacing element |
-| `Divider` | Horizontal rule |
-| `Modal` | Overlay dialog |
-| `GridLayout` | Fixed-column grid container |
-| `List` | Scrollable list of items |
-| `Tab` / `TabGroup` | Tabbed navigation |
-| `Image` | Image display |
-| `Video` | Video player |
-| `AudioPlayer` | Audio player |
-| `Slider` | Range slider input |
-| `Markdown` | Renders Markdown content |
-| `BarChart` | Bar chart |
-| `LineChart` | Line chart |
-| `PieChart` | Pie/donut chart |
-| `Sparkline` | Inline sparkline chart |
-| `StatCard` | KPI stat display card |
+| `Divider` | Horizontal separator line |
+| `Image` | Displays an image |
+| `Video` | Plays a video |
+| `AudioPlayer` | Audio player supporting direct URLs and embedded third-party players |
+| `List` | Scrollable list with vertical or horizontal layout |
+| `TabGroup` | Tabbed container that shows one `Tab` at a time |
+| `Tab` | A single tab within a `TabGroup` |
+| `FluidGrid` | Responsive auto-fill grid that flows children into equal-width columns |
+| `TabularGrid` | Fixed-column grid with optional header row and alternating row styles |
+| `BarChart` | Bar chart from an array of data points |
+| `LineChart` | Line chart from an array of data points |
+| `PieChart` | Pie or donut chart from an array of segments |
+| `Sparkline` | Compact inline sparkline from an array of numbers |
+| `StatCard` | KPI card with a large value, label, and optional trend indicator |
 
 ## Functions
 
+### Validation
+
 | Function | Description |
 |----------|-------------|
-| `formatString` | String formatting with `${...}` interpolation and positional `{0}`, `{1}` placeholders |
+| `required` | Returns true if the value is not null, undefined, or empty |
+| `regex` | Returns true if the value matches a regular expression |
+| `checkLength` | Returns true if the string or array length satisfies min/max constraints |
+| `numeric` | Returns true if the numeric value satisfies min/max/step constraints |
+| `email` | Returns true if the value is a valid email address |
+
+### Formatting
+
+| Function | Description |
+|----------|-------------|
+| `formatString` | String interpolation with `${path}` expressions and nested function calls |
+| `formatNumber` | Formats a number with grouping and decimal precision |
+| `formatCurrency` | Formats a number as a currency string |
+| `formatDate` | Formats a date string, ISO timestamp, or Unix timestamp (ms) using a pattern |
+| `pluralize` | Returns a localized string based on the CLDR plural category of a count |
+| `now` | Returns the current date and time as an ISO 8601 string |
+
+### Logic & Comparison
+
+| Function | Description |
+|----------|-------------|
+| `and` | Returns true if all arguments are truthy |
+| `or` | Returns true if any argument is truthy |
+| `isEmpty` | Returns true if the value is null, undefined, empty string, empty array, or empty object |
+| `eq` | Returns true if two values are strictly equal |
+| `neq` | Returns true if two values are not equal |
+| `gt` | Returns true if the first value is greater than the second |
+| `gte` | Returns true if the first value is greater than or equal to the second |
+| `lt` | Returns true if the first value is less than the second |
+| `lte` | Returns true if the first value is less than or equal to the second |
+
+### Utilities
+
+| Function | Description |
+|----------|-------------|
+| `getLength` | Returns the character count, array length, or string length of a number/date |
+| `openUrl` | Opens a URL in the browser |
+| `show` | Shows a component by its ID |
+| `hide` | Hides a component by its ID |
 
 ## Setup
 
