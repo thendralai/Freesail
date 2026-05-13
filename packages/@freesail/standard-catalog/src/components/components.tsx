@@ -2006,9 +2006,14 @@ export function AudioPlayer({ component }: FreesailComponentProps) {
  */
 export function Slider({ component, meta, onDataChange }: FreesailComponentProps) {
   const label = String((component['label'] as string) ?? '');
-  const min = Number((component['min'] as number) ?? 0);
-  const max = Number((component['max'] as number) ?? 100);
   const step = Number((component['step'] as number) ?? 1);
+  const stepStr = step.toString();
+  const dp = Math.min(stepStr.includes('.') ? (stepStr.split('.')[1] ?? '').length : 0, 2);
+  const round = (n: number) => dp > 0 ? parseFloat(n.toFixed(dp)) : n;
+  const fmt = (n: number) => dp > 0 ? n.toFixed(dp) : String(n);
+
+  const min = round(Number((component['min'] as number) ?? 0));
+  const max = round(Number((component['max'] as number) ?? 100));
   const checks = (component['checks'] as any[]) ?? [];
   const validationError = validateChecks(checks);
 
@@ -2017,8 +2022,8 @@ export function Slider({ component, meta, onDataChange }: FreesailComponentProps
   const rawValue = component['value'];
   const isMulti = Array.isArray(rawValue);
   const valueArray: number[] = isMulti
-    ? (rawValue as unknown[]).map(Number)
-    : [Number(rawValue ?? min)];
+    ? (rawValue as unknown[]).map(v => round(Number(v)))
+    : [round(Number(rawValue ?? min))];
 
   const [localValues, setLocalValues] = useState<number[]>(valueArray);
 
@@ -2026,16 +2031,18 @@ export function Slider({ component, meta, onDataChange }: FreesailComponentProps
   useEffect(() => { setLocalValues(valueArray); }, [valueKey]);
 
   const handleSliderChange = (values: number[]) => {
-    setLocalValues(values);
+    const rounded = values.map(round);
+    setLocalValues(rounded);
     const writePath = boundPath ?? `/input/${component.id}`;
     if (onDataChange) {
-      onDataChange(writePath, isMulti ? values : values[0]);
+      const out = dp > 0 ? rounded.map(fmt) : rounded;
+      onDataChange(writePath, isMulti ? out : out[0]);
     }
   };
 
-  const displayValue = isMulti ? localValues.join(' – ') : localValues[0];
+  const displayValue = isMulti ? localValues.map(fmt).join(' – ') : fmt(localValues[0] ?? min);
 
-  const sliderWidth = `clamp(160px, ${max - min}cqi, 100%)`;
+  const sliderWidth = `clamp(160px, ${(max - min) / step}cqi, 100%)`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', width: sliderWidth }}>
