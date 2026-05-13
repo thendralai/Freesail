@@ -2035,8 +2035,10 @@ export function Slider({ component, meta, onDataChange }: FreesailComponentProps
 
   const displayValue = isMulti ? localValues.join(' – ') : localValues[0];
 
+  const sliderWidth = `clamp(160px, ${max - min}cqi, 100%)`;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--freesail-space-xs)', width: sliderWidth }}>
       {label && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--freesail-space-lg)' }}>
           <label style={{ fontSize: 'var(--freesail-type-body)', fontWeight: 500 }}>{label}</label>
