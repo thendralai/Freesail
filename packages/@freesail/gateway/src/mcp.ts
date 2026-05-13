@@ -24,8 +24,53 @@ import {
   type DownstreamMessage,
 } from '@freesail/core';
 import { generateCatalogIndex, generateComponentDetails, generateFunctionDetails, validateComponent } from './converter.js';
+import type { Catalog, CatalogComponent, CatalogProperty } from './converter.js';
 import type { SessionManager } from './session.js';
 import { validateAgentSurfaceAccess, validateComponentIds, validateDataModelPath } from './surface-access.js';
+
+function collectEnumProps(component: CatalogComponent): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  const visit = (props: Record<string, CatalogProperty> | undefined) => {
+    if (!props) return;
+    for (const [key, prop] of Object.entries(props)) {
+      if (prop.enum && prop.enum.length > 0) {
+        result.set(key, prop.enum);
+      } else if (prop.oneOf) {
+        const enumBranch = prop.oneOf.find(b => b.enum && b.enum.length > 0);
+        if (enumBranch?.enum) result.set(key, enumBranch.enum);
+      }
+    }
+  };
+  visit(component.properties);
+  if (component.allOf) {
+    for (const branch of component.allOf) visit((branch as CatalogComponent).properties);
+  }
+  return result;
+}
+
+function normalizeComponentEnums(
+  catalog: Catalog,
+  componentType: string,
+  props: Record<string, unknown>
+): Record<string, unknown> {
+  const entry = Object.entries(catalog.components).find(
+    ([name]) => name.toLowerCase() === componentType.toLowerCase()
+  );
+  if (!entry) return props;
+
+  const enumProps = collectEnumProps(entry[1]);
+  if (enumProps.size === 0) return props;
+
+  const copy: Record<string, unknown> = { ...props };
+  for (const [key, enumValues] of enumProps) {
+    const val = copy[key];
+    if (typeof val === 'string') {
+      const match = enumValues.find(e => e.toLowerCase() === val.toLowerCase());
+      if (match) copy[key] = match;
+    }
+  }
+  return copy;
+}
 
 /**
  * Recursively strip null values from an object, converting them to undefined
@@ -420,8 +465,9 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       // STRICT VALIDATION: Ensure components exist in the surface's catalog
       const catalog = sessionManager.getCatalogForSurface(surfaceId);
       if (catalog) {
+        const normalizedComponents = components.map(comp => normalizeComponentEnums(catalog, comp.component, comp) as typeof comp);
         const errors: string[] = [];
-        for (const comp of components) {
+        for (const comp of normalizedComponents) {
           const validation = validateComponent(catalog, comp.component, comp);
           if (!validation.valid) {
             errors.push(`Component '${comp.id}' (${comp.component}): ${validation.errors.join(', ')}`);
@@ -435,27 +481,25 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
             isError: true,
           };
         }
+
+        const message: DownstreamMessage = {
+          version: A2UI_VERSION,
+          updateComponents: {
+            surfaceId: surfaceId as SurfaceId,
+            components: stripNulls(normalizedComponents) as A2UIComponent[],
+          },
+        };
+        const result = sendToSession(message, sessionId);
+        if (!result.success) {
+          return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: true };
+        }
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } else {
         return {
           content: [{ type: 'text', text: JSON.stringify({ success: false, error: `No catalog found for surface '${surfaceId}'. Ensure the surface was created with a valid catalogId before calling update_components.` }) }],
           isError: true,
         };
       }
-
-      const message: DownstreamMessage = {
-        version: A2UI_VERSION,
-        updateComponents: {
-          surfaceId: surfaceId as SurfaceId,
-          components: stripNulls(components) as A2UIComponent[],
-        },
-      };
-      const result = sendToSession(message, sessionId);
-      if (!result.success) {
-        return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: true };
-      }
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result) }],
-      };
     }
   );
 
