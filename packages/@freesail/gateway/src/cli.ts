@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { createSessionManager } from './session.js';
 import { createExpressServer, startExpressServer } from './express.js';
-import { createMCPServer, runMCPServer, runMCPServerHTTP } from './mcp.js';
+import { runMCPServer, runMCPServerHTTP } from './mcp.js';
 import { configure, getConsoleSink, getFileSink, getTextFormatter, type LogLevel, type LogRecord, logger } from '@freesail/logger';
 
 /**
@@ -36,6 +36,8 @@ interface CLIConfig {
   sessionTimeout?: number;
   /** Session resumption grace period in seconds */
   reconnectGracePeriod?: number;
+  /** Maximum sessions an agent can claim at once (default: 1; null = unlimited) */
+  maxSessionsPerAgent?: number | null;
   /** Directory to write catalog prompt logs to */
   catalogLogDir?: string;
   /** JSON body size limit (default: '5mb') */
@@ -61,6 +63,7 @@ interface FileConfig {
   webhookUrl?: string;
   sessionTimeout?: number;
   reconnectGracePeriod?: number;
+  maxSessionsPerAgent?: number | null;
   catalogLogDir?: string;
   bodyLimit?: string;
   log?: {
@@ -195,6 +198,7 @@ Options:
 Config file (freesail-gateway.config.json) supports all of the above plus:
   sessionTimeout         Session idle timeout in seconds (default: 1800)
   reconnectGracePeriod   Session resumption window in seconds (default: 180)
+  maxSessionsPerAgent    Max sessions one agent can claim at once (default: null = unlimited)
   catalogLogDir          Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var)
   bodyLimit              JSON body size limit (default: "5mb")
   log.file / log.level / log.filters  (same as CLI flags above)
@@ -244,6 +248,7 @@ async function main(): Promise<void> {
     webhookUrl: cliArgs.webhookUrl ?? fileConfig.webhookUrl,
     sessionTimeout: cliArgs.sessionTimeout ?? fileConfig.sessionTimeout,
     reconnectGracePeriod: cliArgs.reconnectGracePeriod ?? fileConfig.reconnectGracePeriod,
+    maxSessionsPerAgent: cliArgs.maxSessionsPerAgent ?? fileConfig.maxSessionsPerAgent,
     catalogLogDir: cliArgs.catalogLogDir ?? fileConfig.catalogLogDir,
     bodyLimit: cliArgs.bodyLimit ?? fileConfig.bodyLimit,
     logFile: cliArgs.logFile ?? fileConfig.log?.file,
@@ -294,6 +299,7 @@ async function main(): Promise<void> {
   const sessionManager = createSessionManager({
     sessionTimeout: config.sessionTimeout != null ? config.sessionTimeout * 1000 : undefined,
     reconnectGracePeriod: config.reconnectGracePeriod != null ? config.reconnectGracePeriod * 1000 : undefined,
+    maxSessionsPerAgent: config.maxSessionsPerAgent,
     catalogLogDir: config.catalogLogDir,
   });
 

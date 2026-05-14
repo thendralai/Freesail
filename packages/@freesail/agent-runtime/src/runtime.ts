@@ -1,23 +1,31 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { logger } from "@freesail/logger";
 import { FreesailAgent, AgentFactory, ActionEvent, ClientErrorEvent, SessionNotification } from "./types.js";
+import { FreesailSessionClientImpl, FreesailToolProvider, ToolDefinition } from "./session-client.js";
+import { fetchFreesailSystemPrompt } from "./utils.js";
 
 const SESSIONS_URI = "mcp://freesail.dev/sessions";
 
 export interface AgentRuntimeConfig {
-  mcpClient: Client;
-  /**
-   * Factory to create a new agent instance for a specific session.
-   */
+  /** URL of the Freesail gateway MCP endpoint, e.g. http://localhost:3000/mcp */
+  gatewayUrl: string | URL;
+  /** Factory to create a new agent instance for each claimed session */
   agentFactory: AgentFactory;
+  /** MCP client identity sent to the gateway (default: freesail-agent / 1.0.0) */
+  clientInfo?: { name: string; version: string };
 }
 
-export class FreesailAgentRuntime {
-  private mcpClient: Client;
+export class FreesailAgentRuntime implements FreesailToolProvider {
+  private gatewayUrl: URL;
+  private clientInfo: { name: string; version: string };
   private agentFactory: AgentFactory;
 
-  // Manage agent instances by sessionId
+  private coordinatorClient: Client | null = null;
+  private agentClients: Map<string, Client> = new Map();
+
   private activeAgents: Map<string, FreesailAgent> = new Map();
 
   /**
@@ -29,113 +37,141 @@ export class FreesailAgentRuntime {
 
   /**
    * Tracks in-flight onAction promises per session so disconnect can drain them.
-   * Each entry is a Set of promises that resolve when the action completes.
    */
   private inFlightActions: Map<string, Set<Promise<void>>> = new Map();
 
   /**
-   * URIs we have active MCP resource subscriptions for.
-   * Includes SESSIONS_URI and per-session URIs.
-   */
-  private activeSubscriptions: Set<string> = new Set();
-
-  /**
-   * Session IDs we currently know about, used to diff the sessions list
-   * and detect connects/disconnects from ResourceUpdated notifications.
+   * Session IDs we currently know about, used to diff the sessions list.
    */
   private knownSessions: Set<string> = new Set();
 
   /**
-   * Serialises concurrent handleSessionsUpdate calls so two rapid
-   * SESSIONS_URI notifications can't race on the knownSessions diff.
+   * Serialises concurrent handleSessionsUpdate calls.
    */
   private sessionsUpdateChain: Promise<void> = Promise.resolve();
 
   /**
-   * Session IDs whose per-session subscription failed. These sessions have
-   * no push mechanism, so they must be polled when resources/list_changed fires.
+   * Session IDs whose per-session subscription failed — polled via list_changed.
    */
   private missedSubscriptions: Set<string> = new Set();
 
   constructor(config: AgentRuntimeConfig) {
-    this.mcpClient = config.mcpClient;
+    this.gatewayUrl = new URL(config.gatewayUrl.toString());
+    this.clientInfo = config.clientInfo ?? { name: 'freesail-agent', version: '1.0.0' };
     this.agentFactory = config.agentFactory;
   }
 
+  private async createClient(): Promise<Client> {
+    const RETRY_DELAYS_MS = [100, 500];
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      if (attempt > 0) {
+        await new Promise<void>(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+      }
+      try {
+        const transport = new StreamableHTTPClientTransport(new URL(this.gatewayUrl.toString()));
+        const client = new Client(this.clientInfo, { capabilities: {} });
+        await client.connect(transport);
+        return client;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr;
+  }
+
   /**
-   * Start the runtime.
-   * Subscribes to the sessions resource for push notifications and performs
-   * an initial read to pick up any already-connected sessions.
-   *
-   * Requires the MCP client to be initialised with
-   * `{ capabilities: { resources: { subscribe: true } } }`.
+   * Start the runtime. Creates the coordinator client, subscribes to the sessions
+   * resource, and performs an initial read to pick up pre-existing sessions.
    */
   async start(): Promise<void> {
-    // Subscribe to the sessions list — fires on every connect/disconnect
-    await this.mcpClient.subscribeResource({ uri: SESSIONS_URI });
-    this.activeSubscriptions.add(SESSIONS_URI);
+    this.coordinatorClient = await this.createClient();
 
-    // Route ResourceUpdated notifications by URI
-    this.mcpClient.setNotificationHandler(
+    await this.coordinatorClient.subscribeResource({ uri: SESSIONS_URI });
+
+    this.coordinatorClient.setNotificationHandler(
       ResourceUpdatedNotificationSchema,
       async (notification) => {
-        const { uri } = notification.params;
-
-        if (uri === SESSIONS_URI) {
-          // Serialise concurrent updates to avoid races on knownSessions
+        if (notification.params.uri === SESSIONS_URI) {
           this.sessionsUpdateChain = this.sessionsUpdateChain
             .then(() => this.handleSessionsUpdate())
-            .catch((err) =>
-              logger.error("[AgentRuntime] Sessions update failed:", err)
-            );
-          return;
-        }
-
-        const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(uri);
-        if (match) {
-          const sessionId = decodeURIComponent(match[1]!);
-          await this.handleSessionActions(sessionId);
+            .catch((err) => logger.error("[AgentRuntime] Sessions update failed:", err));
         }
       },
     );
 
-    // Read current state on startup to handle pre-existing sessions
+    // Poll missed subscriptions whenever the resource list changes
+    this.coordinatorClient.setNotificationHandler<any>(
+      z.object({ method: z.literal('notifications/resources/list_changed') }).passthrough(),
+      async () => { await this.pollPendingActions(); },
+    );
+
     await this.handleSessionsUpdate();
 
-    logger.info("[AgentRuntime] Started with MCP resource subscription model");
+    logger.info("[AgentRuntime] Started");
   }
 
   /**
-   * Stop the runtime. Unsubscribes from all active resource subscriptions.
-   * Call this for clean shutdown before closing the MCP client.
+   * Stop the runtime. Releases all sessions and closes all clients.
    */
   async stop(): Promise<void> {
-    for (const uri of this.activeSubscriptions) {
+    if (this.coordinatorClient) {
       try {
-        await this.mcpClient.unsubscribeResource({ uri });
-      } catch (err) {
-        logger.warn(`[AgentRuntime] Failed to unsubscribe from ${uri}:`, err);
-      }
+        await this.coordinatorClient.unsubscribeResource({ uri: SESSIONS_URI });
+      } catch {}
+      try {
+        await this.coordinatorClient.close();
+      } catch {}
+      this.coordinatorClient = null;
     }
-    this.activeSubscriptions.clear();
+
+    for (const [sessionId, client] of this.agentClients) {
+      const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+      try { await client.callTool({ name: 'release_session', arguments: { sessionId } }); } catch {}
+      try { await client.unsubscribeResource({ uri: sessionUri }); } catch {}
+      try { await client.close(); } catch {}
+    }
+    this.agentClients.clear();
   }
 
   /**
    * Drain pending actions for sessions whose subscription failed.
-   * Call this from the resources/list_changed notification handler so that
-   * sessions without a working push subscription are still served.
+   * Call from a resources/list_changed handler as a fallback.
    */
   async pollPendingActions(): Promise<void> {
     if (this.missedSubscriptions.size === 0) return;
     await Promise.allSettled(
-      [...this.missedSubscriptions].map(sessionId => this.handleSessionActions(sessionId))
+      [...this.missedSubscriptions].map(sessionId => {
+        const client = this.agentClients.get(sessionId);
+        if (!client) return Promise.resolve();
+        return this.handleSessionActions(sessionId, client);
+      })
     );
   }
 
-  /**
-   * Enqueue a lifecycle operation for a specific session, running serially
-   * within that session but concurrently with all other sessions.
-   */
+  // ── FreesailToolProvider ────────────────────────────────────────────────────
+  // Delegates to the coordinator client for shared / bootstrap use (e.g. SharedCache).
+
+  async getSystemPrompt(): Promise<string> {
+    if (!this.coordinatorClient) throw new Error('[AgentRuntime] Not started — call start() first');
+    return fetchFreesailSystemPrompt(this.coordinatorClient);
+  }
+
+  async getToolDefinitions(): Promise<ToolDefinition[]> {
+    if (!this.coordinatorClient) throw new Error('[AgentRuntime] Not started — call start() first');
+    const { tools } = await this.coordinatorClient.listTools();
+    return tools.map(t => ({ name: t.name, description: t.description ?? '', inputSchema: t.inputSchema }));
+  }
+
+  async callTool(name: string, args: Record<string, unknown>): Promise<string> {
+    if (!this.coordinatorClient) throw new Error('[AgentRuntime] Not started — call start() first');
+    const result = await this.coordinatorClient.callTool({ name, arguments: args });
+    const content = result.content as Array<{ type: string; text?: string }>;
+    return content.map(c => c.type === 'text' ? c.text ?? '' : JSON.stringify(c)).join('\n');
+  }
+
+  // ── Internal ────────────────────────────────────────────────────────────────
+
   private queueForSession(sessionId: string, fn: () => Promise<void>): void {
     const current = this.sessionChains.get(sessionId) ?? Promise.resolve();
     const next = current
@@ -144,21 +180,15 @@ export class FreesailAgentRuntime {
     this.sessionChains.set(sessionId, next);
   }
 
-  /**
-   * Retrieves or creates an agent for a given session ID.
-   */
-  private getOrCreateAgent(sessionId: string): FreesailAgent {
+  private getOrCreateAgent(sessionId: string, session: FreesailSessionClientImpl): FreesailAgent {
     if (!this.activeAgents.has(sessionId)) {
       logger.info(`[AgentRuntime] Creating new agent for session: ${sessionId}`);
-      const agent = this.agentFactory(sessionId);
+      const agent = this.agentFactory(sessionId, session);
       this.activeAgents.set(sessionId, agent);
     }
     return this.activeAgents.get(sessionId)!;
   }
 
-  /**
-   * Tears down an agent and removes it from memory.
-   */
   private removeAgent(sessionId: string) {
     if (this.activeAgents.has(sessionId)) {
       logger.info(`[AgentRuntime] Tearing down agent for session: ${sessionId}`);
@@ -168,10 +198,6 @@ export class FreesailAgentRuntime {
     this.sessionChains.delete(sessionId);
   }
 
-  /**
-   * Dispatch an action to an agent as fire-and-forget, but track the promise
-   * so the disconnect handler can drain it before tearing down the agent.
-   */
   private dispatchNotification(sessionId: string, agent: FreesailAgent, notification: SessionNotification): void {
     const pending = this.inFlightActions.get(sessionId) ?? new Set();
     this.inFlightActions.set(sessionId, pending);
@@ -184,33 +210,16 @@ export class FreesailAgentRuntime {
     p.finally(() => pending.delete(p));
   }
 
-  /**
-   * Wait for all in-flight actions for a session to complete.
-   * Called from the disconnect path before removing the agent.
-   */
   private async drainSession(sessionId: string): Promise<void> {
     const pending = this.inFlightActions.get(sessionId);
     if (!pending || pending.size === 0) return;
-
-    logger.info(
-      `[AgentRuntime] Draining ${pending.size} in-flight action(s) for session ${sessionId} before disconnect`,
-    );
+    logger.info(`[AgentRuntime] Draining ${pending.size} in-flight action(s) for session ${sessionId}`);
     await Promise.allSettled([...pending]);
   }
 
-  /**
-   * Read the sessions list resource and diff against knownSessions to detect
-   * newly connected and disconnected sessions.
-   *
-   * On connect: claim the session, subscribe to its per-session URI, create
-   * the agent instance, and call onSessionConnected.
-   *
-   * On disconnect: drain in-flight actions, call onSessionDisconnected,
-   * release the session, and unsubscribe from the per-session URI.
-   */
   private async handleSessionsUpdate(): Promise<void> {
     try {
-      const result = await this.mcpClient.readResource({ uri: SESSIONS_URI });
+      const result = await this.coordinatorClient!.readResource({ uri: SESSIONS_URI });
       const content = result.contents[0];
       if (!content || !("text" in content) || !content.text) return;
 
@@ -220,80 +229,87 @@ export class FreesailAgentRuntime {
       // Detect new sessions
       for (const sessionId of currentIds) {
         if (this.knownSessions.has(sessionId)) continue;
-
         this.knownSessions.add(sessionId);
 
         this.queueForSession(sessionId, async () => {
+          // Each agent gets its own dedicated MCP client
+          const agentClient = await this.createClient();
+          this.agentClients.set(sessionId, agentClient);
+
+          // Register per-session notification handler on the dedicated client
+          agentClient.setNotificationHandler(
+            ResourceUpdatedNotificationSchema,
+            async (notification) => {
+              const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(notification.params.uri);
+              if (match) {
+                const sid = decodeURIComponent(match[1]!);
+                await this.handleSessionActions(sid, agentClient);
+              }
+            },
+          );
+
+          // Claim the session on the dedicated client
           let claimed = false;
           try {
-            const result = await this.mcpClient.callTool({
+            const claimResult = await agentClient.callTool({
               name: "claim_session",
               arguments: { sessionId },
             });
-            const content = (result as any).content;
-            const first = Array.isArray(content) ? content[0] : null;
+            const claimContent = (claimResult as any).content;
+            const first = Array.isArray(claimContent) ? claimContent[0] : null;
             const text = first && "text" in first ? (first as { text: string }).text : null;
             const parsed = text ? JSON.parse(text) : null;
             claimed = parsed?.success === true;
             if (claimed) {
               logger.info(`[AgentRuntime] Claimed session ${sessionId}`);
             } else {
-              logger.info(`[AgentRuntime] Session ${sessionId} already claimed by another agent — skipping`);
+              logger.info(`[AgentRuntime] Could not claim session ${sessionId} — skipping: ${parsed?.error ?? 'unknown reason'}`);
             }
           } catch (err) {
             logger.warn(`[AgentRuntime] Could not claim session ${sessionId}:`, err);
           }
-          if (!claimed) return;
 
-          // Subscribe to per-session resource only after claiming — prevents other
-          // agents from dequeuing actions that belong to this agent.
-          // If subscription fails after retries, track the session so pollPendingActions()
-          // can drain it whenever resources/list_changed fires as a fallback.
-          //
-          // Retry rationale: Node.js (undici) reuses keep-alive connections from the
-          // connection pool. If the gateway closed the previous connection (e.g. after
-          // the claim_session tool call) and the pooled socket is stale, the very next
-          // POST (subscribeResource) hits a closed socket and throws TypeError: fetch
-          // failed. A single retry after a short delay picks a fresh connection and
-          // succeeds in practice.
-          const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
-          if (!this.activeSubscriptions.has(sessionUri)) {
-            const RETRY_DELAYS_MS = [100, 500];
-            let subscribed = false;
-            let lastErr: unknown;
-            for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-              if (attempt > 0) {
-                await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
-              }
-              try {
-                await this.mcpClient.subscribeResource({ uri: sessionUri });
-                subscribed = true;
-                break;
-              } catch (err) {
-                lastErr = err;
-              }
-            }
-            if (subscribed) {
-              this.activeSubscriptions.add(sessionUri);
-              this.missedSubscriptions.delete(sessionId);
-            } else {
-              logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId} — will poll via list_changed:`, lastErr);
-              this.missedSubscriptions.add(sessionId);
-            }
+          if (!claimed) {
+            try { await agentClient.close(); } catch {}
+            this.agentClients.delete(sessionId);
+            return;
           }
 
-          const agent = this.getOrCreateAgent(sessionId);
+          // Subscribe to per-session resource on the dedicated client
+          const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+          const RETRY_DELAYS_MS = [100, 500];
+          let subscribed = false;
+          let lastErr: unknown;
+          for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+            if (attempt > 0) {
+              await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+            }
+            try {
+              await agentClient.subscribeResource({ uri: sessionUri });
+              subscribed = true;
+              break;
+            } catch (err) {
+              lastErr = err;
+            }
+          }
+          if (subscribed) {
+            this.missedSubscriptions.delete(sessionId);
+          } else {
+            logger.warn(`[AgentRuntime] Failed to subscribe to session ${sessionId} — will poll via list_changed:`, lastErr);
+            this.missedSubscriptions.add(sessionId);
+          }
+
+          const session = new FreesailSessionClientImpl(sessionId, agentClient);
+          const agent = this.getOrCreateAgent(sessionId, session);
           await agent.onSessionConnected?.(sessionId);
 
-          // Drain any actions already queued before our subscription was set up
-          await this.handleSessionActions(sessionId);
+          await this.handleSessionActions(sessionId, agentClient);
         });
       }
 
       // Detect removed sessions
       for (const sessionId of this.knownSessions) {
         if (currentIds.has(sessionId)) continue;
-
         this.knownSessions.delete(sessionId);
 
         this.queueForSession(sessionId, async () => {
@@ -303,24 +319,24 @@ export class FreesailAgentRuntime {
             await agent.onSessionDisconnected?.(sessionId);
             this.removeAgent(sessionId);
           }
-          try {
-            await this.mcpClient.callTool({
-              name: "release_session",
-              arguments: { sessionId },
-            });
-          } catch (err) {
-            logger.warn(`[AgentRuntime] Could not release session ${sessionId}:`, err);
-          }
-          // Unsubscribe from the per-session resource
-          const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
-          if (this.activeSubscriptions.has(sessionUri)) {
+
+          const agentClient = this.agentClients.get(sessionId);
+          if (agentClient) {
+            const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
             try {
-              await this.mcpClient.unsubscribeResource({ uri: sessionUri });
+              await agentClient.callTool({ name: 'release_session', arguments: { sessionId } });
+            } catch (err) {
+              logger.warn(`[AgentRuntime] Could not release session ${sessionId}:`, err);
+            }
+            try {
+              await agentClient.unsubscribeResource({ uri: sessionUri });
             } catch (err) {
               logger.warn(`[AgentRuntime] Failed to unsubscribe from session ${sessionId}:`, err);
             }
-            this.activeSubscriptions.delete(sessionUri);
+            try { await agentClient.close(); } catch {}
+            this.agentClients.delete(sessionId);
           }
+          this.missedSubscriptions.delete(sessionId);
         });
       }
     } catch (error) {
@@ -328,20 +344,13 @@ export class FreesailAgentRuntime {
     }
   }
 
-  /**
-   * Read the per-session resource to drain the action queue and dispatch
-   * any pending actions to the session's agent.
-   *
-   * Lifecycle events (__session_*) are skipped — they are handled via the
-   * sessions list subscription in handleSessionsUpdate.
-   */
-  private async handleSessionActions(sessionId: string): Promise<void> {
+  private async handleSessionActions(sessionId: string, client: Client): Promise<void> {
     const agent = this.activeAgents.get(sessionId);
-    if (!agent?.onSessionNotification) return; // queue untouched if not handled
+    if (!agent?.onSessionNotification) return;
 
     try {
       const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
-      const result = await this.mcpClient.readResource({ uri: sessionUri });
+      const result = await client.readResource({ uri: sessionUri });
       const content = result.contents[0];
       if (!content || !("text" in content) || !content.text) return;
 
@@ -383,7 +392,6 @@ export class FreesailAgentRuntime {
         const rawAction = msg.action;
         if (!rawAction) continue;
 
-        // Skip internal lifecycle events — handled via sessions list subscription
         if (typeof rawAction.name !== 'string') {
           logger.warn(`[AgentRuntime] Skipping action with non-string name (session=${sessionId}):`, rawAction.name);
           continue;

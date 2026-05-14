@@ -104,9 +104,11 @@ export interface SessionManagerOptions {
   reconnectGracePeriod?: number;
   /** Directory to write catalog prompt logs to (overrides CATALOG_LOG_DIR env var) */
   catalogLogDir?: string;
+  /** Maximum number of sessions an agent can claim at once (default: 1). null = unlimited. */
+  maxSessionsPerAgent?: number | null;
 }
 
-const DEFAULT_OPTIONS: Required<Omit<SessionManagerOptions, 'catalogLogDir'>> = {
+const DEFAULT_OPTIONS: Required<Omit<SessionManagerOptions, 'catalogLogDir' | 'maxSessionsPerAgent'>> = {
   sessionTimeout: 30 * 60 * 1000,
   cleanupInterval: 60 * 1000,
   reconnectGracePeriod: 180 * 1000,
@@ -150,15 +152,17 @@ export class SessionManager {
   private agentBindings: Map<string, AgentBinding> = new Map();
   private sessionToAgent: Map<string, string> = new Map();
   private sessionEventListeners: Map<keyof SessionManagerEvents, Array<(...args: any[]) => void>> = new Map();
-  private options: Required<Omit<SessionManagerOptions, 'catalogLogDir'>>;
+  private options: Required<Omit<SessionManagerOptions, 'catalogLogDir' | 'maxSessionsPerAgent'>>;
   private catalogLogDir: string | undefined;
+  private readonly maxSessionsPerAgent: number | null;
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   private pendingReconnects: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(options: SessionManagerOptions = {}) {
-    const { catalogLogDir, ...rest } = options;
+    const { catalogLogDir, maxSessionsPerAgent, ...rest } = options;
     this.options = { ...DEFAULT_OPTIONS, ...rest };
     this.catalogLogDir = catalogLogDir;
+    this.maxSessionsPerAgent = maxSessionsPerAgent === undefined ? null : maxSessionsPerAgent;
     this.startCleanup();
   }
 
@@ -921,6 +925,18 @@ export class SessionManager {
       binding = { agentId, sessionIds: new Set(), createdAt: Date.now() };
       this.agentBindings.set(agentId, binding);
     }
+
+    if (
+      this.maxSessionsPerAgent !== null &&
+      binding.sessionIds.size >= this.maxSessionsPerAgent &&
+      !binding.sessionIds.has(sessionId)
+    ) {
+      return {
+        success: false,
+        error: `Agent has reached the maximum of ${this.maxSessionsPerAgent} claimed session(s)`,
+      };
+    }
+
     binding.sessionIds.add(sessionId);
     this.sessionToAgent.set(sessionId, agentId);
 

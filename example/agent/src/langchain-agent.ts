@@ -1,9 +1,9 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import type { FreesailAgent, SessionNotification } from '@freesail/agent-runtime';
+import type { FreesailAgent, FreesailSessionClient, SessionNotification, ToolDefinition } from '@freesail/agent-runtime';
 import { SharedCache } from '@freesail/agent-runtime';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
+import { LangChainAdapter } from './langchain-adapter.js';
 import { NativeLogger } from '@freesail/logger';
 
 const logger = new NativeLogger('langchain-agent');
@@ -33,12 +33,12 @@ function extractGeminiToolCalls(finalChunk: any): any {
 }
 
 interface FreesailLangchainAgentConfig {
-  /** The connected MCP Client instance */
-  mcpClient: Client;
+  /** Typed session client for this agent's claimed session */
+  session: FreesailSessionClient;
   /** The Langchain Chat Model (e.g. ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI) */
   model: BaseChatModel;
   /** Shared cache for system prompt and tools — mutex-safe across concurrent sessions */
-  sharedCache: SharedCache<DynamicStructuredTool[]>;
+  sharedCache: SharedCache<ToolDefinition[]>;
 }
 
 /**
@@ -50,9 +50,10 @@ interface FreesailLangchainAgentConfig {
  */
 export class FreesailLangchainSessionAgent implements FreesailAgent {
   private sessionId: string;
-  private mcpClient: Client;
+  private session: FreesailSessionClient;
   private model: BaseChatModel;
-  private sharedCache: SharedCache<DynamicStructuredTool[]>;
+  private sharedCache: SharedCache<ToolDefinition[]>;
+  private _boundTools: Promise<DynamicStructuredTool[]> | null = null;
 
   // Per-session state
   private conversationHistory: (HumanMessage | AIMessage | ToolMessage)[] = [];
@@ -66,7 +67,7 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
 
   constructor(sessionId: string, config: FreesailLangchainAgentConfig) {
     this.sessionId = sessionId;
-    this.mcpClient = config.mcpClient;
+    this.session = config.session;
     this.model = config.model;
     this.sharedCache = config.sharedCache;
   }
@@ -163,11 +164,8 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   // Chat data model helpers
   // ============================================================================
 
-  private updateChatModel(path: string, value: unknown): Promise<unknown> {
-    return this.mcpClient.callTool({
-      name: 'update_data_model',
-      arguments: { surfaceId: '__chat', sessionId: this.sessionId, path, value },
-    });
+  private updateChatModel(path: string, value: unknown): Promise<void> {
+    return this.session.updateDataModel('__chat', path, value);
   }
 
   // ============================================================================
@@ -242,12 +240,18 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   }
 
   private getTools(): Promise<DynamicStructuredTool[]> {
-    return this.sharedCache.getTools();
+    if (!this._boundTools) {
+      this._boundTools = this.sharedCache.getTools()
+        .then(defs => LangChainAdapter.bindTools(defs, this.session))
+        .catch(err => { this._boundTools = null; throw err; });
+    }
+    return this._boundTools;
   }
 
   /** Invalidates the shared prompt/tool cache (e.g. when catalogs change upstream). */
   invalidateCache(): void {
     this.sharedCache.invalidate();
+    this._boundTools = null;
   }
 
   private async streamModelResponse(

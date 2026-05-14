@@ -6,6 +6,7 @@
   "mcpHost": "127.0.0.1",
   "sessionTimeout": 1800,
   "reconnectGracePeriod": 180,
+  "maxSessionsPerAgent": 1,
   "catalogLogDir": "/var/log/freesail/catalogs",
   "bodyLimit": "5mb",
   "log": {

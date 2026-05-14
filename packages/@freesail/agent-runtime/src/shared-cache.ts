@@ -1,5 +1,3 @@
-import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { fetchFreesailSystemPrompt } from './utils.js';
 import { logger } from '@freesail/logger';
 
 /**
@@ -43,7 +41,7 @@ import { logger } from '@freesail/logger';
  * ```
  */
 export class SharedCache<TTools = unknown> {
-  private mcpClient: Client;
+  private systemPromptFactory: () => Promise<string>;
   private toolsFactory: () => Promise<TTools>;
   private systemPromptOverride?: string;
 
@@ -51,11 +49,11 @@ export class SharedCache<TTools = unknown> {
   private _tools: Promise<TTools> | null = null;
 
   constructor(
-    mcpClient: Client,
+    systemPromptFactory: () => Promise<string>,
     toolsFactory: () => Promise<TTools>,
     systemPromptOverride?: string,
   ) {
-    this.mcpClient = mcpClient;
+    this.systemPromptFactory = systemPromptFactory;
     this.toolsFactory = toolsFactory;
     this.systemPromptOverride = systemPromptOverride;
   }
@@ -70,7 +68,7 @@ export class SharedCache<TTools = unknown> {
     }
     if (!this._systemPrompt) {
       logger.info('[SharedCache] Fetching system prompt from MCP...');
-      this._systemPrompt = fetchFreesailSystemPrompt(this.mcpClient).catch((err) => {
+      this._systemPrompt = this.systemPromptFactory().catch((err) => {
         this._systemPrompt = null;
         throw err;
       });

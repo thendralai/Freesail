@@ -56,5 +56,6 @@ export interface FreesailAgent {
 
 /**
  * A factory function provided to the runtime to instantiate a new agent per session.
+ * Receives a typed session client — no raw MCP client required in framework-specific code.
  */
-export type AgentFactory = (sessionId: string) => FreesailAgent;
+export type AgentFactory = (sessionId: string, session: import('./session-client.js').FreesailSessionClient) => FreesailAgent;
