@@ -16,8 +16,7 @@ npm install @freesail/agent-runtime
 | **`FreesailAgent`**        | Interface your agent class implements. All methods are optional.                                              |
 | **`FreesailSessionClient`**| Typed wrapper for all gateway operations (surfaces, data model, catalogs). Passed to your `AgentFactory` — no raw MCP client needed. |
 | **`AgentFactory`**         | A function `(sessionId, session: FreesailSessionClient) => FreesailAgent` the runtime calls when a new session connects. |
-| **`FreesailAgentRuntime`** | The runtime itself. You create one per process, give it the factory and `gatewayUrl`, and call `.start()`.    |
-| **`SharedCache`**          | A process-level cache for MCP-fetched data (system prompt, tools). Concurrent-safe via promise deduplication. |
+| **`FreesailAgentRuntime`** | The runtime itself. You create one per process, give it the factory and `gatewayUrl`, and call `.start()`. Caches the system prompt and tool definitions internally — fetched once and shared across all sessions. |
 
 The runtime manages all MCP connections internally — one coordinator client for session discovery and one dedicated client per claimed session. Your code never touches `@modelcontextprotocol/sdk` directly unless you need to connect to other MCP servers for unrelated purposes.
 
@@ -177,7 +176,7 @@ interface AgentRuntimeConfig {
 
 ### `FreesailToolProvider`
 
-Interface implemented by `FreesailAgentRuntime` (coordinator-level) and `FreesailSessionClient` (per-session). Use it for shared utilities like `SharedCache` that need to fetch the system prompt or tool list without being coupled to a specific session.
+Interface implemented by both `FreesailAgentRuntime` and `FreesailSessionClient`. Accept it as a parameter type when your code needs to fetch the system prompt or tool list without being coupled to a specific session (e.g. when passing the runtime to a per-session agent).
 
 ```typescript
 interface FreesailToolProvider {
@@ -218,32 +217,6 @@ sessions resource updated (session disappears)
 - **Missed connect**: if the agent process restarts while sessions are active, `start()` reads the sessions list and picks up existing sessions. `onSessionConnected` is called for each recovered session.
 
 ---
-
-## Shared cache
-
-Use `SharedCache<TTools>` when multiple session agents share expensive MCP-fetched data (system prompt, tool definitions) that doesn't change per session. The `TTools` generic lets any agent framework (LangChain, Vercel AI SDK, etc.) share a single fetched tool list without coupling to a particular SDK.
-
-```typescript
-import { SharedCache, FreesailToolProvider } from "@freesail/agent-runtime";
-
-// Create once at process level — pass factory functions, not a client
-const cache = new SharedCache(
-  () => runtime.getSystemPrompt(),             // called at most once until invalidated
-  () => myFramework.getToolDefinitions(runtime), // framework-specific tool format
-  // optional third arg: hardcoded system prompt string (skips the MCP fetch)
-);
-
-// In each session agent:
-const systemPrompt = await cache.getSystemPrompt();
-const tools = await cache.getTools();
-
-// Invalidate when upstream tools or system prompt change (e.g. new catalog registered):
-cache.invalidate();
-```
-
-**Concurrent-fetch deduplication**: if 100 sessions call `getSystemPrompt()` at the same moment on a cold cache, the MCP fetch is issued exactly once. All 100 callers share the resolved `Promise`.
-
-**Mid-turn safety**: `await cache.getSystemPrompt()` returns a plain `string`. If `invalidate()` fires while an agent is mid-turn, the local string is unaffected — only the next caller after invalidation triggers a fresh fetch.
 
 ---
 
@@ -286,51 +259,40 @@ import {
   FreesailAgentRuntime,
   FreesailAgent,
   FreesailSessionClient,
+  FreesailToolProvider,
   SessionNotification,
-  SharedCache,
-  ToolDefinition,
   formatAction,
 } from "@freesail/agent-runtime";
 
-// ─── Shared process-level resources ─────────────────────────────────────────
+// ─── Runtime ────────────────────────────────────────────────────────────────
 
-// sharedCache is initialised after start() — factories are lazy so this is safe
-let sharedCache!: SharedCache<ToolDefinition[]>;
-
-const runtime = new FreesailAgentRuntime({
+// runtime caches getSystemPrompt() and getToolDefinitions() internally after
+// the first call — shared across all sessions with no extra setup required.
+const runtime: FreesailAgentRuntime = new FreesailAgentRuntime({
   gatewayUrl: "http://localhost:3000/mcp",
   clientInfo: { name: "my-agent", version: "1.0.0" },
   agentFactory: (sessionId, session) =>
-    new MySessionAgent(sessionId, session, sharedCache),
+    new MySessionAgent(sessionId, session, runtime),
 });
 
 await runtime.start();
-
-sharedCache = new SharedCache<ToolDefinition[]>(
-  () => runtime.getSystemPrompt(),
-  () => runtime.getToolDefinitions(),
-);
 
 // ─── Per-session agent ───────────────────────────────────────────────────────
 
 class MySessionAgent implements FreesailAgent {
   private sessionId: string;
   private session: FreesailSessionClient;
-  private cache: SharedCache<ToolDefinition[]>;
+  private runtime: FreesailToolProvider;
   private history: string[] = [];
 
   constructor(
     sessionId: string,
     session: FreesailSessionClient,
-    cache: SharedCache<ToolDefinition[]>,
+    runtime: FreesailToolProvider,
   ) {
     this.sessionId = sessionId;
     this.session = session;
-    this.cache = cache;
-  }
-
-  async onSessionConnected(sessionId: string) {
-    this.cache.invalidate(); // pick up any newly registered catalogs
+    this.runtime = runtime;
   }
 
   async onSessionDisconnected(sessionId: string) {
@@ -348,8 +310,8 @@ class MySessionAgent implements FreesailAgent {
     }
 
     const { event } = notification;
-    const systemPrompt = await this.cache.getSystemPrompt();
-    const tools = await this.cache.getTools();
+    const systemPrompt = await this.runtime.getSystemPrompt();
+    const tools = await this.runtime.getToolDefinitions();
     const userMessage = formatAction(this.sessionId, event, event.clientDataModel);
 
     // Call your LLM with systemPrompt, tools, history, userMessage ...

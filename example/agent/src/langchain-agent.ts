@@ -1,7 +1,6 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { FreesailAgent, FreesailSessionClient, SessionNotification, ToolDefinition } from '@freesail/agent-runtime';
-import { SharedCache } from '@freesail/agent-runtime';
+import type { FreesailAgent, FreesailSessionClient, FreesailToolProvider, SessionNotification } from '@freesail/agent-runtime';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { LangChainAdapter } from './langchain-adapter.js';
 import { NativeLogger } from '@freesail/logger';
@@ -37,8 +36,8 @@ interface FreesailLangchainAgentConfig {
   session: FreesailSessionClient;
   /** The Langchain Chat Model (e.g. ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI) */
   model: BaseChatModel;
-  /** Shared cache for system prompt and tools — mutex-safe across concurrent sessions */
-  sharedCache: SharedCache<ToolDefinition[]>;
+  /** Runtime provider for system prompt and tool definitions (shared across sessions) */
+  runtime: FreesailToolProvider;
 }
 
 /**
@@ -52,7 +51,7 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   private sessionId: string;
   private session: FreesailSessionClient;
   private model: BaseChatModel;
-  private sharedCache: SharedCache<ToolDefinition[]>;
+  private runtime: FreesailToolProvider;
   private _boundTools: Promise<DynamicStructuredTool[]> | null = null;
 
   // Per-session state
@@ -69,7 +68,7 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
     this.sessionId = sessionId;
     this.session = config.session;
     this.model = config.model;
-    this.sharedCache = config.sharedCache;
+    this.runtime = config.runtime;
   }
 
   // ============================================================================
@@ -77,11 +76,6 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   // ============================================================================
 
   async onSessionConnected(sessionId: string): Promise<void> {
-    // Invalidate the cache so this session fetches the latest catalog list.
-    // A new session may have registered catalogs that weren't present before;
-    // the MCP notification fires the invalidation too, but this closes the
-    // race window where the poll could fire before the notification arrives.
-    this.sharedCache.invalidate();
     logger.info(`[${sessionId}] Session connected — agent ready`);
   }
 
@@ -236,22 +230,16 @@ export class FreesailLangchainSessionAgent implements FreesailAgent {
   // ============================================================================
 
   private getSystemPrompt(): Promise<string> {
-    return this.sharedCache.getSystemPrompt();
+    return this.runtime.getSystemPrompt();
   }
 
   private getTools(): Promise<DynamicStructuredTool[]> {
     if (!this._boundTools) {
-      this._boundTools = this.sharedCache.getTools()
-        .then(defs => LangChainAdapter.bindTools(defs, this.session))
-        .catch(err => { this._boundTools = null; throw err; });
+      this._boundTools = this.runtime.getToolDefinitions()
+        .then((defs: import('@freesail/agent-runtime').ToolDefinition[]) => LangChainAdapter.bindTools(defs, this.session))
+        .catch((err: unknown) => { this._boundTools = null; throw err; });
     }
-    return this._boundTools;
-  }
-
-  /** Invalidates the shared prompt/tool cache (e.g. when catalogs change upstream). */
-  invalidateCache(): void {
-    this.sharedCache.invalidate();
-    this._boundTools = null;
+    return this._boundTools!;
   }
 
   private async streamModelResponse(

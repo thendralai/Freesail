@@ -1,16 +1,8 @@
 import { tool, type DynamicStructuredTool } from '@langchain/core/tools';
-import { jsonSchemaToZod, type FreesailToolProvider, type FreesailSessionClient, type ToolDefinition } from '@freesail/agent-runtime';
+import { jsonSchemaToZod, type FreesailSessionClient, type ToolDefinition } from '@freesail/agent-runtime';
 import { logger } from '@freesail/logger';
 
 export class LangChainAdapter {
-  /**
-   * Fetch tool definitions from a provider (coordinator or session client).
-   * Suitable for use with SharedCache — returns schemas only, no session binding.
-   */
-  static async getToolDefinitions(provider: FreesailToolProvider): Promise<ToolDefinition[]> {
-    return provider.getToolDefinitions();
-  }
-
   /**
    * Bind tool definitions to a specific session.
    * All tool invocations are routed through the session's dedicated MCP client,

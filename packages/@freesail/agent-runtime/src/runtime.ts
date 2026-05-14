@@ -150,15 +150,26 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
   // ── FreesailToolProvider ────────────────────────────────────────────────────
   // Delegates to the coordinator client for shared / bootstrap use (e.g. SharedCache).
 
+  private _systemPrompt: Promise<string> | null = null;
+  private _toolDefs: Promise<ToolDefinition[]> | null = null;
+
   async getSystemPrompt(): Promise<string> {
     if (!this.coordinatorClient) throw new Error('[AgentRuntime] Not started — call start() first');
-    return fetchFreesailSystemPrompt(this.coordinatorClient);
+    if (!this._systemPrompt) {
+      this._systemPrompt = fetchFreesailSystemPrompt(this.coordinatorClient)
+        .catch(err => { this._systemPrompt = null; throw err; });
+    }
+    return this._systemPrompt;
   }
 
   async getToolDefinitions(): Promise<ToolDefinition[]> {
     if (!this.coordinatorClient) throw new Error('[AgentRuntime] Not started — call start() first');
-    const { tools } = await this.coordinatorClient.listTools();
-    return tools.map(t => ({ name: t.name, description: t.description ?? '', inputSchema: t.inputSchema }));
+    if (!this._toolDefs) {
+      this._toolDefs = this.coordinatorClient.listTools()
+        .then(({ tools }) => tools.map(t => ({ name: t.name, description: t.description ?? '', inputSchema: t.inputSchema })))
+        .catch(err => { this._toolDefs = null; throw err; });
+    }
+    return this._toolDefs;
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {

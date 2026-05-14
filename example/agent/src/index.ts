@@ -10,10 +10,8 @@
 
 import { NativeLogger, getConsoleSink, configure } from '@freesail/logger';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { FreesailAgentRuntime, SharedCache } from '@freesail/agent-runtime';
-import type { FreesailSessionClient } from '@freesail/agent-runtime';
+import { FreesailAgentRuntime } from '@freesail/agent-runtime';
 import { FreesailLangchainSessionAgent } from './langchain-agent.js';
-import { LangChainAdapter } from './langchain-adapter.js';
 
 await configure({
   sinks: { console: getConsoleSink() },
@@ -68,32 +66,17 @@ if (LLM_PROVIDER === 'openai') {
   logger.info(`LLM provider: Google Gemini (${geminiModel})`);
 }
 
-// ============================================================================
-// Agent Runtime
-// The runtime creates and manages all MCP clients internally.
-// sharedCache is initialised after start() so the coordinator client is ready.
-// The agentFactory closure reads sharedCache lazily (on first session action),
-// so it is always initialised by the time it is accessed.
-// ============================================================================
-
-let sharedCache!: SharedCache<any[]>;
-
 logger.info(`Connecting to Freesail gateway at http://localhost:${MCP_PORT}/mcp ...`);
 
-const runtime = new FreesailAgentRuntime({
+const runtime: FreesailAgentRuntime = new FreesailAgentRuntime({
   gatewayUrl: `http://localhost:${MCP_PORT}/mcp`,
   clientInfo: { name: 'freesail-agent', version: '0.1.0' },
   agentFactory: (sessionId, session) =>
-    new FreesailLangchainSessionAgent(sessionId, { session, model, sharedCache }),
+    new FreesailLangchainSessionAgent(sessionId, { session, model, runtime }),
 });
 
 await runtime.start();
 logger.info('Connected to gateway');
-
-sharedCache = new SharedCache<any[]>(
-  () => runtime.getSystemPrompt(),
-  () => LangChainAdapter.getToolDefinitions(runtime),
-);
 
 logger.info(`Chat flows through A2UI __chat surface`);
 logger.info(`Gateway MCP: http://localhost:${MCP_PORT}/mcp`);
