@@ -139,13 +139,11 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
    * Call from a resources/list_changed handler as a fallback.
    */
   async pollPendingActions(): Promise<void> {
-    if (this.missedSubscriptions.size === 0) return;
+    if (this.agentClients.size === 0) return;
     await Promise.allSettled(
-      [...this.missedSubscriptions].map(sessionId => {
-        const client = this.agentClients.get(sessionId);
-        if (!client) return Promise.resolve();
-        return this.handleSessionActions(sessionId, client);
-      })
+      [...this.agentClients.entries()].map(([sessionId, client]) =>
+        this.handleSessionActions(sessionId, client)
+      )
     );
   }
 
@@ -232,48 +230,74 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
         this.knownSessions.add(sessionId);
 
         this.queueForSession(sessionId, async () => {
-          // Each agent gets its own dedicated MCP client
-          const agentClient = await this.createClient();
-          this.agentClients.set(sessionId, agentClient);
+          // Create a dedicated client and claim the session.
+          // Both steps are retried together: if claim_session's first POST fails
+          // (stale keep-alive socket), we close the client and reconnect from scratch.
+          const CLAIM_RETRY_DELAYS_MS = [200, 1000];
+          let agentClient: Client | null = null;
+          let claimed = false;
+          let claimSkip = false; // gateway explicitly rejected (not a network error)
+
+          for (let attempt = 0; attempt <= CLAIM_RETRY_DELAYS_MS.length; attempt++) {
+            if (attempt > 0) {
+              await new Promise<void>(r => setTimeout(r, CLAIM_RETRY_DELAYS_MS[attempt - 1]));
+            }
+            if (agentClient) {
+              try { await agentClient.close(); } catch {}
+            }
+            try {
+              agentClient = await this.createClient();
+            } catch (err) {
+              logger.warn(`[AgentRuntime] Could not connect for session ${sessionId} (attempt ${attempt + 1}):`, err);
+              continue;
+            }
+
+            try {
+              const claimResult = await agentClient.callTool({
+                name: "claim_session",
+                arguments: { sessionId },
+              });
+              const claimContent = (claimResult as any).content;
+              const first = Array.isArray(claimContent) ? claimContent[0] : null;
+              const text = first && "text" in first ? (first as { text: string }).text : null;
+              const parsed = text ? JSON.parse(text) : null;
+              claimed = parsed?.success === true;
+              if (claimed) {
+                logger.info(`[AgentRuntime] Claimed session ${sessionId}`);
+              } else {
+                logger.info(`[AgentRuntime] Could not claim session ${sessionId} — skipping: ${parsed?.error ?? 'unknown reason'}`);
+                claimSkip = true;
+              }
+              break; // tool call succeeded (even if gateway rejected) — stop retrying
+            } catch (err) {
+              logger.warn(`[AgentRuntime] claim_session failed for ${sessionId} (attempt ${attempt + 1}):`, err);
+            }
+          }
+
+          if (!claimed) {
+            if (agentClient) { try { await agentClient.close(); } catch {} }
+            if (!claimSkip) {
+              logger.warn(`[AgentRuntime] Gave up claiming session ${sessionId} after retries`);
+            }
+            return;
+          }
+
+          // Narrow type: agentClient is non-null here (null path returned above)
+          const claimedClient = agentClient as Client;
 
           // Register per-session notification handler on the dedicated client
-          agentClient.setNotificationHandler(
+          claimedClient.setNotificationHandler(
             ResourceUpdatedNotificationSchema,
             async (notification) => {
               const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(notification.params.uri);
               if (match) {
                 const sid = decodeURIComponent(match[1]!);
-                await this.handleSessionActions(sid, agentClient);
+                await this.handleSessionActions(sid, claimedClient);
               }
             },
           );
 
-          // Claim the session on the dedicated client
-          let claimed = false;
-          try {
-            const claimResult = await agentClient.callTool({
-              name: "claim_session",
-              arguments: { sessionId },
-            });
-            const claimContent = (claimResult as any).content;
-            const first = Array.isArray(claimContent) ? claimContent[0] : null;
-            const text = first && "text" in first ? (first as { text: string }).text : null;
-            const parsed = text ? JSON.parse(text) : null;
-            claimed = parsed?.success === true;
-            if (claimed) {
-              logger.info(`[AgentRuntime] Claimed session ${sessionId}`);
-            } else {
-              logger.info(`[AgentRuntime] Could not claim session ${sessionId} — skipping: ${parsed?.error ?? 'unknown reason'}`);
-            }
-          } catch (err) {
-            logger.warn(`[AgentRuntime] Could not claim session ${sessionId}:`, err);
-          }
-
-          if (!claimed) {
-            try { await agentClient.close(); } catch {}
-            this.agentClients.delete(sessionId);
-            return;
-          }
+          this.agentClients.set(sessionId, claimedClient);
 
           // Subscribe to per-session resource on the dedicated client
           const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
@@ -285,7 +309,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
               await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
             }
             try {
-              await agentClient.subscribeResource({ uri: sessionUri });
+              await claimedClient.subscribeResource({ uri: sessionUri });
               subscribed = true;
               break;
             } catch (err) {
@@ -299,11 +323,11 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
             this.missedSubscriptions.add(sessionId);
           }
 
-          const session = new FreesailSessionClientImpl(sessionId, agentClient);
+          const session = new FreesailSessionClientImpl(sessionId, claimedClient);
           const agent = this.getOrCreateAgent(sessionId, session);
           await agent.onSessionConnected?.(sessionId);
 
-          await this.handleSessionActions(sessionId, agentClient);
+          await this.handleSessionActions(sessionId, claimedClient);
         });
       }
 
