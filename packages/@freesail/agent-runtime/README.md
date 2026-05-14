@@ -1,11 +1,11 @@
-# @freesail/agentruntime
+# @freesail/agent-runtime
 
 The agent runtime connects your AI agent to the Freesail gateway. It handles session lifecycle, action routing, in-flight tracking, and shared MCP resource caching — so your agent only needs to implement business logic.
 
 ## Installation
 
 ```bash
-npm install @freesail/agentruntime
+npm install @freesail/agent-runtime
 ```
 
 ## Core concepts
@@ -14,11 +14,14 @@ npm install @freesail/agentruntime
 | -------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Session**                | One browser tab / connected client. The runtime creates a fresh agent instance per session.                   |
 | **`FreesailAgent`**        | Interface your agent class implements. All methods are optional.                                              |
-| **`AgentFactory`**         | A function `(sessionId) => FreesailAgent` the runtime calls when a new session connects.                      |
-| **`FreesailAgentRuntime`** | The runtime itself. You create one per process, give it the factory, and call `.start()`.                     |
+| **`FreesailSessionClient`**| Typed wrapper for all gateway operations (surfaces, data model, catalogs). Passed to your `AgentFactory` — no raw MCP client needed. |
+| **`AgentFactory`**         | A function `(sessionId, session: FreesailSessionClient) => FreesailAgent` the runtime calls when a new session connects. |
+| **`FreesailAgentRuntime`** | The runtime itself. You create one per process, give it the factory and `gatewayUrl`, and call `.start()`.    |
 | **`SharedCache`**          | A process-level cache for MCP-fetched data (system prompt, tools). Concurrent-safe via promise deduplication. |
 
-The runtime uses **MCP resource subscriptions** for all session and action delivery — no polling. It subscribes to `mcp://freesail.dev/sessions` on startup to detect session connects/disconnects, then subscribes to `mcp://freesail.dev/sessions/{sessionId}` for each active session to receive per-action push notifications.
+The runtime manages all MCP connections internally — one coordinator client for session discovery and one dedicated client per claimed session. Your code never touches `@modelcontextprotocol/sdk` directly unless you need to connect to other MCP servers for unrelated purposes.
+
+The runtime uses **MCP resource subscriptions** for session and action delivery with a fallback poll on every `resources/list_changed` notification — so per-session actions are never permanently lost if an SSE connection drops after idle.
 
 ---
 
@@ -27,13 +30,15 @@ The runtime uses **MCP resource subscriptions** for all session and action deliv
 ### 1. Implement `FreesailAgent`
 
 ```typescript
-import type { FreesailAgent, SessionNotification } from "@freesail/agentruntime";
+import type { FreesailAgent, FreesailSessionClient, SessionNotification } from "@freesail/agent-runtime";
 
 class MyAgent implements FreesailAgent {
   private sessionId: string;
+  private session: FreesailSessionClient;
 
-  constructor(sessionId: string) {
+  constructor(sessionId: string, session: FreesailSessionClient) {
     this.sessionId = sessionId;
+    this.session = session;
   }
 
   async onSessionConnected(sessionId: string) {
@@ -52,6 +57,7 @@ class MyAgent implements FreesailAgent {
     const { event } = notification;
     console.log(`Action "${event.name}" from surface "${event.surfaceId}"`);
     // Call your LLM, update the UI, etc.
+    // Use this.session.updateDataModel(...), this.session.createSurface(...), etc.
   }
 }
 ```
@@ -61,21 +67,12 @@ All three methods are **optional** — implement only what your agent needs.
 ### 2. Create the runtime
 
 ```typescript
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { FreesailAgentRuntime } from "@freesail/agentruntime";
-
-const mcpClient = new Client(
-  { name: "my-agent", version: "1.0.0" },
-  { capabilities: { resources: { subscribe: true } } }, // required for push notifications
-);
-await mcpClient.connect(
-  new StreamableHTTPClientTransport(new URL("http://localhost:3000/mcp")),
-);
+import { FreesailAgentRuntime } from "@freesail/agent-runtime";
 
 const runtime = new FreesailAgentRuntime({
-  mcpClient,
-  agentFactory: (sessionId) => new MyAgent(sessionId),
+  gatewayUrl: "http://localhost:3000/mcp",
+  clientInfo: { name: "my-agent", version: "1.0.0" }, // optional
+  agentFactory: (sessionId, session) => new MyAgent(sessionId, session),
 });
 
 await runtime.start();
@@ -131,12 +128,62 @@ interface ClientErrorEvent {
 
 > **Queue drain behaviour**: The runtime only calls `readResource` on the session queue if `onSessionNotification` is implemented. If it is not, the queue stays intact and the gateway will block write tools (`create_surface`, `update_components`, etc.) until the agent explicitly calls `get_pending_actions`.
 
+### `FreesailSessionClient`
+
+The typed session wrapper passed to `AgentFactory`. Covers all gateway operations so framework-specific code never needs to import `@modelcontextprotocol/sdk`.
+
+```typescript
+interface FreesailSessionClient {
+  readonly sessionId: string;
+
+  // Surface management
+  createSurface(params: { surfaceId: string; catalogId: string; sendDataModel?: boolean }): Promise<unknown>;
+  updateComponents(surfaceId: string, components: unknown[]): Promise<void>;
+  deleteSurface(surfaceId: string): Promise<void>;
+
+  // Data model
+  updateDataModel(surfaceId: string, path?: string, value?: unknown): Promise<void>;
+  getDataModel(surfaceId: string): Promise<unknown>;
+
+  // Introspection
+  getComponentTree(surfaceId: string): Promise<unknown>;
+  getPendingActions(): Promise<unknown[]>;
+  listSessions(): Promise<unknown[]>;
+
+  // Catalog helpers
+  getCatalogs(): Promise<unknown[]>;
+  getComponentDetails(catalogId: string, components: string[]): Promise<string>;
+  getFunctionDetails(catalogId: string, functions: string[]): Promise<string>;
+
+  // Escape hatch for raw tool calls and tool listing
+  callTool(name: string, args: Record<string, unknown>): Promise<string>;
+  getToolDefinitions(): Promise<ToolDefinition[]>;
+  getSystemPrompt(): Promise<string>;
+}
+```
+
 ### `AgentRuntimeConfig`
 
 ```typescript
 interface AgentRuntimeConfig {
-  mcpClient: Client;
-  agentFactory: AgentFactory; // (sessionId: string) => FreesailAgent
+  /** URL of the Freesail gateway MCP endpoint, e.g. http://localhost:3000/mcp */
+  gatewayUrl: string | URL;
+  /** Factory called once per session — receives a typed session client */
+  agentFactory: AgentFactory; // (sessionId: string, session: FreesailSessionClient) => FreesailAgent
+  /** MCP client identity sent to the gateway (default: freesail-agent / 1.0.0) */
+  clientInfo?: { name: string; version: string };
+}
+```
+
+### `FreesailToolProvider`
+
+Interface implemented by `FreesailAgentRuntime` (coordinator-level) and `FreesailSessionClient` (per-session). Use it for shared utilities like `SharedCache` that need to fetch the system prompt or tool list without being coupled to a specific session.
+
+```typescript
+interface FreesailToolProvider {
+  getSystemPrompt(): Promise<string>;
+  getToolDefinitions(): Promise<ToolDefinition[]>;
+  callTool(name: string, args: Record<string, unknown>): Promise<string>;
 }
 ```
 
@@ -146,7 +193,7 @@ interface AgentRuntimeConfig {
 
 ```
 sessions resource updated (session appears)
-  → claim_session(agentId, sessionId)
+  → claim_session(agentId, sessionId)           [retried on network error]
   → subscribe to mcp://freesail.dev/sessions/{sessionId}
   → onSessionConnected()
         ↓
@@ -162,11 +209,12 @@ sessions resource updated (session disappears)
   → agent instance GC'd
 ```
 
-- **Push model**: session connects/disconnects and per-session actions are all delivered via MCP `ResourceUpdated` notifications — no polling.
+- **Push + fallback**: per-session actions are delivered via `ResourceUpdated` notifications. On every `resources/list_changed` notification (fired by the gateway on every upstream action), all active sessions are polled as a fallback — so actions are never permanently lost if a per-session SSE connection drops after idle.
+- **Dedicated client per session**: each claimed session gets its own MCP client. A slow or blocked session never delays others.
 - **Session ownership**: the runtime calls `claim_session` when a session connects and `release_session` when it disconnects. This lets the gateway track which agent owns each session.
 - **Ordering**: lifecycle events for the same session are serialised via a per-session promise chain. Events across different sessions run concurrently.
 - **Drain on disconnect**: `onSessionDisconnected` is never called while an in-flight `onSessionNotification` promise is still running for that session. The runtime waits using `Promise.allSettled`.
-- **Clean shutdown**: call `await runtime.stop()` before closing the MCP client to unsubscribe from all active resource subscriptions.
+- **Clean shutdown**: call `await runtime.stop()` before the process exits to release all sessions and close all MCP clients.
 - **Missed connect**: if the agent process restarts while sessions are active, `start()` reads the sessions list and picks up existing sessions. `onSessionConnected` is called for each recovered session.
 
 ---
@@ -176,24 +224,24 @@ sessions resource updated (session disappears)
 Use `SharedCache<TTools>` when multiple session agents share expensive MCP-fetched data (system prompt, tool definitions) that doesn't change per session. The `TTools` generic lets any agent framework (LangChain, Vercel AI SDK, etc.) share a single fetched tool list without coupling to a particular SDK.
 
 ```typescript
-import { SharedCache } from "@freesail/agentruntime";
+import { SharedCache, FreesailToolProvider } from "@freesail/agent-runtime";
 
-// Create once at process level — pass a factory for your framework's tool format
+// Create once at process level — pass factory functions, not a client
 const cache = new SharedCache(
-  mcpClient,
-  () => myFramework.getTools(mcpClient), // called at most once until invalidated
-  // optional third arg: systemPromptOverride — use a hardcoded prompt instead of fetching from MCP
+  () => runtime.getSystemPrompt(),             // called at most once until invalidated
+  () => myFramework.getToolDefinitions(runtime), // framework-specific tool format
+  // optional third arg: hardcoded system prompt string (skips the MCP fetch)
 );
 
 // In each session agent:
 const systemPrompt = await cache.getSystemPrompt();
 const tools = await cache.getTools();
 
-// Invalidate when upstream tools or system prompt change (e.g. new agent version):
+// Invalidate when upstream tools or system prompt change (e.g. new catalog registered):
 cache.invalidate();
 ```
 
-**Concurrent-fetch deduplication**: if 100 sessions call `getSystemPrompt()` at the same moment on a cold cache, the MCP fetch is issued exactly once. All 100 callers receive the same `Promise` and share the resolved value.
+**Concurrent-fetch deduplication**: if 100 sessions call `getSystemPrompt()` at the same moment on a cold cache, the MCP fetch is issued exactly once. All 100 callers share the resolved `Promise`.
 
 **Mid-turn safety**: `await cache.getSystemPrompt()` returns a plain `string`. If `invalidate()` fires while an agent is mid-turn, the local string is unaffected — only the next caller after invalidation triggers a fresh fetch.
 
@@ -201,64 +249,12 @@ cache.invalidate();
 
 ## Utilities
 
-### `fetchFreesailSystemPrompt(mcpClient)`
-
-Fetches the `a2ui_system` prompt from the gateway. Returns a default fallback if the gateway doesn't have one.
-
-```typescript
-import { fetchFreesailSystemPrompt } from '@freesail/agentruntime';
-
-const prompt = await fetchFreesailSystemPrompt(mcpClient);
-```
-
-### `listCatalogResources(mcpClient)`
-
-Lists all MCP resources (catalogs, files, etc.) registered on the gateway. Returns an array of `McpResourceEntry` objects, or an empty array on failure.
-
-```typescript
-import { listCatalogResources } from '@freesail/agentruntime';
-
-const resources = await listCatalogResources(mcpClient);
-// [{ uri, name, mimeType?, description? }, ...]
-```
-
-### `readCatalogResource(mcpClient, uri)`
-
-Reads the content of a single MCP resource by URI (e.g. a catalog definition). Throws on failure so the error can be surfaced to the LLM.
-
-```typescript
-import { readCatalogResource } from '@freesail/agentruntime';
-
-const content = await readCatalogResource(mcpClient, 'catalog://my-catalog');
-```
-
-### Catalog discovery via `get_catalogs`
-
-> **Calling `get_catalogs` is mandatory for any agent that creates UI surfaces.**
-
-Agents discover available component catalogs by calling the `get_catalogs` MCP tool with a `sessionId`. It returns an array of catalog objects — each with the catalog ID, title, and full component definitions — in a single call. The agent should do this at the start of a session before calling `create_surface`.
-
-```typescript
-// Call the get_catalogs gateway tool:
-const result = await mcpClient.callTool({
-  name: 'get_catalogs',
-  arguments: { sessionId },
-});
-// result.content[0].text is JSON: [{ catalogId, title, content }]
-// catalogId  → the exact string to pass to create_surface
-// content    → full component definitions to include in the LLM system prompt
-```
-
-The system prompt instructs the LLM what to do:
-- **Empty array returned**: tell the user no UI is available for this session.
-- **Non-empty array**: use `catalogId` for `create_surface`; include `content` in the context so the LLM knows which components are available.
-
 ### `formatAction(sessionId, action, clientDataModel?)`
 
 Converts a raw `ActionEvent` into a natural-language string suitable for passing to an LLM as a user message.
 
 ```typescript
-import { formatAction } from '@freesail/agentruntime';
+import { formatAction } from '@freesail/agent-runtime';
 
 async onSessionNotification(notification: SessionNotification) {
   if (notification.type !== 'action') return;
@@ -271,14 +267,13 @@ async onSessionNotification(notification: SessionNotification) {
 
 ### `jsonSchemaToZod(schema)`
 
-Converts a JSON Schema object (as returned by MCP tool definitions) to a Zod schema. Used when wrapping MCP tools for frameworks that require Zod schemas (e.g. LangChain).
+Converts a JSON Schema object (as returned by MCP tool definitions) to a Zod schema. Used when wrapping Freesail tools for frameworks that require Zod schemas (e.g. LangChain).
 
 ```typescript
-import { jsonSchemaToZod } from '@freesail/agentruntime';
+import { jsonSchemaToZod } from '@freesail/agent-runtime';
 
-const zodSchema = jsonSchemaToZod(mcpTool.inputSchema);
+const zodSchema = jsonSchemaToZod(toolDef.inputSchema);
 ```
-
 
 ---
 
@@ -287,41 +282,55 @@ const zodSchema = jsonSchemaToZod(mcpTool.inputSchema);
 A minimal but production-shaped agent using the runtime:
 
 ```typescript
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
   FreesailAgentRuntime,
   FreesailAgent,
+  FreesailSessionClient,
   SessionNotification,
   SharedCache,
-  fetchFreesailSystemPrompt,
+  ToolDefinition,
   formatAction,
-} from "@freesail/agentruntime";
+} from "@freesail/agent-runtime";
 
 // ─── Shared process-level resources ─────────────────────────────────────────
 
-const mcpClient = new Client(
-  { name: "my-agent", version: "1.0.0" },
-  { capabilities: { resources: { subscribe: true } } },
-);
-await mcpClient.connect(
-  new StreamableHTTPClientTransport(new URL("http://localhost:3000/mcp")),
-);
+// sharedCache is initialised after start() — factories are lazy so this is safe
+let sharedCache!: SharedCache<ToolDefinition[]>;
 
-const cache = new SharedCache(mcpClient, () => myFramework.getTools(mcpClient));
+const runtime = new FreesailAgentRuntime({
+  gatewayUrl: "http://localhost:3000/mcp",
+  clientInfo: { name: "my-agent", version: "1.0.0" },
+  agentFactory: (sessionId, session) =>
+    new MySessionAgent(sessionId, session, sharedCache),
+});
+
+await runtime.start();
+
+sharedCache = new SharedCache<ToolDefinition[]>(
+  () => runtime.getSystemPrompt(),
+  () => runtime.getToolDefinitions(),
+);
 
 // ─── Per-session agent ───────────────────────────────────────────────────────
 
 class MySessionAgent implements FreesailAgent {
   private sessionId: string;
+  private session: FreesailSessionClient;
+  private cache: SharedCache<ToolDefinition[]>;
   private history: string[] = [];
 
-  constructor(sessionId: string) {
+  constructor(
+    sessionId: string,
+    session: FreesailSessionClient,
+    cache: SharedCache<ToolDefinition[]>,
+  ) {
     this.sessionId = sessionId;
+    this.session = session;
+    this.cache = cache;
   }
 
   async onSessionConnected(sessionId: string) {
-    // Optionally send a welcome UI message
+    this.cache.invalidate(); // pick up any newly registered catalogs
   }
 
   async onSessionDisconnected(sessionId: string) {
@@ -330,32 +339,26 @@ class MySessionAgent implements FreesailAgent {
 
   async onSessionNotification(notification: SessionNotification) {
     if (notification.type === 'error') {
-      // Surface the client error to the LLM so it can react
       const { event } = notification;
-      const message = `[System Error] Client error on surface "${event.surfaceId}": ${event.code} — ${event.message}`;
+      const message =
+        `[System Error] Client error on surface "${event.surfaceId}": ` +
+        `${event.code} — ${event.message}`;
       // ... enqueue message for your LLM
       return;
     }
 
     const { event } = notification;
-    const systemPrompt = await cache.getSystemPrompt();
-    const tools = await cache.getTools();
+    const systemPrompt = await this.cache.getSystemPrompt();
+    const tools = await this.cache.getTools();
     const userMessage = formatAction(this.sessionId, event, event.clientDataModel);
 
     // Call your LLM with systemPrompt, tools, history, userMessage ...
+    // Use this.session.updateDataModel(...), this.session.createSurface(...), etc.
   }
 }
 
-// ─── Runtime ────────────────────────────────────────────────────────────────
-
-const runtime = new FreesailAgentRuntime({
-  mcpClient,
-  agentFactory: (sessionId) => new MySessionAgent(sessionId),
-});
-
-await runtime.start();
-
-// On shutdown: await runtime.stop();
+// On shutdown:
+// await runtime.stop();
 ```
 
 ---

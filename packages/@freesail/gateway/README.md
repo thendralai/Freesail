@@ -86,6 +86,7 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
   "webhookUrl": "http://localhost:3002/action",
   "sessionTimeout": 1800,
   "reconnectGracePeriod": 180,
+  "maxSessionsPerAgent": null,
   "bodyLimit": "5mb",
   "catalogLogDir": "/var/log/freesail/catalogs",
   "log": {
@@ -101,6 +102,14 @@ cp node_modules/@freesail/gateway/freesail.config.sample.json freesail-gateway.c
   }
 }
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sessionTimeout` | number | `1800` | Session idle timeout **in seconds** |
+| `reconnectGracePeriod` | number | `180` | Reconnect window after disconnect **in seconds** |
+| `maxSessionsPerAgent` | number \| null | `null` | Max sessions one agent client can claim at once. `null` = unlimited. Set to `1` if each agent process should own at most one session. |
+| `bodyLimit` | string | `"5mb"` | JSON body size limit for incoming requests |
+| `catalogLogDir` | string | — | Directory to write catalog prompt logs |
 
 All fields are optional.
 
@@ -246,10 +255,10 @@ By default the MCP server binds to `127.0.0.1` so only local processes can reach
 
 ## Session Timeout
 
-Idle sessions are cleaned up after **30 minutes** by default. Override via config:
+Idle sessions are cleaned up after **30 minutes** by default. Override via config (value is in **seconds**):
 
 ```json
-{ "sessionTimeout": 3600000 }
+{ "sessionTimeout": 3600 }
 ```
 
 ---
