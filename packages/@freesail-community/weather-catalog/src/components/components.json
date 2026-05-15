@@ -31,18 +31,25 @@
               "default": "C"
             },
             "condition": {
-              "type": "string",
-              "description": "Weather condition",
-              "enum": [
-                "sunny",
-                "cloudy",
-                "partly-cloudy",
-                "rainy",
-                "stormy",
-                "snowy",
-                "foggy",
-                "windy"
-              ]
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sunny",
+                    "cloudy",
+                    "partly-cloudy",
+                    "rainy",
+                    "stormy",
+                    "snowy",
+                    "foggy",
+                    "windy"
+                  ]
+                },
+                {
+                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                }
+              ],
+              "description": "Weather condition. Prefer a known value (sunny, cloudy, partly-cloudy, rainy, stormy, snowy, foggy, windy); unknown values are displayed as-is."
             },
             "humidity": {
               "$ref": "../common/common_types.json#/$defs/DynamicNumber",
@@ -117,18 +124,25 @@
               "default": "C"
             },
             "condition": {
-              "type": "string",
-              "description": "Weather condition for the day",
-              "enum": [
-                "sunny",
-                "cloudy",
-                "partly-cloudy",
-                "rainy",
-                "stormy",
-                "snowy",
-                "foggy",
-                "windy"
-              ]
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sunny",
+                    "cloudy",
+                    "partly-cloudy",
+                    "rainy",
+                    "stormy",
+                    "snowy",
+                    "foggy",
+                    "windy"
+                  ]
+                },
+                {
+                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                }
+              ],
+              "description": "Weather condition for the day. Prefer a known value (sunny, cloudy, partly-cloudy, rainy, stormy, snowy, foggy, windy); unknown values are displayed as-is."
             },
             "precipitation": {
               "$ref": "../common/common_types.json#/$defs/DynamicNumber",
@@ -241,18 +255,25 @@
               "const": "WeatherIcon"
             },
             "condition": {
-              "type": "string",
-              "description": "Weather condition to display",
-              "enum": [
-                "sunny",
-                "cloudy",
-                "partly-cloudy",
-                "rainy",
-                "stormy",
-                "snowy",
-                "foggy",
-                "windy"
-              ]
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sunny",
+                    "cloudy",
+                    "partly-cloudy",
+                    "rainy",
+                    "stormy",
+                    "snowy",
+                    "foggy",
+                    "windy"
+                  ]
+                },
+                {
+                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                }
+              ],
+              "description": "Weather condition to display. Prefer a known value (sunny, cloudy, partly-cloudy, rainy, stormy, snowy, foggy, windy); unknown values are displayed as-is."
             },
             "size": {
               "type": "string",
@@ -307,18 +328,25 @@
               "default": "km/h"
             },
             "direction": {
-              "type": "string",
-              "description": "Wind cardinal direction",
-              "enum": [
-                "N",
-                "NE",
-                "E",
-                "SE",
-                "S",
-                "SW",
-                "W",
-                "NW"
-              ]
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "N",
+                    "NE",
+                    "E",
+                    "SE",
+                    "S",
+                    "SW",
+                    "W",
+                    "NW"
+                  ]
+                },
+                {
+                  "$ref": "../common/common_types.json#/$defs/DynamicString"
+                }
+              ],
+              "description": "Wind direction. Prefer a known cardinal value (N, NE, E, SE, S, SW, W, NW); unknown values are displayed as-is."
             },
             "gustSpeed": {
               "$ref": "../common/common_types.json#/$defs/DynamicNumber",
