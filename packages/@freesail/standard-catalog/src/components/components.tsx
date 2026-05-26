@@ -1461,6 +1461,7 @@ export function FluidGrid({ component, children }: FreesailComponentProps) {
     gridTemplateColumns: `repeat(auto-fill, minmax(min(${minItemWidth}, 100%), 1fr))`,
     gap,
     width: '100%',
+    padding: 'var(--freesail-space-md)',
   };
   return <div style={style}>{children}</div>;
 }
@@ -1491,6 +1492,7 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
 
   const hasHeaders = headers.length > 0;
   const showGridLines = component['showGridLines'] !== false;
+  const showBorder = component['showBorder'] !== false;
   const themeVars = applyComponentTheme(component['theme'] as Record<string, string> | undefined);
 
   const wrapperClass = `${gridClass}-wrapper`;
@@ -1567,8 +1569,8 @@ export function TabularGrid({ component, children }: FreesailComponentProps) {
     width: '100%',
     overflowX: 'auto',
     overflowY: 'auto',
-    border: '1px solid var(--freesail-border)',
-    borderRadius: 'var(--freesail-radius-md)',
+    padding: 'var(--freesail-space-md)',
+    ...(showBorder ? { border: '1px solid var(--freesail-border)', borderRadius: 'var(--freesail-radius-md)' } : {}),
   };
 
   const headerCellStyle: CSSProperties = {
@@ -1767,6 +1769,7 @@ export function List({ component, children }: FreesailComponentProps) {
     gap: 'var(--freesail-space-sm)',
     maxHeight,
     overflowY: maxHeight !== 'auto' ? 'auto' : undefined,
+    padding: 'var(--freesail-space-md)',
   };
 
   return <div className="fs-layout" style={style}>{children}</div>;

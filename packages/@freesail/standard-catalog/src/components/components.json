@@ -1206,6 +1206,11 @@
               "description": "When true (default), draws a 1px border-bottom separator between rows. Set to false for grids where per-cell backgrounds provide the visual structure (e.g. a chess board with per-cell background props).",
               "default": true
             },
+            "showBorder": {
+              "type": "boolean",
+              "description": "When true (default), wraps the grid in a 1px solid border with rounded corners. Set to false to remove the border.",
+              "default": true
+            },
             "theme": {
               "$ref": "../common/common_types.json#/$defs/Theme",
               "description": "Theme token overrides for this grid and all descendants. Token-to-element mapping: bgMuted → header row background; bgRaised → odd data row background; bg → even data row background; textSecondary → header label text color; textForeground → data cell text color; border → row separators and outer border. Example: { \"bgMuted\": \"#1e3a5f\", \"bgRaised\": \"#1e3a5f\", \"bg\": \"#162d4a\", \"textForeground\": \"#ffffff\", \"border\": \"#2d5a8e\" }"
