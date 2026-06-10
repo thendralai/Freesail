@@ -2,13 +2,14 @@
     "extends": "../@freesail/tsconfig.base.json",
     "compilerOptions": {
         "outDir": "./dist",
-        "rootDir": "./src",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "jsx": "react-jsx",
         "types": ["node"]
     },
     "include": [
-        "src"
+        "src",
+        "tsup.config.ts",
+        "tsup.cli.config.ts"
     ]
 }

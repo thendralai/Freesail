@@ -864,7 +864,7 @@ function DefaultLoading() {
         fontSize: '13px',
         color: 'var(--freesail-text-secondary, #64748b)',
         letterSpacing: '0.05em',
-      }}>Preparing…</span>
+      }}></span>
     </div>
   );
 }

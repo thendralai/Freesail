@@ -1,6 +1,6 @@
 {
   "name": "@freesail/core",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Core frontend library for Freesail A2UI SDK - protocol definitions, parser and transport",
   "homepage": "https://www.freesail.ai",
   "type": "module",

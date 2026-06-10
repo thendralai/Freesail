@@ -21,7 +21,7 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     dts: true,
     clean: true,
-    external: ['@freesail/core', '@freesail/react', '@freesail/standard-catalog'],
+    external: ['react', 'react-dom', 'react/jsx-runtime', '@freesail/core', '@freesail/react', '@freesail/standard-catalog'],
   },
   // CLI build — CJS only, with shebang banner
   {

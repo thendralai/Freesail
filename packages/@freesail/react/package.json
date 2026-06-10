@@ -1,6 +1,6 @@
 {
   "name": "@freesail/react",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "React frontend for Freesail A2UI SDK",
   "homepage": "https://www.freesail.ai",
   "type": "module",
@@ -36,7 +36,7 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@freesail/core": "^0.9.3",
+    "@freesail/core": "^0.9.4",
     "vite": "^8.0.7"
   },
   "devDependencies": {

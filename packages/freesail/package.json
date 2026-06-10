@@ -1,11 +1,18 @@
 {
   "name": "freesail",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "CLI and core libraries for Freesail - an open-source A2UI SDK",
   "homepage": "https://www.freesail.ai",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "bin": {
     "freesail": "./dist/cli.js"
   },
@@ -23,9 +30,9 @@
     "tsup": "^8.0.0"
   },
   "dependencies": {
-    "@freesail/core": "^0.9.3",
-    "@freesail/gateway": "^0.9.3",
-    "@freesail/react": "^0.9.3",
+    "@freesail/core": "^0.9.4",
+    "@freesail/gateway": "^0.9.4",
+    "@freesail/react": "^0.9.4",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1"
   },
