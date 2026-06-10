@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://freesail.dev/schemas/catalog-schema-v1.json",
+  "$id": "https://freesail.ai/schemas/catalog-schema-v1.json",
   "title": "Freesail Catalog Definition",
   "description": "Meta-schema for catalog.json files. Describes the structure required by the Freesail Gateway and the Freesail CLI. Set \"$schema\" to this file's URI to enable IDE validation and autocompletion.",
   "type": "object",

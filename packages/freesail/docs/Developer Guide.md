@@ -320,7 +320,7 @@ await mcpClient.callTool({
   name: 'create_surface',
   arguments: {
     surfaceId: 'workspace',
-    catalogId: 'https://freesail.dev/catalogs/standard_catalog_v1.json', // from get_catalogs
+    catalogId: 'https://freesail.ai/catalogs/standard_catalog_v1.json', // from get_catalogs
     sessionId: 'session_abc123',
   },
 });

@@ -193,7 +193,7 @@ interface FreesailToolProvider {
 ```
 sessions resource updated (session appears)
   → claim_session(agentId, sessionId)           [retried on network error]
-  → subscribe to mcp://freesail.dev/sessions/{sessionId}
+  → subscribe to mcp://freesail.ai/sessions/{sessionId}
   → onSessionConnected()
         ↓
 per-session resource updated (action or error arrives)
@@ -204,7 +204,7 @@ sessions resource updated (session disappears)
   → drain all in-flight onSessionNotification promises
   → onSessionDisconnected()
   → release_session(agentId, sessionId)
-  → unsubscribe from mcp://freesail.dev/sessions/{sessionId}
+  → unsubscribe from mcp://freesail.ai/sessions/{sessionId}
   → agent instance GC'd
 ```
 

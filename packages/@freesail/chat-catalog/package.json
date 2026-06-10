@@ -1,8 +1,8 @@
 {
   "name": "@freesail/chat-catalog",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Chat UI Catalog for Freesail A2UI SDK - provides a collection of chat interface components to build conversational experiences in agent-driven UIs.",
-  "homepage": "https://www.freesail.dev",
+  "homepage": "https://www.freesail.ai",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,13 +36,13 @@
     "ai agent"
   ],
   "peerDependencies": {
-    "@freesail/standard-catalog": "^0.9.2",
-    "@freesail/react": "^0.9.2",
+    "@freesail/standard-catalog": "^0.9.3",
+    "@freesail/react": "^0.9.3",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@freesail/standard-catalog": "^0.9.2",
-    "@freesail/react": "^0.9.2",
+    "@freesail/standard-catalog": "^0.9.3",
+    "@freesail/react": "^0.9.3",
     "@types/react": "^18.2.0",
     "react": "^18.2.0"
   },

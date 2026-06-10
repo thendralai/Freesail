@@ -88,7 +88,7 @@ The Gateway exposes the following MCP tools to the agent:
 
 ## Documentation
 
-[www.freesail.dev](https://www.freesail.dev)
+[www.freesail.ai](https://www.freesail.ai)
 
 ## Maintainers & Contributors
 

@@ -646,7 +646,7 @@ export function prepareCatalog(config: CatalogConfig): boolean {
   }
 
   // 7. Assemble and write the catalog JSON
-  const CATALOG_SCHEMA_URL = 'https://freesail.dev/schemas/catalog-schema-v1.json';
+  const CATALOG_SCHEMA_URL = 'https://freesail.ai/schemas/catalog-schema-v1.json';
   const catalog: Record<string, unknown> = {};
   catalog['$schema'] = CATALOG_SCHEMA_URL;
   catalog['$id'] = meta.catalogId;

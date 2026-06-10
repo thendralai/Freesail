@@ -7,7 +7,7 @@ import { FreesailAgent, AgentFactory, ActionEvent, ClientErrorEvent, SessionNoti
 import { FreesailSessionClientImpl, FreesailToolProvider, ToolDefinition } from "./session-client.js";
 import { fetchFreesailSystemPrompt } from "./utils.js";
 
-const SESSIONS_URI = "mcp://freesail.dev/sessions";
+const SESSIONS_URI = "mcp://freesail.ai/sessions";
 
 export interface AgentRuntimeConfig {
   /** URL of the Freesail gateway MCP endpoint, e.g. http://localhost:3000/mcp */
@@ -126,7 +126,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
     }
 
     for (const [sessionId, client] of this.agentClients) {
-      const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+      const sessionUri = `mcp://freesail.ai/sessions/${encodeURIComponent(sessionId)}`;
       try { await client.callTool({ name: 'release_session', arguments: { sessionId } }); } catch {}
       try { await client.unsubscribeResource({ uri: sessionUri }); } catch {}
       try { await client.close(); } catch {}
@@ -300,7 +300,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
           claimedClient.setNotificationHandler(
             ResourceUpdatedNotificationSchema,
             async (notification) => {
-              const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(notification.params.uri);
+              const match = /^mcp:\/\/freesail\.ai\/sessions\/(.+)$/.exec(notification.params.uri);
               if (match) {
                 const sid = decodeURIComponent(match[1]!);
                 await this.handleSessionActions(sid, claimedClient);
@@ -311,7 +311,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
           this.agentClients.set(sessionId, claimedClient);
 
           // Subscribe to per-session resource on the dedicated client
-          const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+          const sessionUri = `mcp://freesail.ai/sessions/${encodeURIComponent(sessionId)}`;
           const RETRY_DELAYS_MS = [100, 500];
           let subscribed = false;
           let lastErr: unknown;
@@ -357,7 +357,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
 
           const agentClient = this.agentClients.get(sessionId);
           if (agentClient) {
-            const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+            const sessionUri = `mcp://freesail.ai/sessions/${encodeURIComponent(sessionId)}`;
             try {
               await agentClient.callTool({ name: 'release_session', arguments: { sessionId } });
             } catch (err) {
@@ -384,7 +384,7 @@ export class FreesailAgentRuntime implements FreesailToolProvider {
     if (!agent?.onSessionNotification) return;
 
     try {
-      const sessionUri = `mcp://freesail.dev/sessions/${encodeURIComponent(sessionId)}`;
+      const sessionUri = `mcp://freesail.ai/sessions/${encodeURIComponent(sessionId)}`;
       const result = await client.readResource({ uri: sessionUri });
       const content = result.contents[0];
       if (!content || !("text" in content) || !content.text) return;

@@ -1,8 +1,8 @@
 {
   "name": "@freesail/gateway",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Freesail Gateway - bridges AI Agents with the frontend UI, providing seamless integration for agent interactions",
-  "homepage": "https://www.freesail.dev",
+  "homepage": "https://www.freesail.ai",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -37,8 +37,8 @@
     "ai agent"
   ],
   "dependencies": {
-    "@freesail/core": "^0.9.2",
-    "@freesail/logger": "^0.9.2",
+    "@freesail/core": "^0.9.3",
+    "@freesail/logger": "^0.9.3",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",

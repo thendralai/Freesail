@@ -174,7 +174,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
   // Resources + Subscription Support
   // ========================================================================
 
-  const SESSIONS_URI = 'mcp://freesail.dev/sessions';
+  const SESSIONS_URI = 'mcp://freesail.ai/sessions';
 
   // Active resource subscriptions: uri → cleanup function.
   // clearSubscriptions() must be called when an agent transport closes so
@@ -225,7 +225,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
   // Reading the resource drains the queue.
   server.registerResource(
     'Browser Session Actions',
-    new ResourceTemplate('mcp://freesail.dev/sessions/{sessionId}', { list: undefined }),
+    new ResourceTemplate('mcp://freesail.ai/sessions/{sessionId}', { list: undefined }),
     {
       description:
         'Pending upstream actions for a specific browser session. ' +
@@ -262,7 +262,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       return {};
     }
 
-    const match = /^mcp:\/\/freesail\.dev\/sessions\/(.+)$/.exec(uri);
+    const match = /^mcp:\/\/freesail\.ai\/sessions\/(.+)$/.exec(uri);
     if (match) {
       const sessionId = decodeURIComponent(match[1]!);
       if (!subscriptionCleanups.has(uri)) {
@@ -752,7 +752,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
 
 
   // Tool to read pending actions for a session.
-  // Equivalent to reading mcp://freesail.dev/sessions/{sessionId} — use that URI
+  // Equivalent to reading mcp://freesail.ai/sessions/{sessionId} — use that URI
   // with resources/subscribe to get push notifications instead of polling.
   server.registerTool(
     'get_pending_actions',
@@ -760,7 +760,7 @@ export function createMCPServer(options: MCPServerOptions): { server: McpServer;
       description:
         'Retrieve and drain all pending upstream actions (button clicks, form submissions, etc.) ' +
         'from a specific client session. Returns an array of action messages. ' +
-        'For push-based delivery, subscribe to mcp://freesail.dev/sessions/{sessionId} instead.',
+        'For push-based delivery, subscribe to mcp://freesail.ai/sessions/{sessionId} instead.',
       inputSchema: {
         sessionId: z.string().describe('The session ID to get actions for'),
       },

@@ -340,7 +340,7 @@ function validateCatalog(config: CatalogConfig): boolean {
   }
 
   // 1.5 Check $schema field
-  const CATALOG_SCHEMA_URL = 'https://freesail.dev/schemas/catalog-schema-v1.json';
+  const CATALOG_SCHEMA_URL = 'https://freesail.ai/schemas/catalog-schema-v1.json';
   if (schema['$schema'] !== CATALOG_SCHEMA_URL) {
     console.error(`   ❌ $schema must be "${CATALOG_SCHEMA_URL}" but found: ${JSON.stringify(schema['$schema'])}`);
     isOk = false;
